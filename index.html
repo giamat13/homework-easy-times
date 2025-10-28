@@ -1,702 +1,425 @@
-<!DOCTYPE html>
-<html dir="rtl" lang="he">
-<head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>מערכת ניהול שיעורי בית</title>
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/lucide/0.263.1/umd/lucide.min.js"></script>
-  <style>
-    * {
-      margin: 0;
-      padding: 0;
-      box-sizing: border-box;
-    }
-    
-    body {
-      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
-      background: linear-gradient(135deg, #e0f2fe 0%, #ddd6fe 100%);
-      min-height: 100vh;
-      padding: 1rem;
-    }
-    
-    .container {
-      max-width: 1400px;
-      margin: 0 auto;
-    }
-    
-    .header {
-      background: white;
-      border-radius: 1rem;
-      box-shadow: 0 4px 6px rgba(0,0,0,0.1);
-      padding: 1.5rem;
-      margin-bottom: 1.5rem;
-    }
-    
-    .header-title {
-      display: flex;
-      align-items: center;
-      gap: 1rem;
-      margin-bottom: 1.5rem;
-    }
-    
-    .header-title h1 {
-      font-size: 2rem;
-      color: #1f2937;
-    }
-    
-    .stats {
-      display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
-      gap: 1rem;
-    }
-    
-    .stat-card {
-      border-radius: 0.75rem;
-      padding: 1rem;
-      text-align: center;
-    }
-    
-    .stat-card.blue { background: #dbeafe; }
-    .stat-card.green { background: #dcfce7; }
-    .stat-card.orange { background: #fed7aa; }
-    .stat-card.red { background: #fecaca; }
-    
-    .stat-number {
-      font-size: 2rem;
-      font-weight: bold;
-      margin-bottom: 0.25rem;
-    }
-    
-    .stat-number.blue { color: #2563eb; }
-    .stat-number.green { color: #16a34a; }
-    .stat-number.orange { color: #ea580c; }
-    .stat-number.red { color: #dc2626; }
-    
-    .stat-label {
-      font-size: 0.875rem;
-      color: #6b7280;
-    }
-    
-    .grid {
-      display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(350px, 1fr));
-      gap: 1.5rem;
-    }
-    
-    .panel {
-      background: white;
-      border-radius: 1rem;
-      box-shadow: 0 4px 6px rgba(0,0,0,0.1);
-      padding: 1.5rem;
-    }
-    
-    .panel h2 {
-      font-size: 1.25rem;
-      color: #1f2937;
-      margin-bottom: 1rem;
-    }
-    
-    .btn {
-      width: 100%;
-      padding: 0.75rem 1rem;
-      border: none;
-      border-radius: 0.75rem;
-      font-size: 1rem;
-      font-weight: 600;
-      cursor: pointer;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      gap: 0.5rem;
-      transition: all 0.2s;
-    }
-    
-    .btn-primary {
-      background: #3b82f6;
-      color: white;
-    }
-    
-    .btn-primary:hover {
-      background: #2563eb;
-    }
-    
-    .btn-success {
-      background: #10b981;
-      color: white;
-    }
-    
-    .btn-success:hover {
-      background: #059669;
-    }
-    
-    .btn-secondary {
-      background: #d1d5db;
-      color: #374151;
-    }
-    
-    .btn-secondary:hover {
-      background: #9ca3af;
-    }
-    
-    .input, .textarea, .select {
-      width: 100%;
-      padding: 0.5rem 0.75rem;
-      border: 1px solid #d1d5db;
-      border-radius: 0.5rem;
-      font-size: 1rem;
-      font-family: inherit;
-    }
-    
-    .textarea {
-      resize: vertical;
-      min-height: 80px;
-    }
-    
-    .form-group {
-      margin-bottom: 1rem;
-    }
-    
-    .form-group label {
-      display: block;
-      font-size: 0.875rem;
-      font-weight: 600;
-      color: #374151;
-      margin-bottom: 0.5rem;
-    }
-    
-    .color-picker {
-      display: flex;
-      gap: 0.5rem;
-      margin-bottom: 0.75rem;
-    }
-    
-    .color-option {
-      width: 2rem;
-      height: 2rem;
-      border-radius: 50%;
-      border: 2px solid #d1d5db;
-      cursor: pointer;
-      transition: all 0.2s;
-    }
-    
-    .color-option.selected {
-      border-color: #1f2937;
-      transform: scale(1.1);
-    }
-    
-    .subject-list {
-      display: flex;
-      flex-direction: column;
-      gap: 0.5rem;
-    }
-    
-    .subject-item {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      padding: 0.75rem;
-      border-radius: 0.75rem;
-      border: 2px solid;
-      transition: all 0.2s;
-    }
-    
-    .subject-item:hover {
-      box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-    }
-    
-    .subject-info {
-      display: flex;
-      align-items: center;
-      gap: 0.75rem;
-    }
-    
-    .subject-color {
-      width: 1rem;
-      height: 1rem;
-      border-radius: 50%;
-    }
-    
-    .subject-name {
-      font-weight: 600;
-      color: #1f2937;
-    }
-    
-    .icon-btn {
-      background: none;
-      border: none;
-      cursor: pointer;
-      padding: 0.25rem;
-      color: #ef4444;
-      transition: color 0.2s;
-    }
-    
-    .icon-btn:hover {
-      color: #b91c1c;
-    }
-    
-    .homework-list {
-      display: flex;
-      flex-direction: column;
-      gap: 0.75rem;
-      max-height: 600px;
-      overflow-y: auto;
-    }
-    
-    .homework-item {
-      border: 2px solid #e5e7eb;
-      border-radius: 0.75rem;
-      padding: 1rem;
-      transition: all 0.2s;
-    }
-    
-    .homework-item:hover {
-      box-shadow: 0 2px 8px rgba(0,0,0,0.1);
-    }
-    
-    .homework-item.completed {
-      background: #f9fafb;
-      border-color: #d1d5db;
-    }
-    
-    .homework-item.overdue {
-      border-color: #fca5a5;
-    }
-    
-    .homework-item.urgent {
-      border-color: #fdba74;
-    }
-    
-    .homework-header {
-      display: flex;
-      align-items: start;
-      gap: 0.75rem;
-    }
-    
-    .checkbox {
-      width: 1.5rem;
-      height: 1.5rem;
-      cursor: pointer;
-      margin-top: 0.25rem;
-    }
-    
-    .homework-content {
-      flex: 1;
-    }
-    
-    .homework-badges {
-      display: flex;
-      align-items: center;
-      gap: 0.5rem;
-      margin-bottom: 0.5rem;
-      flex-wrap: wrap;
-    }
-    
-    .badge {
-      padding: 0.25rem 0.5rem;
-      border-radius: 0.375rem;
-      font-size: 0.75rem;
-      font-weight: 600;
-      color: white;
-    }
-    
-    .homework-title {
-      font-weight: bold;
-      color: #1f2937;
-      margin-bottom: 0.5rem;
-    }
-    
-    .homework-title.completed {
-      text-decoration: line-through;
-      color: #6b7280;
-    }
-    
-    .homework-desc {
-      font-size: 0.875rem;
-      color: #6b7280;
-      margin-bottom: 0.5rem;
-    }
-    
-    .homework-meta {
-      display: flex;
-      align-items: center;
-      gap: 1rem;
-      font-size: 0.875rem;
-      color: #6b7280;
-    }
-    
-    .homework-meta .days-left {
-      font-weight: 600;
-    }
-    
-    .homework-meta .days-left.overdue {
-      color: #dc2626;
-    }
-    
-    .homework-meta .days-left.urgent {
-      color: #ea580c;
-    }
-    
-    .empty-state {
-      text-align: center;
-      padding: 4rem 1rem;
-      color: #9ca3af;
-    }
-    
-    .add-form {
-      background: #f9fafb;
-      border-radius: 0.75rem;
-      padding: 1rem;
-      margin-bottom: 1rem;
-    }
-    
-    .btn-group {
-      display: flex;
-      gap: 0.5rem;
-    }
-    
-    .list-header {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      margin-bottom: 1rem;
-    }
-    
-    .archive-btn {
-      background: none;
-      border: none;
-      color: #3b82f6;
-      font-size: 0.875rem;
-      font-weight: 600;
-      cursor: pointer;
-      padding: 0.5rem;
-    }
-    
-    .archive-btn:hover {
-      color: #1e40af;
-    }
-    
-    .hidden {
-      display: none;
-    }
-  </style>
-</head>
-<body>
-  <div class="container">
-    <!-- Header -->
-    <div class="header">
-      <div class="header-title">
-        <svg width="32" height="32" style="color: #3b82f6;">
-          <use href="#book-open"></use>
-        </svg>
-        <h1>ניהול שיעורי בית</h1>
-      </div>
-      
-      <div class="stats">
-        <div class="stat-card blue">
-          <div class="stat-number blue" id="stat-total">0</div>
-          <div class="stat-label">סך הכל</div>
-        </div>
-        <div class="stat-card green">
-          <div class="stat-number green" id="stat-completed">0</div>
-          <div class="stat-label">הושלמו</div>
-        </div>
-        <div class="stat-card orange">
-          <div class="stat-number orange" id="stat-pending">0</div>
-          <div class="stat-label">ממתינים</div>
-        </div>
-        <div class="stat-card red">
-          <div class="stat-number red" id="stat-urgent">0</div>
-          <div class="stat-label">דחוף</div>
-        </div>
-      </div>
-    </div>
+const { useState, useEffect } = React;
+const { Plus, Trash2, Calendar, BookOpen, CheckCircle, Circle, AlertCircle } = lucide;
 
-    <div class="grid">
-      <!-- Subjects Panel -->
-      <div class="panel">
-        <h2>מקצועות</h2>
-        
-        <button class="btn btn-primary" id="show-add-subject" style="margin-bottom: 1rem;">
-          <svg width="20" height="20"><use href="#plus"></use></svg>
-          הוסף מקצוע
-        </button>
-        
-        <div class="add-form hidden" id="add-subject-form">
-          <input type="text" class="input" id="subject-name" placeholder="שם המקצוע" style="margin-bottom: 0.75rem;">
-          <div class="color-picker" id="color-picker"></div>
-          <div class="btn-group">
-            <button class="btn btn-success" id="save-subject">שמור</button>
-            <button class="btn btn-secondary" id="cancel-subject">ביטול</button>
+function HomeworkManager() {
+  const [subjects, setSubjects] = useState([]);
+  const [homework, setHomework] = useState([]);
+  const [showAddSubject, setShowAddSubject] = useState(false);
+  const [showArchive, setShowArchive] = useState(false);
+  const [newSubject, setNewSubject] = useState({ name: '', color: '#3b82f6' });
+  const [newHomework, setNewHomework] = useState({
+    subject: '',
+    title: '',
+    description: '',
+    dueDate: '',
+    priority: 'medium',
+    completed: false
+  });
+
+  const colors = ['#3b82f6', '#ef4444', '#10b981', '#f59e0b', '#8b5cf6', '#ec4899'];
+
+  useEffect(() => {
+    loadData();
+  }, []);
+
+  const loadData = () => {
+    try {
+      const subjectsData = localStorage.getItem('homework-subjects');
+      if (subjectsData) {
+        setSubjects(JSON.parse(subjectsData));
+      }
+      const homeworkData = localStorage.getItem('homework-list');
+      if (homeworkData) {
+        setHomework(JSON.parse(homeworkData));
+      }
+    } catch (error) {
+      console.log('מערכת חדשה');
+    }
+  };
+
+  const saveData = () => {
+    try {
+      localStorage.setItem('homework-subjects', JSON.stringify(subjects));
+      localStorage.setItem('homework-list', JSON.stringify(homework));
+    } catch (error) {
+      console.error('שגיאה בשמירה:', error);
+    }
+  };
+
+  useEffect(() => {
+    if (subjects.length > 0 || homework.length > 0) {
+      saveData();
+    }
+  }, [subjects, homework]);
+
+  const addSubject = () => {
+    if (!newSubject.name.trim()) return;
+    setSubjects([...subjects, { id: Date.now(), ...newSubject }]);
+    setNewSubject({ name: '', color: '#3b82f6' });
+    setShowAddSubject(false);
+  };
+
+  const deleteSubject = (id) => {
+    setSubjects(subjects.filter(s => s.id !== id));
+    setHomework(homework.filter(h => h.subject !== id));
+  };
+
+  const addHomework = () => {
+    if (!newHomework.subject || !newHomework.title.trim() || !newHomework.dueDate) return;
+    setHomework([...homework, { id: Date.now(), ...newHomework }]);
+    setNewHomework({
+      subject: '',
+      title: '',
+      description: '',
+      dueDate: '',
+      priority: 'medium',
+      completed: false
+    });
+  };
+
+  const toggleComplete = (id) => {
+    setHomework(homework.map(h => 
+      h.id === id ? { ...h, completed: !h.completed } : h
+    ));
+  };
+
+  const deleteHomework = (id) => {
+    setHomework(homework.filter(h => h.id !== id));
+  };
+
+  const getSubjectName = (subjectId) => {
+    const subject = subjects.find(s => s.id === subjectId);
+    return subject ? subject.name : '';
+  };
+
+  const getSubjectColor = (subjectId) => {
+    const subject = subjects.find(s => s.id === subjectId);
+    return subject ? subject.color : '#3b82f6';
+  };
+
+  const getDaysUntilDue = (dueDate) => {
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    const due = new Date(dueDate + 'T00:00:00');
+    const diff = Math.round((due - today) / (1000 * 60 * 60 * 24));
+    return diff;
+  };
+
+  const sortedHomework = [...homework].sort((a, b) => {
+    if (a.completed !== b.completed) return a.completed ? 1 : -1;
+    return new Date(a.dueDate) - new Date(b.dueDate);
+  });
+
+  const activeHomework = sortedHomework.filter(h => {
+    if (!h.completed) return true;
+    const daysLeft = getDaysUntilDue(h.dueDate);
+    return daysLeft >= 0;
+  });
+
+  const archivedHomework = sortedHomework.filter(h => {
+    if (!h.completed) return false;
+    const daysLeft = getDaysUntilDue(h.dueDate);
+    return daysLeft < 0;
+  });
+
+  const stats = {
+    total: homework.length,
+    completed: homework.filter(h => h.completed).length,
+    pending: homework.filter(h => !h.completed).length,
+    urgent: homework.filter(h => !h.completed && getDaysUntilDue(h.dueDate) <= 2).length
+  };
+
+  return (
+    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 p-4" dir="rtl">
+      <div className="max-w-6xl mx-auto">
+        {/* Header */}
+        <div className="bg-white rounded-2xl shadow-lg p-6 mb-6">
+          <div className="flex items-center gap-3 mb-4">
+            <BookOpen className="w-8 h-8 text-blue-600" />
+            <h1 className="text-3xl font-bold text-gray-800">ניהול שיעורי בית</h1>
           </div>
-        </div>
-        
-        <div class="subject-list" id="subject-list"></div>
-      </div>
-
-      <!-- Add Homework Panel -->
-      <div class="panel">
-        <h2>הוסף שיעורי בית</h2>
-        
-        <div class="form-group">
-          <label>מקצוע</label>
-          <select class="select" id="hw-subject">
-            <option value="">בחר מקצוע</option>
-          </select>
-        </div>
-        
-        <div class="form-group">
-          <label>כותרת</label>
-          <input type="text" class="input" id="hw-title" placeholder="למשל: תרגיל 5">
-        </div>
-        
-        <div class="form-group">
-          <label>תיאור</label>
-          <textarea class="textarea" id="hw-desc" placeholder="פרטים נוספים..."></textarea>
-        </div>
-        
-        <div class="form-group">
-          <label>תאריך הגשה</label>
-          <input type="date" class="input" id="hw-date">
-        </div>
-        
-        <div class="form-group">
-          <label>עדיפות</label>
-          <select class="select" id="hw-priority">
-            <option value="low">נמוכה</option>
-            <option value="medium" selected>בינונית</option>
-            <option value="high">גבוהה</option>
-          </select>
-        </div>
-        
-        <button class="btn btn-primary" id="add-homework">
-          <svg width="20" height="20"><use href="#plus"></use></svg>
-          הוסף משימה
-        </button>
-      </div>
-
-      <!-- Homework List Panel -->
-      <div class="panel">
-        <div class="list-header">
-          <h2>רשימת משימות</h2>
-          <button class="archive-btn hidden" id="archive-toggle"></button>
-        </div>
-        
-        <div class="homework-list" id="homework-list"></div>
-      </div>
-    </div>
-  </div>
-
-  <!-- SVG Icons -->
-  <svg style="display: none;">
-    <symbol id="book-open" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-      <path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"></path>
-      <path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"></path>
-    </symbol>
-    <symbol id="plus" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-      <line x1="12" y1="5" x2="12" y2="19"></line>
-      <line x1="5" y1="12" x2="19" y2="12"></line>
-    </symbol>
-    <symbol id="trash" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-      <polyline points="3 6 5 6 21 6"></polyline>
-      <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
-    </symbol>
-    <symbol id="calendar" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-      <rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect>
-      <line x1="16" y1="2" x2="16" y2="6"></line>
-      <line x1="8" y1="2" x2="8" y2="6"></line>
-      <line x1="3" y1="10" x2="21" y2="10"></line>
-    </symbol>
-    <symbol id="check-circle" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-      <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path>
-      <polyline points="22 4 12 14.01 9 11.01"></polyline>
-    </symbol>
-    <symbol id="circle" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-      <circle cx="12" cy="12" r="10"></circle>
-    </symbol>
-  </svg>
-
-  <script>
-    const colors = ['#3b82f6', '#ef4444', '#10b981', '#f59e0b', '#8b5cf6', '#ec4899'];
-    let subjects = [];
-    let homework = [];
-    let selectedColor = '#3b82f6';
-    let showArchive = false;
-
-    // Load data
-    async function loadData() {
-      try {
-        const subResult = await window.storage.get('homework-subjects');
-        if (subResult) {
-          subjects = JSON.parse(subResult.value);
-        }
-        const hwResult = await window.storage.get('homework-list');
-        if (hwResult) {
-          homework = JSON.parse(hwResult.value);
-        }
-      } catch (error) {
-        console.log('מערכת חדשה');
-      }
-      render();
-    }
-
-    // Save data
-    async function saveData() {
-      try {
-        await window.storage.set('homework-subjects', JSON.stringify(subjects));
-        await window.storage.set('homework-list', JSON.stringify(homework));
-      } catch (error) {
-        console.error('שגיאה בשמירה:', error);
-      }
-    }
-
-    // Calculate days until due
-    function getDaysUntilDue(dueDate) {
-      const today = new Date();
-      today.setHours(0, 0, 0, 0);
-      const due = new Date(dueDate + 'T00:00:00');
-      return Math.round((due - today) / (1000 * 60 * 60 * 24));
-    }
-
-    // Render color picker
-    function renderColorPicker() {
-      const picker = document.getElementById('color-picker');
-      picker.innerHTML = colors.map(color => `
-        <div class="color-option ${color === selectedColor ? 'selected' : ''}" 
-             style="background-color: ${color};"
-             onclick="selectedColor = '${color}'; renderColorPicker();"></div>
-      `).join('');
-    }
-
-    // Render subjects
-    function renderSubjects() {
-      const list = document.getElementById('subject-list');
-      const select = document.getElementById('hw-subject');
-      
-      if (subjects.length === 0) {
-        list.innerHTML = '<p class="empty-state">טרם הוספו מקצועות</p>';
-      } else {
-        list.innerHTML = subjects.map(s => `
-          <div class="subject-item" style="border-color: ${s.color};">
-            <div class="subject-info">
-              <div class="subject-color" style="background-color: ${s.color};"></div>
-              <span class="subject-name">${s.name}</span>
+          
+          {/* Stats */}
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+            <div className="bg-blue-50 rounded-xl p-4 text-center">
+              <div className="text-2xl font-bold text-blue-600">{stats.total}</div>
+              <div className="text-sm text-gray-600">סך הכל</div>
             </div>
-            <button class="icon-btn" onclick="deleteSubject(${s.id})">
-              <svg width="16" height="16"><use href="#trash"></use></svg>
-            </button>
+            <div className="bg-green-50 rounded-xl p-4 text-center">
+              <div className="text-2xl font-bold text-green-600">{stats.completed}</div>
+              <div className="text-sm text-gray-600">הושלמו</div>
+            </div>
+            <div className="bg-orange-50 rounded-xl p-4 text-center">
+              <div className="text-2xl font-bold text-orange-600">{stats.pending}</div>
+              <div className="text-sm text-gray-600">ממתינים</div>
+            </div>
+            <div className="bg-red-50 rounded-xl p-4 text-center">
+              <div className="text-2xl font-bold text-red-600">{stats.urgent}</div>
+              <div className="text-sm text-gray-600">דחוף</div>
+            </div>
           </div>
-        `).join('');
-      }
-      
-      select.innerHTML = '<option value="">בחר מקצוע</option>' + 
-        subjects.map(s => `<option value="${s.id}">${s.name}</option>`).join('');
-    }
+        </div>
 
-    // Render homework
-    function renderHomework() {
-      const list = document.getElementById('homework-list');
-      const archiveBtn = document.getElementById('archive-toggle');
-      
-      const activeHomework = homework.filter(h => {
-        if (!h.completed) return true;
-        return getDaysUntilDue(h.dueDate) >= 0;
-      });
-      
-      const archivedHomework = homework.filter(h => {
-        if (!h.completed) return false;
-        return getDaysUntilDue(h.dueDate) < 0;
-      });
-      
-      if (archivedHomework.length > 0) {
-        archiveBtn.classList.remove('hidden');
-        archiveBtn.textContent = showArchive ? 'הסתר ארכיון' : `ארכיון (${archivedHomework.length})`;
-      } else {
-        archiveBtn.classList.add('hidden');
-      }
-      
-      const displayList = showArchive ? archivedHomework : activeHomework;
-      
-      if (displayList.length === 0) {
-        list.innerHTML = `<p class="empty-state">${showArchive ? 'אין פריטים בארכיון' : 'אין שיעורי בית להצגה'}</p>`;
-        return;
-      }
-      
-      const sorted = [...displayList].sort((a, b) => {
-        if (a.completed !== b.completed) return a.completed ? 1 : -1;
-        return new Date(a.dueDate) - new Date(b.dueDate);
-      });
-      
-      list.innerHTML = sorted.map(hw => {
-        const subject = subjects.find(s => s.id == hw.subject);
-        const daysLeft = getDaysUntilDue(hw.dueDate);
-        const isUrgent = daysLeft <= 2 && !hw.completed;
-        const isOverdue = daysLeft < 0 && !hw.completed;
-        
-        let classes = 'homework-item';
-        if (hw.completed) classes += ' completed';
-        if (isOverdue) classes += ' overdue';
-        else if (isUrgent) classes += ' urgent';
-        
-        let daysText = '';
-        if (!hw.completed) {
-          if (isOverdue) daysText = `באיחור של ${Math.abs(daysLeft)} ימים`;
-          else if (daysLeft === 0) daysText = 'היום!';
-          else if (daysLeft === 1) daysText = 'מחר';
-          else if (daysLeft === 2) daysText = 'מחרתיים';
-          else daysText = `עוד ${daysLeft} ימים`;
-        }
-        
-        return `
-          <div class="${classes}" ${!hw.completed && !isOverdue && !isUrgent && subject ? `style="border-color: ${subject.color};"` : ''}>
-            <div class="homework-header">
-              <input type="checkbox" class="checkbox" ${hw.completed ? 'checked' : ''} 
-                     onchange="toggleComplete(${hw.id})">
-              <div class="homework-content">
-                <div class="homework-badges">
-                  ${subject ? `<span class="badge" style="background-color: ${subject.color};">${subject.name}</span>` : ''}
-                  ${isOverdue ? '<span class="badge" style="background-color: #ef4444;">איחור!</span>' : ''}
-                  ${isUrgent && !isOverdue ? '<span class="badge" style="background-color: #f59e0b;">דחוף</span>' : ''}
+        <div className="grid md:grid-cols-3 gap-6">
+          {/* Subjects Panel */}
+          <div className="bg-white rounded-2xl shadow-lg p-6">
+            <h2 className="text-xl font-bold text-gray-800 mb-4">מקצועות</h2>
+            
+            {!showAddSubject ? (
+              <button
+                onClick={() => setShowAddSubject(true)}
+                className="w-full bg-blue-500 text-white rounded-xl py-3 px-4 flex items-center justify-center gap-2 hover:bg-blue-600 transition mb-4"
+              >
+                <Plus className="w-5 h-5" />
+                הוסף מקצוע
+              </button>
+            ) : (
+              <div className="bg-gray-50 rounded-xl p-4 mb-4">
+                <input
+                  type="text"
+                  value={newSubject.name}
+                  onChange={(e) => setNewSubject({ ...newSubject, name: e.target.value })}
+                  placeholder="שם המקצוע"
+                  className="w-full border border-gray-300 rounded-lg px-3 py-2 mb-3"
+                  onKeyPress={(e) => e.key === 'Enter' && addSubject()}
+                />
+                <div className="flex gap-2 mb-3">
+                  {colors.map(color => (
+                    <button
+                      key={color}
+                      onClick={() => setNewSubject({ ...newSubject, color })}
+                      className={`w-8 h-8 rounded-full border-2 ${newSubject.color === color ? 'border-gray-800' : 'border-gray-300'}`}
+                      style={{ backgroundColor: color }}
+                    />
+                  ))}
                 </div>
-                <h3 class="homework-title ${hw.completed ? 'completed' : ''}">${hw.title}</h3>
-                ${hw.description ? `<p class="homework-desc">${hw.description}</p>` : ''}
-                <div class="homework-meta">
-                  <span>
-                    <svg width="16" height="16" style="display: inline; vertical-align: middle;"><use href="#calendar"></use></svg>
-                    ${new Date(hw.dueDate).toLocaleDateString('he-IL')}
-                  </span>
-                  ${daysText ? `<span class="days-left ${isOverdue ? 'overdue' : isUrgent ? 'urgent' : ''}">${daysText}</span>` : ''}
+                <div className="flex gap-2">
+                  <button
+                    onClick={addSubject}
+                    className="flex-1 bg-green-500 text-white rounded-lg py-2 hover:bg-green-600"
+                  >
+                    שמור
+                  </button>
+                  <button
+                    onClick={() => setShowAddSubject(false)}
+                    className="flex-1 bg-gray-300 text-gray-700 rounded-lg py-2 hover:bg-gray-400"
+                  >
+                    ביטול
+                  </button>
                 </div>
               </div>
-              <button class="icon-btn" onclick="deleteHomework(${hw.id})">
-                <svg width="20" height="20"><use href="#trash"></use></svg>
+            )}
+
+            <div className="space-y-2">
+              {subjects.map(subject => (
+                <div
+                  key={subject.id}
+                  className="flex items-center justify-between p-3 rounded-xl border-2 hover:shadow-md transition"
+                  style={{ borderColor: subject.color }}
+                >
+                  <div className="flex items-center gap-3">
+                    <div
+                      className="w-4 h-4 rounded-full"
+                      style={{ backgroundColor: subject.color }}
+                    />
+                    <span className="font-semibold text-gray-800">{subject.name}</span>
+                  </div>
+                  <button
+                    onClick={() => deleteSubject(subject.id)}
+                    className="text-red-500 hover:text-red-700"
+                  >
+                    <Trash2 className="w-4 h-4" />
+                  </button>
+                </div>
+              ))}
+              {subjects.length === 0 && (
+                <p className="text-gray-400 text-center py-8">טרם הוספו מקצועות</p>
+              )}
+            </div>
+          </div>
+
+          {/* Add Homework Panel */}
+          <div className="bg-white rounded-2xl shadow-lg p-6">
+            <h2 className="text-xl font-bold text-gray-800 mb-4">הוסף שיעורי בית</h2>
+            
+            <div className="space-y-4">
+              <div>
+                <label className="block text-sm font-semibold text-gray-700 mb-2">מקצוע</label>
+                <select
+                  value={newHomework.subject}
+                  onChange={(e) => setNewHomework({ ...newHomework, subject: e.target.value })}
+                  className="w-full border border-gray-300 rounded-lg px-3 py-2"
+                >
+                  <option value="">בחר מקצוע</option>
+                  {subjects.map(subject => (
+                    <option key={subject.id} value={subject.id}>{subject.name}</option>
+                  ))}
+                </select>
+              </div>
+
+              <div>
+                <label className="block text-sm font-semibold text-gray-700 mb-2">כותרת</label>
+                <input
+                  type="text"
+                  value={newHomework.title}
+                  onChange={(e) => setNewHomework({ ...newHomework, title: e.target.value })}
+                  placeholder="למשל: תרגיל 5"
+                  className="w-full border border-gray-300 rounded-lg px-3 py-2"
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-semibold text-gray-700 mb-2">תיאור</label>
+                <textarea
+                  value={newHomework.description}
+                  onChange={(e) => setNewHomework({ ...newHomework, description: e.target.value })}
+                  placeholder="פרטים נוספים..."
+                  rows="3"
+                  className="w-full border border-gray-300 rounded-lg px-3 py-2"
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-semibold text-gray-700 mb-2">תאריך הגשה</label>
+                <input
+                  type="date"
+                  value={newHomework.dueDate}
+                  onChange={(e) => setNewHomework({ ...newHomework, dueDate: e.target.value })}
+                  className="w-full border border-gray-300 rounded-lg px-3 py-2"
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-semibold text-gray-700 mb-2">עדיפות</label>
+                <select
+                  value={newHomework.priority}
+                  onChange={(e) => setNewHomework({ ...newHomework, priority: e.target.value })}
+                  className="w-full border border-gray-300 rounded-lg px-3 py-2"
+                >
+                  <option value="low">נמוכה</option>
+                  <option value="medium">בינונית</option>
+                  <option value="high">גבוהה</option>
+                </select>
+              </div>
+
+              <button
+                onClick={addHomework}
+                className="w-full bg-blue-500 text-white rounded-xl py-3 font-semibold hover:bg-blue-600 transition flex items-center justify-center gap-2"
+              >
+                <Plus className="w-5 h-5" />
+                הוסף משימה
               </button>
             </div>
           </div>
-        `;
-      }).join('');
-    }
 
-    // Update stats
-    function updateStats() {
-      document.getElementById('stat-total').textContent = homework.length;
-      document.getElementById('stat-completed').textContent = homework.filter(h => h.completed).length;
-      document.getElementById('stat-pending').textContent = homework.filter(h => !h.completed).length;
-      document.getElementById('stat-urgent').textContent = homework.filter(h => !h.completed && getDaysUntilDue(h.dueDate) <= 2).length;
-    }
+          {/* Homework List */}
+          <div className="bg-white rounded-2xl shadow-lg p-6">
+            <div className="flex items-center justify-between mb-4">
+              <h2 className="text-xl font-bold text-gray-800">רשימת משימות</h2>
+              {archivedHomework.length > 0 && (
+                <button
+                  onClick={() => setShowArchive(!showArchive)}
+                  className="text-sm text-blue-600 hover:text-blue-800 font-semibold"
+                >
+                  {showArchive ? 'הסתר ארכיון' : `ארכיון (${archivedHomework.length})`}
+                </button>
+              )}
+            </div>
+            
+            <div className="space-y-3 max-h-[600px] overflow-y-auto">
+              {(showArchive ? archivedHomework : activeHomework).map(hw => {
+                const daysLeft = getDaysUntilDue(hw.dueDate);
+                const isUrgent = daysLeft <= 2 && !hw.completed;
+                const isOverdue = daysLeft < 0 && !hw.completed;
 
-    // Render all
-    function render() {
-      renderSubjects();
-      renderHomework();
-      updateStats();
-    }
+                return (
+                  <div
+                    key={hw.id}
+                    className={`border-2 rounded-xl p-4 transition ${
+                      hw.completed ? 'bg-gray-50 border-gray-300' : 'bg-white border-gray-200 hover:shadow-md'
+                    } ${isOverdue ? 'border-red-400' : ''} ${isUrgent && !isOverdue ? 'border-orange-400' : ''}`}
+                    style={!hw.completed && !isOverdue && !isUrgent ? { borderColor: getSubjectColor(hw.subject) } : {}}
+                  >
+                    <div className="flex items-start gap-3">
+                      <button
+                        onClick={() => toggleComplete(hw.id)}
+                        className="mt-1"
+                      >
+                        {hw.completed ? (
+                          <CheckCircle className="w-6 h-6 text-green-500" />
+                        ) : (
+                          <Circle className="w-6 h-6 text-gray-400" />
+                        )}
+                      </button>
 
-    // Add subject
-    function addSubject() {
-      const name = document.getElementById('subject-name').value.trim();
-      if (!name) return;
-      
-      subjects.push({ id: Date.now(), name, color: selectedColor });
-      document.getElementById('subject-name').value = '';
-      selectedColor = '#3b82f6';
-      docume
+                      <div className="flex-1">
+                        <div className="flex items-center gap-2 mb-1">
+                          <span
+                            className="px-2 py-1 rounded-md text-xs font-semibold text-white"
+                            style={{ backgroundColor: getSubjectColor(hw.subject) }}
+                          >
+                            {getSubjectName(hw.subject)}
+                          </span>
+                          {isOverdue && (
+                            <span className="px-2 py-1 rounded-md text-xs font-semibold bg-red-500 text-white">
+                              איחור!
+                            </span>
+                          )}
+                          {isUrgent && !isOverdue && (
+                            <span className="px-2 py-1 rounded-md text-xs font-semibold bg-orange-500 text-white">
+                              דחוף
+                            </span>
+                          )}
+                        </div>
+
+                        <h3 className={`font-bold text-gray-800 mb-1 ${hw.completed ? 'line-through text-gray-500' : ''}`}>
+                          {hw.title}
+                        </h3>
+                        
+                        {hw.description && (
+                          <p className="text-sm text-gray-600 mb-2">{hw.description}</p>
+                        )}
+
+                        <div className="flex items-center gap-4 text-sm text-gray-500">
+                          <span className="flex items-center gap-1">
+                            <Calendar className="w-4 h-4" />
+                            {new Date(hw.dueDate).toLocaleDateString('he-IL')}
+                          </span>
+                          {!hw.completed && (
+                            <span className={`font-semibold ${
+                              isOverdue ? 'text-red-600' : 
+                              isUrgent ? 'text-orange-600' : 
+                              'text-gray-600'
+                            }`}>
+                              {isOverdue ? `באיחור של ${Math.abs(daysLeft)} ימים` :
+                               daysLeft === 0 ? 'היום!' :
+                               daysLeft === 1 ? 'מחר' :
+                               daysLeft === 2 ? 'מחרתיים' :
+                               `עוד ${daysLeft} ימים`}
+                            </span>
+                          )}
+                        </div>
+                      </div>
+
+                      <button
+                        onClick={() => deleteHomework(hw.id)}
+                        className="text-red-500 hover:text-red-700"
+                      >
+                        <Trash2 className="w-5 h-5" />
+                      </button>
+                    </div>
+                  </div>
+                );
+              })}
+              {(showArchive ? archivedHomework : activeHomework).length === 0 && (
+                <p className="text-gray-400 text-center py-16">
+                  {showArchive ? 'אין פריטים בארכיון' : 'אין שיעורי בית להצגה'}
+                </p>
+              )}
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
