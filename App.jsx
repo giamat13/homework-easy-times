@@ -1,7 +1,7 @@
-import React, { useState, useEffect } from 'react';
-import { Plus, Trash2, Calendar, BookOpen, CheckCircle, Circle, AlertCircle } from 'lucide-react';
+const { useState, useEffect } = React;
+const { Plus, Trash2, Calendar, BookOpen, CheckCircle, Circle, AlertCircle } = lucide;
 
-export default function HomeworkManager() {
+function HomeworkManager() {
   const [subjects, setSubjects] = useState([]);
   const [homework, setHomework] = useState([]);
   const [showAddSubject, setShowAddSubject] = useState(false);
@@ -22,25 +22,25 @@ export default function HomeworkManager() {
     loadData();
   }, []);
 
-  const loadData = async () => {
+  const loadData = () => {
     try {
-      const subResult = await window.storage.get('homework-subjects');
-      if (subResult) {
-        setSubjects(JSON.parse(subResult.value));
+      const subjectsData = localStorage.getItem('homework-subjects');
+      if (subjectsData) {
+        setSubjects(JSON.parse(subjectsData));
       }
-      const hwResult = await window.storage.get('homework-list');
-      if (hwResult) {
-        setHomework(JSON.parse(hwResult.value));
+      const homeworkData = localStorage.getItem('homework-list');
+      if (homeworkData) {
+        setHomework(JSON.parse(homeworkData));
       }
     } catch (error) {
       console.log('מערכת חדשה');
     }
   };
 
-  const saveData = async () => {
+  const saveData = () => {
     try {
-      await window.storage.set('homework-subjects', JSON.stringify(subjects));
-      await window.storage.set('homework-list', JSON.stringify(homework));
+      localStorage.setItem('homework-subjects', JSON.stringify(subjects));
+      localStorage.setItem('homework-list', JSON.stringify(homework));
     } catch (error) {
       console.error('שגיאה בשמירה:', error);
     }
@@ -422,4 +422,4 @@ export default function HomeworkManager() {
       </div>
     </div>
   );
-                                                                  }
+                }
