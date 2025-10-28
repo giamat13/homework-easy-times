@@ -1,0 +1,120 @@
+body {
+  font-family: "Rubik", sans-serif;
+  background: #f7f7fb;
+  margin: 0;
+  padding: 0;
+  direction: rtl;
+  color: #222;
+}
+
+header {
+  background: linear-gradient(135deg, #4a90e2, #007aff);
+  color: white;
+  text-align: center;
+  padding: 1rem;
+  font-size: 1.5rem;
+  font-weight: bold;
+}
+
+main {
+  max-width: 900px;
+  margin: 2rem auto;
+  padding: 1rem;
+  background: white;
+  border-radius: 16px;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+}
+
+h2 {
+  margin-top: 0;
+}
+
+.flex {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+input, select, textarea, button {
+  font-family: inherit;
+  border-radius: 8px;
+  border: 1px solid #ccc;
+  padding: 0.5rem;
+  font-size: 1rem;
+}
+
+button {
+  background: #007aff;
+  color: white;
+  border: none;
+  cursor: pointer;
+  transition: 0.3s;
+}
+
+button:hover {
+  background: #005ecb;
+}
+
+.subject {
+  display: inline-block;
+  margin: 4px;
+  padding: 6px 12px;
+  border-radius: 16px;
+  color: white;
+  font-weight: bold;
+  cursor: pointer;
+}
+
+.hidden {
+  display: none;
+}
+
+.hw-card {
+  border: 2px solid transparent;
+  border-radius: 12px;
+  padding: 10px;
+  margin: 10px 0;
+  transition: 0.3s;
+  background: #fafafa;
+}
+
+.hw-card.completed {
+  opacity: 0.6;
+  text-decoration: line-through;
+}
+
+.hw-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.priority-high {
+  border-right: 5px solid #ff3b30;
+}
+
+.priority-medium {
+  border-right: 5px solid #ffcc00;
+}
+
+.priority-low {
+  border-right: 5px solid #4cd964;
+}
+
+.color-picker {
+  display: flex;
+  gap: 6px;
+}
+
+.color-option {
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  cursor: pointer;
+  border: 2px solid #ddd;
+}
+
+#archive-toggle {
+  background: #555;
+  margin-bottom: 1rem;
+}
