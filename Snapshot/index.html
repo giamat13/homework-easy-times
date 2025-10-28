@@ -1,0 +1,828 @@
+<!DOCTYPE html>
+<html dir="rtl" lang="he">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>מערכת ניהול שיעורי בית</title>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/lucide/0.263.1/umd/lucide.min.js"></script>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+    
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
+      background: linear-gradient(135deg, #e0f2fe 0%, #ddd6fe 100%);
+      min-height: 100vh;
+      padding: 1rem;
+    }
+    
+    .container {
+      max-width: 1400px;
+      margin: 0 auto;
+    }
+    
+    .header {
+      background: white;
+      border-radius: 1rem;
+      box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+      padding: 1.5rem;
+      margin-bottom: 1.5rem;
+    }
+    
+    .header-title {
+      display: flex;
+      align-items: center;
+      gap: 1rem;
+      margin-bottom: 1.5rem;
+    }
+    
+    .header-title h1 {
+      font-size: 2rem;
+      color: #1f2937;
+    }
+    
+    .stats {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+      gap: 1rem;
+    }
+    
+    .stat-card {
+      border-radius: 0.75rem;
+      padding: 1rem;
+      text-align: center;
+    }
+    
+    .stat-card.blue { background: #dbeafe; }
+    .stat-card.green { background: #dcfce7; }
+    .stat-card.orange { background: #fed7aa; }
+    .stat-card.red { background: #fecaca; }
+    
+    .stat-number {
+      font-size: 2rem;
+      font-weight: bold;
+      margin-bottom: 0.25rem;
+    }
+    
+    .stat-number.blue { color: #2563eb; }
+    .stat-number.green { color: #16a34a; }
+    .stat-number.orange { color: #ea580c; }
+    .stat-number.red { color: #dc2626; }
+    
+    .stat-label {
+      font-size: 0.875rem;
+      color: #6b7280;
+    }
+    
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(350px, 1fr));
+      gap: 1.5rem;
+    }
+    
+    .panel {
+      background: white;
+      border-radius: 1rem;
+      box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+      padding: 1.5rem;
+    }
+    
+    .panel h2 {
+      font-size: 1.25rem;
+      color: #1f2937;
+      margin-bottom: 1rem;
+    }
+    
+    .btn {
+      width: 100%;
+      padding: 0.75rem 1rem;
+      border: none;
+      border-radius: 0.75rem;
+      font-size: 1rem;
+      font-weight: 600;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 0.5rem;
+      transition: all 0.2s;
+    }
+    
+    .btn-primary {
+      background: #3b82f6;
+      color: white;
+    }
+    
+    .btn-primary:hover {
+      background: #2563eb;
+    }
+    
+    .btn-success {
+      background: #10b981;
+      color: white;
+    }
+    
+    .btn-success:hover {
+      background: #059669;
+    }
+    
+    .btn-secondary {
+      background: #d1d5db;
+      color: #374151;
+    }
+    
+    .btn-secondary:hover {
+      background: #9ca3af;
+    }
+    
+    .input, .textarea, .select {
+      width: 100%;
+      padding: 0.5rem 0.75rem;
+      border: 1px solid #d1d5db;
+      border-radius: 0.5rem;
+      font-size: 1rem;
+      font-family: inherit;
+    }
+    
+    .textarea {
+      resize: vertical;
+      min-height: 80px;
+    }
+    
+    .form-group {
+      margin-bottom: 1rem;
+    }
+    
+    .form-group label {
+      display: block;
+      font-size: 0.875rem;
+      font-weight: 600;
+      color: #374151;
+      margin-bottom: 0.5rem;
+    }
+    
+    .color-picker {
+      display: flex;
+      gap: 0.5rem;
+      margin-bottom: 0.75rem;
+    }
+    
+    .color-option {
+      width: 2rem;
+      height: 2rem;
+      border-radius: 50%;
+      border: 2px solid #d1d5db;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+    
+    .color-option.selected {
+      border-color: #1f2937;
+      transform: scale(1.1);
+    }
+    
+    .subject-list {
+      display: flex;
+      flex-direction: column;
+      gap: 0.5rem;
+    }
+    
+    .subject-item {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0.75rem;
+      border-radius: 0.75rem;
+      border: 2px solid;
+      transition: all 0.2s;
+    }
+    
+    .subject-item:hover {
+      box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    }
+    
+    .subject-info {
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+    }
+    
+    .subject-color {
+      width: 1rem;
+      height: 1rem;
+      border-radius: 50%;
+    }
+    
+    .subject-name {
+      font-weight: 600;
+      color: #1f2937;
+    }
+    
+    .icon-btn {
+      background: none;
+      border: none;
+      cursor: pointer;
+      padding: 0.25rem;
+      color: #ef4444;
+      transition: color 0.2s;
+    }
+    
+    .icon-btn:hover {
+      color: #b91c1c;
+    }
+    
+    .homework-list {
+      display: flex;
+      flex-direction: column;
+      gap: 0.75rem;
+      max-height: 600px;
+      overflow-y: auto;
+    }
+    
+    .homework-item {
+      border: 2px solid #e5e7eb;
+      border-radius: 0.75rem;
+      padding: 1rem;
+      transition: all 0.2s;
+    }
+    
+    .homework-item:hover {
+      box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+    }
+    
+    .homework-item.completed {
+      background: #f9fafb;
+      border-color: #d1d5db;
+    }
+    
+    .homework-item.overdue {
+      border-color: #fca5a5;
+    }
+    
+    .homework-item.urgent {
+      border-color: #fdba74;
+    }
+    
+    .homework-header {
+      display: flex;
+      align-items: start;
+      gap: 0.75rem;
+    }
+    
+    .checkbox {
+      width: 1.5rem;
+      height: 1.5rem;
+      cursor: pointer;
+      margin-top: 0.25rem;
+    }
+    
+    .homework-content {
+      flex: 1;
+    }
+    
+    .homework-badges {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      margin-bottom: 0.5rem;
+      flex-wrap: wrap;
+    }
+    
+    .badge {
+      padding: 0.25rem 0.5rem;
+      border-radius: 0.375rem;
+      font-size: 0.75rem;
+      font-weight: 600;
+      color: white;
+    }
+    
+    .homework-title {
+      font-weight: bold;
+      color: #1f2937;
+      margin-bottom: 0.5rem;
+    }
+    
+    .homework-title.completed {
+      text-decoration: line-through;
+      color: #6b7280;
+    }
+    
+    .homework-desc {
+      font-size: 0.875rem;
+      color: #6b7280;
+      margin-bottom: 0.5rem;
+    }
+    
+    .homework-meta {
+      display: flex;
+      align-items: center;
+      gap: 1rem;
+      font-size: 0.875rem;
+      color: #6b7280;
+    }
+    
+    .homework-meta .days-left {
+      font-weight: 600;
+    }
+    
+    .homework-meta .days-left.overdue {
+      color: #dc2626;
+    }
+    
+    .homework-meta .days-left.urgent {
+      color: #ea580c;
+    }
+    
+    .empty-state {
+      text-align: center;
+      padding: 4rem 1rem;
+      color: #9ca3af;
+    }
+    
+    .add-form {
+      background: #f9fafb;
+      border-radius: 0.75rem;
+      padding: 1rem;
+      margin-bottom: 1rem;
+    }
+    
+    .btn-group {
+      display: flex;
+      gap: 0.5rem;
+    }
+    
+    .list-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 1rem;
+    }
+    
+    .archive-btn {
+      background: none;
+      border: none;
+      color: #3b82f6;
+      font-size: 0.875rem;
+      font-weight: 600;
+      cursor: pointer;
+      padding: 0.5rem;
+    }
+    
+    .archive-btn:hover {
+      color: #1e40af;
+    }
+    
+    .hidden {
+      display: none;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <!-- Header -->
+    <div class="header">
+      <div class="header-title">
+        <svg width="32" height="32" style="color: #3b82f6;">
+          <use href="#book-open"></use>
+        </svg>
+        <h1>ניהול שיעורי בית</h1>
+      </div>
+      
+      <div class="stats">
+        <div class="stat-card blue">
+          <div class="stat-number blue" id="stat-total">0</div>
+          <div class="stat-label">סך הכל</div>
+        </div>
+        <div class="stat-card green">
+          <div class="stat-number green" id="stat-completed">0</div>
+          <div class="stat-label">הושלמו</div>
+        </div>
+        <div class="stat-card orange">
+          <div class="stat-number orange" id="stat-pending">0</div>
+          <div class="stat-label">ממתינים</div>
+        </div>
+        <div class="stat-card red">
+          <div class="stat-number red" id="stat-urgent">0</div>
+          <div class="stat-label">דחוף</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="grid">
+      <!-- Subjects Panel -->
+      <div class="panel">
+        <h2>מקצועות</h2>
+        
+        <button class="btn btn-primary" id="show-add-subject" style="margin-bottom: 1rem;">
+          <svg width="20" height="20"><use href="#plus"></use></svg>
+          הוסף מקצוע
+        </button>
+        
+        <div class="add-form hidden" id="add-subject-form">
+          <input type="text" class="input" id="subject-name" placeholder="שם המקצוע" style="margin-bottom: 0.75rem;">
+          <div class="color-picker" id="color-picker"></div>
+          <div class="btn-group">
+            <button class="btn btn-success" id="save-subject">שמור</button>
+            <button class="btn btn-secondary" id="cancel-subject">ביטול</button>
+          </div>
+        </div>
+        
+        <div class="subject-list" id="subject-list"></div>
+      </div>
+
+      <!-- Add Homework Panel -->
+      <div class="panel">
+        <h2>הוסף שיעורי בית</h2>
+        
+        <div class="form-group">
+          <label>מקצוע</label>
+          <select class="select" id="hw-subject">
+            <option value="">בחר מקצוע</option>
+          </select>
+        </div>
+        
+        <div class="form-group">
+          <label>כותרת</label>
+          <input type="text" class="input" id="hw-title" placeholder="למשל: תרגיל 5">
+        </div>
+        
+        <div class="form-group">
+          <label>תיאור</label>
+          <textarea class="textarea" id="hw-desc" placeholder="פרטים נוספים..."></textarea>
+        </div>
+
+        <div class="form-group">
+          <label>קבצים מצורפים</label>
+          <input type="file" class="input" id="hw-files" multiple>
+        </div>
+        
+        <div class="form-group">
+          <label>תאריך הגשה</label>
+          <input type="date" class="input" id="hw-date">
+        </div>
+        
+        <div class="form-group">
+          <label>עדיפות</label>
+          <select class="select" id="hw-priority">
+            <option value="low">נמוכה</option>
+            <option value="medium" selected>בינונית</option>
+            <option value="high">גבוהה</option>
+          </select>
+        </div>
+        
+        <button class="btn btn-primary" id="add-homework">
+          <svg width="20" height="20"><use href="#plus"></use></svg>
+          הוסף משימה
+        </button>
+      </div>
+
+      <!-- Homework List Panel -->
+      <div class="panel">
+        <div class="list-header">
+          <h2>רשימת משימות</h2>
+          <button class="archive-btn hidden" id="archive-toggle"></button>
+        </div>
+        
+        <div class="homework-list" id="homework-list"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- SVG Icons -->
+  <svg style="display: none;">
+    <symbol id="book-open" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+      <path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"></path>
+      <path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"></path>
+    </symbol>
+    <symbol id="plus" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+      <line x1="12" y1="5" x2="12" y2="19"></line>
+      <line x1="5" y1="12" x2="19" y2="12"></line>
+    </symbol>
+    <symbol id="trash" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+      <polyline points="3 6 5 6 21 6"></polyline>
+      <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
+    </symbol>
+    <symbol id="calendar" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+      <rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect>
+      <line x1="16" y1="2" x2="16" y2="6"></line>
+      <line x1="8" y1="2" x2="8" y2="6"></line>
+      <line x1="3" y1="10" x2="21" y2="10"></line>
+    </symbol>
+    <symbol id="check-circle" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+      <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path>
+      <polyline points="22 4 12 14.01 9 11.01"></polyline>
+    </symbol>
+    <symbol id="circle" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+      <circle cx="12" cy="12" r="10"></circle>
+    </symbol>
+  </svg>
+
+  <script>
+    const colors = ['#3b82f6', '#ef4444', '#10b981', '#f59e0b', '#8b5cf6', '#ec4899'];
+    let subjects = [];
+    let homework = [];
+    let selectedColor = '#3b82f6';
+    let showArchive = false;
+
+    // Load data
+// Load data
+async function loadData() {
+  try {
+    if (window.storage) {
+      const subResult = await window.storage.get('homework-subjects');
+      const hwResult = await window.storage.get('homework-list');
+      if (subResult) subjects = JSON.parse(subResult.value);
+      if (hwResult) homework = JSON.parse(hwResult.value);
+    } else {
+      subjects = JSON.parse(localStorage.getItem('homework-subjects') || '[]');
+      homework = JSON.parse(localStorage.getItem('homework-list') || '[]');
+    }
+  } catch (error) {
+    console.log('מערכת חדשה');
+  }
+  render();
+}
+
+// Save data
+async function saveData() {
+  try {
+    if (window.storage) {
+      await window.storage.set('homework-subjects', JSON.stringify(subjects));
+      await window.storage.set('homework-list', JSON.stringify(homework));
+    } else {
+      localStorage.setItem('homework-subjects', JSON.stringify(subjects));
+      localStorage.setItem('homework-list', JSON.stringify(homework));
+    }
+  } catch (error) {
+    console.error('שגיאה בשמירה:', error);
+  }
+}
+
+
+    // Calculate days until due
+    function getDaysUntilDue(dueDate) {
+      const today = new Date();
+      today.setHours(0, 0, 0, 0);
+      const due = new Date(dueDate + 'T00:00:00');
+      return Math.round((due - today) / (1000 * 60 * 60 * 24));
+    }
+
+    // Render color picker
+    function renderColorPicker() {
+      const picker = document.getElementById('color-picker');
+      picker.innerHTML = colors.map(color => `
+        <div class="color-option ${color === selectedColor ? 'selected' : ''}" 
+             style="background-color: ${color};"
+             onclick="selectedColor = '${color}'; renderColorPicker();"></div>
+      `).join('');
+    }
+
+    // Render subjects
+    function renderSubjects() {
+      const list = document.getElementById('subject-list');
+      const select = document.getElementById('hw-subject');
+      
+      if (subjects.length === 0) {
+        list.innerHTML = '<p class="empty-state">טרם הוספו מקצועות</p>';
+      } else {
+        list.innerHTML = subjects.map(s => `
+          <div class="subject-item" style="border-color: ${s.color};">
+            <div class="subject-info">
+              <div class="subject-color" style="background-color: ${s.color};"></div>
+              <span class="subject-name">${s.name}</span>
+            </div>
+            <button class="icon-btn" onclick="deleteSubject(${s.id})">
+              <svg width="16" height="16"><use href="#trash"></use></svg>
+            </button>
+          </div>
+        `).join('');
+      }
+      
+      select.innerHTML = '<option value="">בחר מקצוע</option>' + 
+        subjects.map(s => `<option value="${s.id}">${s.name}</option>`).join('');
+    }
+
+    // Render homework
+function renderHomework() {
+  const list = document.getElementById('homework-list');
+  const archiveBtn = document.getElementById('archive-toggle');
+  
+  const activeHomework = homework.filter(h => {
+    if (!h.completed) return true;
+    return getDaysUntilDue(h.dueDate) >= 0;
+  });
+  
+  const archivedHomework = homework.filter(h => {
+    if (!h.completed) return false;
+    return getDaysUntilDue(h.dueDate) < 0;
+  });
+  
+  if (archivedHomework.length > 0) {
+    archiveBtn.classList.remove('hidden');
+    archiveBtn.textContent = showArchive ? 'הסתר ארכיון' : `ארכיון (${archivedHomework.length})`;
+  } else {
+    archiveBtn.classList.add('hidden');
+  }
+  
+  const displayList = showArchive ? archivedHomework : activeHomework;
+  
+  if (displayList.length === 0) {
+    list.innerHTML = `<p class="empty-state">${showArchive ? 'אין פריטים בארכיון' : 'אין שיעורי בית להצגה'}</p>`;
+    return;
+  }
+  
+  const sorted = [...displayList].sort((a, b) => {
+    if (a.completed !== b.completed) return a.completed ? 1 : -1;
+    return new Date(a.dueDate) - new Date(b.dueDate);
+  });
+  
+  list.innerHTML = sorted.map(hw => {
+    const subject = subjects.find(s => s.id == hw.subject);
+    const daysLeft = getDaysUntilDue(hw.dueDate);
+    const isUrgent = daysLeft <= 2 && !hw.completed;
+    const isOverdue = daysLeft < 0 && !hw.completed;
+    
+    let classes = 'homework-item';
+    if (hw.completed) classes += ' completed';
+    if (isOverdue) classes += ' overdue';
+    else if (isUrgent) classes += ' urgent';
+    
+    let daysText = '';
+    if (!hw.completed) {
+      if (isOverdue) daysText = `באיחור של ${Math.abs(daysLeft)} ימים`;
+      else if (daysLeft === 0) daysText = 'היום!';
+      else if (daysLeft === 1) daysText = 'מחר';
+      else if (daysLeft === 2) daysText = 'מחרתיים';
+      else daysText = `עוד ${daysLeft} ימים`;
+    }
+    
+    return `
+      <div class="${classes}" ${!hw.completed && !isOverdue && !isUrgent && subject ? `style="border-color: ${subject.color};"` : ''}>
+        <div class="homework-header">
+          <input type="checkbox" class="checkbox" ${hw.completed ? 'checked' : ''} 
+                 onchange="toggleComplete(${hw.id})">
+          <div class="homework-content">
+            <div class="homework-badges">
+              ${subject ? `<span class="badge" style="background-color: ${subject.color};">${subject.name}</span>` : ''}
+              ${isOverdue ? '<span class="badge" style="background-color: #ef4444;">איחור!</span>' : ''}
+              ${isUrgent && !isOverdue ? '<span class="badge" style="background-color: #f59e0b;">דחוף</span>' : ''}
+            </div>
+            <h3 class="homework-title ${hw.completed ? 'completed' : ''}">${hw.title}</h3>
+            ${hw.description ? `<p class="homework-desc">${hw.description}</p>` : ''}
+            
+            ${hw.files && hw.files.length ? `
+              <div class="homework-files">
+                <strong>קבצים מצורפים:</strong>
+                <ul>
+                  ${hw.files.map(f => `<li>${f.name}</li>`).join('')}
+                </ul>
+              </div>
+            ` : ''}
+
+            <div class="homework-meta">
+              <span>
+                <svg width="16" height="16" style="display: inline; vertical-align: middle;"><use href="#calendar"></use></svg>
+                ${new Date(hw.dueDate).toLocaleDateString('he-IL')}
+              </span>
+              ${daysText ? `<span class="days-left ${isOverdue ? 'overdue' : isUrgent ? 'urgent' : ''}">${daysText}</span>` : ''}
+            </div>
+          </div>
+          <button class="icon-btn" onclick="deleteHomework(${hw.id})">
+            <svg width="20" height="20"><use href="#trash"></use></svg>
+          </button>
+        </div>
+      </div>
+    `;
+  }).join('');
+}
+
+    // Update stats
+    function updateStats() {
+      document.getElementById('stat-total').textContent = homework.length;
+      document.getElementById('stat-completed').textContent = homework.filter(h => h.completed).length;
+      document.getElementById('stat-pending').textContent = homework.filter(h => !h.completed).length;
+      document.getElementById('stat-urgent').textContent = homework.filter(h => !h.completed && getDaysUntilDue(h.dueDate) <= 2).length;
+    }
+
+    // Render all
+    function render() {
+      renderSubjects();
+      renderHomework();
+      updateStats();
+    }
+
+    // Add subject
+    function addSubject() {
+      const name = document.getElementById('subject-name').value.trim();
+      if (!name) return;
+      
+      subjects.push({ id: Date.now(), name, color: selectedColor });
+      document.getElementById('subject-name').value = '';
+      selectedColor = '#3b82f6';
+      document.getElementById('add-subject-form').classList.add('hidden');
+      document.getElementById('show-add-subject').classList.remove('hidden');
+      
+      saveData();
+      render();
+    }
+
+    // Delete subject
+    function deleteSubject(id) {
+      subjects = subjects.filter(s => s.id !== id);
+      homework = homework.filter(h => h.subject != id);
+      saveData();
+      render();
+    }
+
+    // Add homework
+function addHomework() {
+  const subject = document.getElementById('hw-subject').value;
+  const title = document.getElementById('hw-title').value.trim();
+  const description = document.getElementById('hw-desc').value.trim();
+  const dueDate = document.getElementById('hw-date').value;
+  const priority = document.getElementById('hw-priority').value;
+  const filesInput = document.getElementById('hw-files');
+  
+  if (!subject || !title || !dueDate) {
+    alert('נא למלא את כל השדות החובה');
+    return;
+  }
+
+  const files = Array.from(filesInput.files).map(f => ({
+    name: f.name,
+    size: f.size,
+    type: f.type
+    // אם רוצים אפשר לשמור גם תוכן base64, אבל זה תופס הרבה זיכרון
+  }));
+
+  homework.push({
+    id: Date.now(),
+    subject,
+    title,
+    description,
+    dueDate,
+    priority,
+    completed: false,
+    files
+  });
+
+  // איפוס שדות
+  document.getElementById('hw-subject').value = '';
+  document.getElementById('hw-title').value = '';
+  document.getElementById('hw-desc').value = '';
+  document.getElementById('hw-date').value = '';
+  document.getElementById('hw-priority').value = 'medium';
+  filesInput.value = '';
+
+  saveData();
+  render();
+}
+
+    // Toggle complete
+    function toggleComplete(id) {
+      const hw = homework.find(h => h.id === id);
+      if (hw) {
+        hw.completed = !hw.completed;
+        saveData();
+        render();
+      }
+    }
+
+    // Delete homework
+    function deleteHomework(id) {
+      if (confirm('האם אתה בטוח שברצונך למחוק את המשימה הזו?')) {
+        homework = homework.filter(h => h.id !== id);
+        saveData();
+        render();
+      }
+    }
+
+    // Toggle archive view
+    document.getElementById('archive-toggle').addEventListener('click', () => {
+      showArchive = !showArchive;
+      renderHomework();
+    });
+
+    // Add subject form controls
+    document.getElementById('show-add-subject').addEventListener('click', () => {
+      document.getElementById('add-subject-form').classList.remove('hidden');
+      document.getElementById('show-add-subject').classList.add('hidden');
+      renderColorPicker();
+    });
+
+    document.getElementById('cancel-subject').addEventListener('click', () => {
+      document.getElementById('add-subject-form').classList.add('hidden');
+      document.getElementById('show-add-subject').classList.remove('hidden');
+    });
+
+    document.getElementById('save-subject').addEventListener('click', addSubject);
+    document.getElementById('add-homework').addEventListener('click', addHomework);
+
+    // Initialize
+    window.addEventListener('DOMContentLoaded', loadData);
+  </script>
+</body>
+</html>
