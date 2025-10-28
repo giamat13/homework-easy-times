@@ -699,4 +699,100 @@
       subjects.push({ id: Date.now(), name, color: selectedColor });
       document.getElementById('subject-name').value = '';
       selectedColor = '#3b82f6';
-      docume
+      document.getElementById('add-subject-form').classList.add('hidden');
+      document.getElementById('show-add-subject').classList.remove('hidden');
+      
+      saveData();
+      render();
+    }
+
+    // Delete subject
+    function deleteSubject(id) {
+      subjects = subjects.filter(s => s.id !== id);
+      homework = homework.filter(h => h.subject != id);
+      saveData();
+      render();
+    }
+
+    // Add homework
+    function addHomework() {
+      const subject = document.getElementById('hw-subject').value;
+      const title = document.getElementById('hw-title').value.trim();
+      const description = document.getElementById('hw-desc').value.trim();
+      const dueDate = document.getElementById('hw-date').value;
+      const priority = document.getElementById('hw-priority').value;
+      
+      if (!subject || !title || !dueDate) {
+        alert('נא למלא את כל השדות החובה');
+        return;
+      }
+      
+      homework.push({
+        id: Date.now(),
+        subject,
+        title,
+        description,
+        dueDate,
+        priority,
+        completed: false
+      });
+      
+      document.getElementById('hw-subject').value = '';
+      document.getElementById('hw-title').value = '';
+      document.getElementById('hw-desc').value = '';
+      document.getElementById('hw-date').value = '';
+      document.getElementById('hw-priority').value = 'medium';
+      
+      saveData();
+      render();
+    }
+
+    // Toggle complete
+    function toggleComplete(id) {
+      const hw = homework.find(h => h.id === id);
+      if (hw) {
+        hw.completed = !hw.completed;
+        saveData();
+        render();
+      }
+    }
+
+    // Delete homework
+    function deleteHomework(id) {
+      homework = homework.filter(h => h.id !== id);
+      saveData();
+      render();
+    }
+
+    // Event listeners
+    document.getElementById('show-add-subject').addEventListener('click', () => {
+      document.getElementById('add-subject-form').classList.remove('hidden');
+      document.getElementById('show-add-subject').classList.add('hidden');
+      renderColorPicker();
+    });
+
+    document.getElementById('cancel-subject').addEventListener('click', () => {
+      document.getElementById('add-subject-form').classList.add('hidden');
+      document.getElementById('show-add-subject').classList.remove('hidden');
+      document.getElementById('subject-name').value = '';
+      selectedColor = '#3b82f6';
+    });
+
+    document.getElementById('save-subject').addEventListener('click', addSubject);
+    
+    document.getElementById('subject-name').addEventListener('keypress', (e) => {
+      if (e.key === 'Enter') addSubject();
+    });
+
+    document.getElementById('add-homework').addEventListener('click', addHomework);
+    
+    document.getElementById('archive-toggle').addEventListener('click', () => {
+      showArchive = !showArchive;
+      render();
+    });
+
+    // Initialize
+    loadData();
+  </script>
+</body>
+</html>
