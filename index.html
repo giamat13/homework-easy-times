@@ -742,7 +742,7 @@
       document.getElementById('hw-desc').value = '';
       document.getElementById('hw-date').value = '';
       document.getElementById('hw-priority').value = 'medium';
-      
+
       saveData();
       render();
     }
@@ -759,12 +759,20 @@
 
     // Delete homework
     function deleteHomework(id) {
-      homework = homework.filter(h => h.id !== id);
-      saveData();
-      render();
+      if (confirm('האם אתה בטוח שברצונך למחוק את המשימה הזו?')) {
+        homework = homework.filter(h => h.id !== id);
+        saveData();
+        render();
+      }
     }
 
-    // Event listeners
+    // Toggle archive view
+    document.getElementById('archive-toggle').addEventListener('click', () => {
+      showArchive = !showArchive;
+      renderHomework();
+    });
+
+    // Add subject form controls
     document.getElementById('show-add-subject').addEventListener('click', () => {
       document.getElementById('add-subject-form').classList.remove('hidden');
       document.getElementById('show-add-subject').classList.add('hidden');
@@ -774,25 +782,13 @@
     document.getElementById('cancel-subject').addEventListener('click', () => {
       document.getElementById('add-subject-form').classList.add('hidden');
       document.getElementById('show-add-subject').classList.remove('hidden');
-      document.getElementById('subject-name').value = '';
-      selectedColor = '#3b82f6';
     });
 
     document.getElementById('save-subject').addEventListener('click', addSubject);
-    
-    document.getElementById('subject-name').addEventListener('keypress', (e) => {
-      if (e.key === 'Enter') addSubject();
-    });
-
     document.getElementById('add-homework').addEventListener('click', addHomework);
-    
-    document.getElementById('archive-toggle').addEventListener('click', () => {
-      showArchive = !showArchive;
-      render();
-    });
 
     // Initialize
-    loadData();
+    window.addEventListener('DOMContentLoaded', loadData);
   </script>
 </body>
 </html>
