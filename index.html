@@ -453,6 +453,11 @@
           <label>תיאור</label>
           <textarea class="textarea" id="hw-desc" placeholder="פרטים נוספים..."></textarea>
         </div>
+
+        <div class="form-group">
+          <label>קבצים מצורפים</label>
+          <input type="file" class="input" id="hw-files" multiple>
+        </div>
         
         <div class="form-group">
           <label>תאריך הגשה</label>
@@ -601,88 +606,104 @@ async function saveData() {
     }
 
     // Render homework
-    function renderHomework() {
-      const list = document.getElementById('homework-list');
-      const archiveBtn = document.getElementById('archive-toggle');
-      
-      const activeHomework = homework.filter(h => {
-        if (!h.completed) return true;
-        return getDaysUntilDue(h.dueDate) >= 0;
-      });
-      
-      const archivedHomework = homework.filter(h => {
-        if (!h.completed) return false;
-        return getDaysUntilDue(h.dueDate) < 0;
-      });
-      
-      if (archivedHomework.length > 0) {
-        archiveBtn.classList.remove('hidden');
-        archiveBtn.textContent = showArchive ? 'הסתר ארכיון' : `ארכיון (${archivedHomework.length})`;
-      } else {
-        archiveBtn.classList.add('hidden');
-      }
-      
-      const displayList = showArchive ? archivedHomework : activeHomework;
-      
-      if (displayList.length === 0) {
-        list.innerHTML = `<p class="empty-state">${showArchive ? 'אין פריטים בארכיון' : 'אין שיעורי בית להצגה'}</p>`;
-        return;
-      }
-      
-      const sorted = [...displayList].sort((a, b) => {
-        if (a.completed !== b.completed) return a.completed ? 1 : -1;
-        return new Date(a.dueDate) - new Date(b.dueDate);
-      });
-      
-      list.innerHTML = sorted.map(hw => {
-        const subject = subjects.find(s => s.id == hw.subject);
-        const daysLeft = getDaysUntilDue(hw.dueDate);
-        const isUrgent = daysLeft <= 2 && !hw.completed;
-        const isOverdue = daysLeft < 0 && !hw.completed;
-        
-        let classes = 'homework-item';
-        if (hw.completed) classes += ' completed';
-        if (isOverdue) classes += ' overdue';
-        else if (isUrgent) classes += ' urgent';
-        
-        let daysText = '';
-        if (!hw.completed) {
-          if (isOverdue) daysText = `באיחור של ${Math.abs(daysLeft)} ימים`;
-          else if (daysLeft === 0) daysText = 'היום!';
-          else if (daysLeft === 1) daysText = 'מחר';
-          else if (daysLeft === 2) daysText = 'מחרתיים';
-          else daysText = `עוד ${daysLeft} ימים`;
-        }
-        
-        return `
-          <div class="${classes}" ${!hw.completed && !isOverdue && !isUrgent && subject ? `style="border-color: ${subject.color};"` : ''}>
-            <div class="homework-header">
-              <input type="checkbox" class="checkbox" ${hw.completed ? 'checked' : ''} 
-                     onchange="toggleComplete(${hw.id})">
-              <div class="homework-content">
-                <div class="homework-badges">
-                  ${subject ? `<span class="badge" style="background-color: ${subject.color};">${subject.name}</span>` : ''}
-                  ${isOverdue ? '<span class="badge" style="background-color: #ef4444;">איחור!</span>' : ''}
-                  ${isUrgent && !isOverdue ? '<span class="badge" style="background-color: #f59e0b;">דחוף</span>' : ''}
-                </div>
-                <h3 class="homework-title ${hw.completed ? 'completed' : ''}">${hw.title}</h3>
-                ${hw.description ? `<p class="homework-desc">${hw.description}</p>` : ''}
-                <div class="homework-meta">
-                  <span>
-                    <svg width="16" height="16" style="display: inline; vertical-align: middle;"><use href="#calendar"></use></svg>
-                    ${new Date(hw.dueDate).toLocaleDateString('he-IL')}
-                  </span>
-                  ${daysText ? `<span class="days-left ${isOverdue ? 'overdue' : isUrgent ? 'urgent' : ''}">${daysText}</span>` : ''}
-                </div>
+function renderHomework() {
+  const list = document.getElementById('homework-list');
+  const archiveBtn = document.getElementById('archive-toggle');
+
+  const activeHomework = homework.filter(h => {
+    if (!h.completed) return true;
+    return getDaysUntilDue(h.dueDate) >= 0;
+  });
+
+  const archivedHomework = homework.filter(h => {
+    if (!h.completed) return false;
+    return getDaysUntilDue(h.dueDate) < 0;
+  });
+
+  if (archivedHomework.length > 0) {
+    archiveBtn.classList.remove('hidden');
+    archiveBtn.textContent = showArchive ? 'הסתר ארכיון' : `ארכיון (${archivedHomework.length})`;
+  } else {
+    archiveBtn.classList.add('hidden');
+  }
+
+  const displayList = showArchive ? archivedHomework : activeHomework;
+
+  if (displayList.length === 0) {
+    list.innerHTML = `<p class="empty-state">${showArchive ? 'אין פריטים בארכיון' : 'אין שיעורי בית להצגה'}</p>`;
+    return;
+  }
+
+  const sorted = [...displayList].sort((a, b) => {
+    if (a.completed !== b.completed) return a.completed ? 1 : -1;
+    return new Date(a.dueDate) - new Date(b.dueDate);
+  });
+
+  list.innerHTML = sorted.map(hw => {
+    const subject = subjects.find(s => s.id == hw.subject);
+    const daysLeft = getDaysUntilDue(hw.dueDate);
+    const isUrgent = daysLeft <= 2 && !hw.completed;
+    const isOverdue = daysLeft < 0 && !hw.completed;
+
+    let classes = 'homework-item';
+    if (hw.completed) classes += ' completed';
+    if (isOverdue) classes += ' overdue';
+    else if (isUrgent) classes += ' urgent';
+
+    let daysText = '';
+    if (!hw.completed) {
+      if (isOverdue) daysText = `באיחור של ${Math.abs(daysLeft)} ימים`;
+      else if (daysLeft === 0) daysText = 'היום!';
+      else if (daysLeft === 1) daysText = 'מחר';
+      else if (daysLeft === 2) daysText = 'מחרתיים';
+      else daysText = `עוד ${daysLeft} ימים`;
+    }
+
+    return `
+      <div class="${classes}" ${!hw.completed && !isOverdue && !isUrgent && subject ? `style="border-color: ${subject.color};"` : ''}>
+        <div class="homework-header">
+          <input type="checkbox" class="checkbox" ${hw.completed ? 'checked' : ''} 
+                 onchange="toggleComplete(${hw.id})">
+          <div class="homework-content">
+            <div class="homework-badges">
+              ${subject ? `<span class="badge" style="background-color: ${subject.color};">${subject.name}</span>` : ''}
+              ${isOverdue ? '<span class="badge" style="background-color: #ef4444;">איחור!</span>' : ''}
+              ${isUrgent && !isOverdue ? '<span class="badge" style="background-color: #f59e0b;">דחוף</span>' : ''}
+            </div>
+            <h3 class="homework-title ${hw.completed ? 'completed' : ''}">${hw.title}</h3>
+            ${hw.description ? `<p class="homework-desc">${hw.description}</p>` : ''}
+
+            ${hw.files && hw.files.length ? `
+              <div class="homework-files">
+                <strong>קבצים מצורפים:</strong>
+                <ul>
+                  ${hw.files.map(f => `
+                    <li>
+                      ${f.name} 
+                      <button onclick="downloadFile('${f.name}', '${f.data}')" class="btn btn-secondary" style="margin-left:0.5rem;">הורד</button>
+                    </li>
+                  `).join('')}
+                </ul>
               </div>
-              <button class="icon-btn" onclick="deleteHomework(${hw.id})">
-                <svg width="20" height="20"><use href="#trash"></use></svg>
-              </button>
+            ` : ''}
+
+            <div class="homework-meta">
+              <span>
+                <svg width="16" height="16" style="display: inline; vertical-align: middle;"><use href="#calendar"></use></svg>
+                ${new Date(hw.dueDate).toLocaleDateString('he-IL')}
+              </span>
+              ${daysText ? `<span class="days-left ${isOverdue ? 'overdue' : isUrgent ? 'urgent' : ''}">${daysText}</span>` : ''}
             </div>
           </div>
-        `;
-      }).join('');
-    }
+          <button class="icon-btn" onclick="deleteHomework(${hw.id})">
+            <svg width="20" height="20"><use href="#trash"></use></svg>
+          </button>
+        </div>
+      </div>
+    `;
+  }).join('');
+}
+
 
     // Update stats
     function updateStats() {
@@ -723,37 +744,68 @@ async function saveData() {
     }
 
     // Add homework
-    function addHomework() {
-      const subject = document.getElementById('hw-subject').value;
-      const title = document.getElementById('hw-title').value.trim();
-      const description = document.getElementById('hw-desc').value.trim();
-      const dueDate = document.getElementById('hw-date').value;
-      const priority = document.getElementById('hw-priority').value;
-      
-      if (!subject || !title || !dueDate) {
-        alert('נא למלא את כל השדות החובה');
-        return;
-      }
-      
-      homework.push({
-        id: Date.now(),
-        subject,
-        title,
-        description,
-        dueDate,
-        priority,
-        completed: false
-      });
-      
-      document.getElementById('hw-subject').value = '';
-      document.getElementById('hw-title').value = '';
-      document.getElementById('hw-desc').value = '';
-      document.getElementById('hw-date').value = '';
-      document.getElementById('hw-priority').value = 'medium';
+function addHomework() {
+  const subject = document.getElementById('hw-subject').value;
+  const title = document.getElementById('hw-title').value.trim();
+  const description = document.getElementById('hw-desc').value.trim();
+  const dueDate = document.getElementById('hw-date').value;
+  const priority = document.getElementById('hw-priority').value;
+  const fileInput = document.getElementById('hw-files');
 
-      saveData();
-      render();
-    }
+  if (!subject || !title || !dueDate) {
+    alert('נא למלא את כל השדות החובה');
+    return;
+  }
+
+  const files = Array.from(fileInput.files);
+  const hwFiles = [];
+
+  if (files.length === 0) {
+    // אין קבצים – אפשר לשמור מיד
+    saveHomework([]);
+  } else {
+    let loadedCount = 0;
+    files.forEach(file => {
+      const reader = new FileReader();
+      reader.onload = function(e) {
+        hwFiles.push({
+          name: file.name,
+          type: file.type,
+          data: e.target.result // Base64
+        });
+        loadedCount++;
+        if (loadedCount === files.length) {
+          saveHomework(hwFiles);
+        }
+      };
+      reader.readAsDataURL(file);
+    });
+  }
+
+  function saveHomework(hwFiles) {
+    homework.push({
+      id: Date.now(),
+      subject,
+      title,
+      description,
+      dueDate,
+      priority,
+      completed: false,
+      files: hwFiles
+    });
+
+    // איפוס הטופס
+    document.getElementById('hw-subject').value = '';
+    document.getElementById('hw-title').value = '';
+    document.getElementById('hw-desc').value = '';
+    document.getElementById('hw-date').value = '';
+    document.getElementById('hw-priority').value = 'medium';
+    document.getElementById('hw-files').value = '';
+
+    saveData();
+    render();
+  }
+}
 
     // Toggle complete
     function toggleComplete(id) {
@@ -773,6 +825,15 @@ async function saveData() {
         render();
       }
     }
+
+    function downloadFile(filename, dataUrl) {
+  const link = document.createElement('a');
+  link.href = dataUrl;
+  link.download = filename;
+  document.body.appendChild(link);
+  link.click();
+  document.body.removeChild(link);
+}
 
     // Toggle archive view
     document.getElementById('archive-toggle').addEventListener('click', () => {
