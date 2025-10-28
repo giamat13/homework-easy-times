@@ -523,31 +523,39 @@
     let showArchive = false;
 
     // Load data
-    async function loadData() {
-      try {
-        const subResult = await window.storage.get('homework-subjects');
-        if (subResult) {
-          subjects = JSON.parse(subResult.value);
-        }
-        const hwResult = await window.storage.get('homework-list');
-        if (hwResult) {
-          homework = JSON.parse(hwResult.value);
-        }
-      } catch (error) {
-        console.log('מערכת חדשה');
-      }
-      render();
+// Load data
+async function loadData() {
+  try {
+    if (window.storage) {
+      const subResult = await window.storage.get('homework-subjects');
+      const hwResult = await window.storage.get('homework-list');
+      if (subResult) subjects = JSON.parse(subResult.value);
+      if (hwResult) homework = JSON.parse(hwResult.value);
+    } else {
+      subjects = JSON.parse(localStorage.getItem('homework-subjects') || '[]');
+      homework = JSON.parse(localStorage.getItem('homework-list') || '[]');
     }
+  } catch (error) {
+    console.log('מערכת חדשה');
+  }
+  render();
+}
 
-    // Save data
-    async function saveData() {
-      try {
-        await window.storage.set('homework-subjects', JSON.stringify(subjects));
-        await window.storage.set('homework-list', JSON.stringify(homework));
-      } catch (error) {
-        console.error('שגיאה בשמירה:', error);
-      }
+// Save data
+async function saveData() {
+  try {
+    if (window.storage) {
+      await window.storage.set('homework-subjects', JSON.stringify(subjects));
+      await window.storage.set('homework-list', JSON.stringify(homework));
+    } else {
+      localStorage.setItem('homework-subjects', JSON.stringify(subjects));
+      localStorage.setItem('homework-list', JSON.stringify(homework));
     }
+  } catch (error) {
+    console.error('שגיאה בשמירה:', error);
+  }
+}
+
 
     // Calculate days until due
     function getDaysUntilDue(dueDate) {
