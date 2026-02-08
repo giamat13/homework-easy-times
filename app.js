@@ -359,9 +359,16 @@ function openSettings() {
     console.error('❌ לא נמצא אלמנט settings-modal');
     return;
   }
+  
+  // הסרת hidden והוספת display
   modal.classList.remove('hidden');
-  console.log('✅ ההגדרות נפתחו - מחלקה "hidden" הוסרה');
-  console.log('📊 מצב המודל:', modal.classList.contains('hidden') ? 'סגור' : 'פתוח');
+  modal.style.display = 'flex';
+  
+  console.log('✅ ההגדרות נפתחו');
+  console.log('📊 classList:', Array.from(modal.classList));
+  console.log('📊 display:', modal.style.display);
+  console.log('📊 מצב סופי:', modal.classList.contains('hidden') ? 'סגור' : 'פתוח');
+  
   loadSettingsUI();
 }
 
@@ -372,9 +379,15 @@ function closeSettings() {
     console.error('❌ לא נמצא אלמנט settings-modal');
     return;
   }
+  
+  // הוספת hidden והסתרה מפורשת
   modal.classList.add('hidden');
-  console.log('✅ ההגדרות נסגרו - מחלקה "hidden" נוספה');
-  console.log('📊 מצב המודל:', modal.classList.contains('hidden') ? 'סגור' : 'פתוח');
+  modal.style.display = 'none';
+  
+  console.log('✅ ההגדרות נסגרו');
+  console.log('📊 classList:', Array.from(modal.classList));
+  console.log('📊 display:', modal.style.display);
+  console.log('📊 מצב סופי:', modal.classList.contains('hidden') ? 'סגור' : 'פתוח');
 }
 
 async function loadSettingsUI() {
@@ -553,9 +566,14 @@ function initializeEventListeners() {
   if (openSettingsBtn) {
     openSettingsBtn.addEventListener('click', (e) => {
       console.log('🖱️ לחיצה על כפתור פתיחת הגדרות');
+      console.log('📍 Event:', e.type);
       e.preventDefault();
       e.stopPropagation();
-      openSettings();
+      try {
+        openSettings();
+      } catch (error) {
+        console.error('❌ שגיאה בפתיחת הגדרות:', error);
+      }
     });
     console.log('  ✅ open-settings listener');
   } else {
@@ -567,9 +585,16 @@ function initializeEventListeners() {
   if (closeBtn) {
     closeBtn.addEventListener('click', (e) => {
       console.log('🖱️ לחיצה על כפתור X (סגירה)');
+      console.log('📍 Event:', e.type);
+      console.log('📍 Target:', e.target);
+      console.log('📍 CurrentTarget:', e.currentTarget);
       e.preventDefault();
       e.stopPropagation();
-      closeSettings();
+      try {
+        closeSettings();
+      } catch (error) {
+        console.error('❌ שגיאה בסגירת הגדרות:', error);
+      }
     });
     console.log('  ✅ close-settings listener');
   } else {
@@ -581,10 +606,17 @@ function initializeEventListeners() {
   if (settingsModal) {
     settingsModal.addEventListener('click', (e) => {
       console.log('🖱️ לחיצה על אזור המודל');
-      console.log('📍 יעד הלחיצה:', e.target.id, e.target.className);
-      if (e.target.id === 'settings-modal') {
+      console.log('📍 יעד הלחיצה - ID:', e.target.id);
+      console.log('📍 יעד הלחיצה - Class:', e.target.className);
+      console.log('📍 יעד נוכחי - ID:', e.currentTarget.id);
+      
+      if (e.target === settingsModal || e.target.id === 'settings-modal') {
         console.log('✅ לחיצה על הרקע - סוגר מודל');
-        closeSettings();
+        try {
+          closeSettings();
+        } catch (error) {
+          console.error('❌ שגיאה בסגירת מודל:', error);
+        }
       } else {
         console.log('⏭️ לחיצה על תוכן המודל - לא סוגר');
       }
@@ -658,14 +690,27 @@ function initializeEventListeners() {
 
   // מקש ESC לסגירת מודל
   document.addEventListener('keydown', (e) => {
-    if (e.key === 'Escape') {
+    if (e.key === 'Escape' || e.key === 'Esc') {
       console.log('⌨️ נלחץ מקש ESC');
       const modal = document.getElementById('settings-modal');
-      if (modal && !modal.classList.contains('hidden')) {
-        console.log('✅ מודל פתוח - סוגר אותו');
-        closeSettings();
-      } else {
-        console.log('⏭️ מודל סגור - לא עושה כלום');
+      if (modal) {
+        const isHidden = modal.classList.contains('hidden');
+        const displayStyle = window.getComputedStyle(modal).display;
+        
+        console.log('📊 מצב המודל:');
+        console.log('  - classList contains hidden:', isHidden);
+        console.log('  - display style:', displayStyle);
+        
+        if (!isHidden && displayStyle !== 'none') {
+          console.log('✅ מודל פתוח - סוגר אותו');
+          try {
+            closeSettings();
+          } catch (error) {
+            console.error('❌ שגיאה בסגירה:', error);
+          }
+        } else {
+          console.log('⏭️ מודל סגור - לא עושה כלום');
+        }
       }
     }
   });
