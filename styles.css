@@ -477,28 +477,22 @@ body {
   margin: 0;
 }
 
-.close-btn {
+.close-modal-btn {
   background: #f3f4f6;
   border: none;
-  cursor: pointer;
-  padding: 0.5rem;
-  color: #6b7280;
-  transition: all 0.2s;
   border-radius: 0.5rem;
+  padding: 0.5rem;
+  cursor: pointer;
+  transition: all 0.2s;
   display: flex;
   align-items: center;
   justify-content: center;
-  min-width: 2.5rem;
-  min-height: 2.5rem;
+  color: #6b7280;
 }
 
-.close-btn:hover {
+.close-modal-btn:hover {
   background: #e5e7eb;
   color: #1f2937;
-}
-
-.close-btn:active {
-  background: #d1d5db;
 }
 
 .modal-body {

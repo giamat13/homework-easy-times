@@ -392,9 +392,7 @@ function closeSettings() {
   
   // הוספת hidden
   modal.classList.add('hidden');
-  
   console.log('✅ ההגדרות נסגרו');
-  console.log('📊 classList:', Array.from(modal.classList));
 }
 
 async function loadSettingsUI() {
@@ -587,64 +585,29 @@ function initializeEventListeners() {
     console.error('  ❌ open-settings button לא נמצא!');
   }
 
-  // הגדרות - כפתור סגירה X
-  const closeBtn = document.getElementById('close-settings');
-  if (closeBtn) {
-    closeBtn.addEventListener('click', (e) => {
-      console.log('🖱️ לחיצה על כפתור X (סגירה)');
-      console.log('📍 Event:', e.type);
-      console.log('📍 Target:', e.target);
-      console.log('📍 CurrentTarget:', e.currentTarget);
+  // הגדרות - כפתור סגירה
+  const closeSettingsBtn = document.getElementById('close-settings');
+  if (closeSettingsBtn) {
+    closeSettingsBtn.addEventListener('click', (e) => {
+      console.log('🖱️ לחיצה על כפתור סגירת הגדרות');
       e.preventDefault();
       e.stopPropagation();
-      try {
-        closeSettings();
-      } catch (error) {
-        console.error('❌ שגיאה בסגירת הגדרות:', error);
-      }
+      closeSettings();
     });
     console.log('  ✅ close-settings listener');
-  } else {
-    console.error('  ❌ close-settings button לא נמצא!');
   }
 
-  // סגירת מודל בלחיצה על הרקע
+  // סגירה בלחיצה על הרקע
   const settingsModal = document.getElementById('settings-modal');
   if (settingsModal) {
     settingsModal.addEventListener('click', (e) => {
-      console.log('🖱️ לחיצה על אזור המודל');
-      console.log('📍 יעד הלחיצה - ID:', e.target.id);
-      console.log('📍 יעד הלחיצה - Class:', e.target.className);
-      console.log('📍 יעד נוכחי - ID:', e.currentTarget.id);
-      
-      if (e.target === settingsModal || e.target.id === 'settings-modal') {
-        console.log('✅ לחיצה על הרקע - סוגר מודל');
-        try {
-          closeSettings();
-        } catch (error) {
-          console.error('❌ שגיאה בסגירת מודל:', error);
-        }
-      } else {
-        console.log('⏭️ לחיצה על תוכן המודל - לא סוגר');
+      if (e.target === settingsModal) {
+        closeSettings();
       }
     });
-    console.log('  ✅ settings-modal click listener');
-  } else {
-    console.error('  ❌ settings-modal לא נמצא!');
+    console.log('  ✅ settings-modal backdrop listener');
   }
-
-  // מניעת סגירה בלחיצה על תוכן המודל
-  const modalContent = document.querySelector('.modal-content');
-  if (modalContent) {
-    modalContent.addEventListener('click', (e) => {
-      console.log('🖱️ לחיצה על תוכן המודל - עוצר התפשטות');
-      e.stopPropagation();
-    });
-    console.log('  ✅ modal-content click listener');
-  } else {
-    console.error('  ❌ modal-content לא נמצא!');
-  }
-
+  
   // שמירת הגדרות אוטומטית
   const enableNotifications = document.getElementById('enable-notifications');
   if (enableNotifications) {
@@ -694,36 +657,10 @@ function initializeEventListeners() {
     clearAllDataBtn.addEventListener('click', clearAllData);
     console.log('  ✅ clear-all-data listener');
   }
-
-  // מקש ESC לסגירת מודל
-  document.addEventListener('keydown', (e) => {
-    if (e.key === 'Escape' || e.key === 'Esc') {
-      console.log('⌨️ נלחץ מקש ESC');
-      const modal = document.getElementById('settings-modal');
-      if (modal) {
-        const isHidden = modal.classList.contains('hidden');
-        const displayStyle = window.getComputedStyle(modal).display;
-        
-        console.log('📊 מצב המודל:');
-        console.log('  - classList contains hidden:', isHidden);
-        console.log('  - display style:', displayStyle);
-        
-        if (!isHidden && displayStyle !== 'none') {
-          console.log('✅ מודל פתוח - סוגר אותו');
-          try {
-            closeSettings();
-          } catch (error) {
-            console.error('❌ שגיאה בסגירה:', error);
-          }
-        } else {
-          console.log('⏭️ מודל סגור - לא עושה כלום');
-        }
-      }
-    }
-  });
-  console.log('  ✅ ESC key listener');
   
-  console.log('✅ כל ה-Event Listeners אותחלו בהצלחה');
+  console.log('  ℹ️ מודל ההגדרות נשאר פתוח לצמיתות לאחר פתיחה');
+  
+  console.log('  ✅ כל ה-Event Listeners אותחלו בהצלחה');
 }
 
 // =============== אתחול ===============
@@ -735,7 +672,6 @@ window.addEventListener('DOMContentLoaded', async () => {
   const criticalElements = {
     'settings-modal': document.getElementById('settings-modal'),
     'open-settings': document.getElementById('open-settings'),
-    'close-settings': document.getElementById('close-settings'),
     'modal-content': document.querySelector('.modal-content')
   };
   
