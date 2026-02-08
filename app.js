@@ -242,8 +242,18 @@ function toggleViewMode() {
   const message = `תצוגת ${viewMode === 'list' ? 'רשימה' : 'לוח שנה'}`;
   notifications.showInAppNotification(message, 'info');
   
+  // החלפת התצוגה בפועל
   if (viewMode === 'calendar') {
-    notifications.showInAppNotification('תצוגת לוח שנה תתווסף בקרוב', 'info');
+    console.log('📅 toggleViewMode: Switching to calendar view');
+    if (typeof calendar !== 'undefined' && calendar.renderCalendar) {
+      calendar.renderCalendar();
+    } else {
+      console.error('❌ toggleViewMode: Calendar manager not found');
+      notifications.showInAppNotification('שגיאה בטעינת לוח השנה', 'error');
+    }
+  } else {
+    console.log('📋 toggleViewMode: Switching to list view');
+    renderHomework();
   }
 }
 
@@ -471,6 +481,15 @@ function renderTagSelector() {
 }
 
 function renderHomework() {
+  // אם במצב לוח שנה, השתמש ב-calendar manager
+  if (viewMode === 'calendar') {
+    if (typeof calendar !== 'undefined' && calendar.renderCalendar) {
+      calendar.renderCalendar();
+      return;
+    }
+  }
+  
+  // אחרת, הצג רשימה רגילה
   const list = document.getElementById('homework-list');
   const archiveBtn = document.getElementById('archive-toggle');
 
