@@ -360,14 +360,24 @@ function openSettings() {
     return;
   }
   
-  // הסרת hidden והוספת display
+  // הסרת hidden
   modal.classList.remove('hidden');
-  modal.style.display = 'flex';
   
-  console.log('✅ ההגדרות נפתחו');
-  console.log('📊 classList:', Array.from(modal.classList));
-  console.log('📊 display:', modal.style.display);
-  console.log('📊 מצב סופי:', modal.classList.contains('hidden') ? 'סגור' : 'פתוח');
+  // וידוא שה-display מוגדר כראוי
+  setTimeout(() => {
+    const computedDisplay = window.getComputedStyle(modal).display;
+    console.log('✅ ההגדרות נפתחו');
+    console.log('📊 classList:', Array.from(modal.classList));
+    console.log('📊 computed display:', computedDisplay);
+    console.log('📊 inline display:', modal.style.display);
+    
+    if (computedDisplay === 'none') {
+      console.error('❌ המודל עדיין מוסתר! מנסה לתקן...');
+      modal.style.display = 'flex';
+      modal.style.visibility = 'visible';
+      modal.style.opacity = '1';
+    }
+  }, 50);
   
   loadSettingsUI();
 }
@@ -380,14 +390,11 @@ function closeSettings() {
     return;
   }
   
-  // הוספת hidden והסתרה מפורשת
+  // הוספת hidden
   modal.classList.add('hidden');
-  modal.style.display = 'none';
   
   console.log('✅ ההגדרות נסגרו');
   console.log('📊 classList:', Array.from(modal.classList));
-  console.log('📊 display:', modal.style.display);
-  console.log('📊 מצב סופי:', modal.classList.contains('hidden') ? 'סגור' : 'פתוח');
 }
 
 async function loadSettingsUI() {
@@ -748,8 +755,16 @@ window.addEventListener('DOMContentLoaded', async () => {
   initializeEventListeners();
   
   console.log('✅ המערכת נטענה בהצלחה');
-  console.log('📊 מצב התחלתי של מודל ההגדרות:', 
-    criticalElements['settings-modal']?.classList.contains('hidden') ? 'סגור' : 'פתוח');
+  
+  const modalElement = criticalElements['settings-modal'];
+  if (modalElement) {
+    const computedStyle = window.getComputedStyle(modalElement);
+    console.log('📊 מצב התחלתי של מודל ההגדרות:');
+    console.log('  - classList:', Array.from(modalElement.classList));
+    console.log('  - computed display:', computedStyle.display);
+    console.log('  - inline display:', modalElement.style.display);
+    console.log('  - מצב:', computedStyle.display === 'none' ? 'סגור ✅' : 'פתוח ⚠️');
+  }
 });
 
 // שמירה אוטומטית לפני סגירת הדף
