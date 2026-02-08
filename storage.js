@@ -54,7 +54,7 @@ class StorageManager {
   // מחיקת כל הנתונים
   async clearAll() {
     try {
-      const keys = ['homework-subjects', 'homework-list', 'homework-settings', 'homework-last-backup'];
+      const keys = ['homework-subjects', 'homework-list', 'homework-settings', 'homework-last-backup', 'homework-tags'];
       for (const key of keys) {
         await this.delete(key);
       }
@@ -71,13 +71,15 @@ class StorageManager {
       const subjects = await this.get('homework-subjects') || [];
       const homework = await this.get('homework-list') || [];
       const settings = await this.get('homework-settings') || {};
+      const tags = await this.get('homework-tags') || [];
       
       const exportData = {
         version: '2.0',
         exportDate: new Date().toISOString(),
         subjects,
         homework,
-        settings
+        settings,
+        tags
       };
 
       const blob = new Blob([JSON.stringify(exportData, null, 2)], { type: 'application/json' });
@@ -118,8 +120,9 @@ class StorageManager {
           const confirmMsg = `האם אתה בטוח שברצונך לייבא את הנתונים?\n\n` +
                            `הפעולה תחליף את כל הנתונים הקיימים:\n` +
                            `- ${importData.subjects.length} מקצועות\n` +
-                           `- ${importData.homework.length} משימות\n\n` +
-                           `⚠️ הנתונים הנוכחיים יימחקו לצמיתות!`;
+                           `- ${importData.homework.length} משימות\n` +
+                           (importData.tags ? `- ${importData.tags.length} תגיות\n` : '') +
+                           `\n⚠️ הנתונים הנוכחיים יימחקו לצמיתות!`;
           
           if (!confirm(confirmMsg)) {
             resolve({ success: false, message: 'הייבוא בוטל על ידי המשתמש' });
@@ -131,6 +134,9 @@ class StorageManager {
           await this.set('homework-list', importData.homework);
           if (importData.settings) {
             await this.set('homework-settings', importData.settings);
+          }
+          if (importData.tags) {
+            await this.set('homework-tags', importData.tags);
           }
 
           resolve({ 

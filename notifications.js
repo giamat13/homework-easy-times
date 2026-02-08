@@ -123,46 +123,6 @@ class NotificationsManager {
     }
   }
 
-  // התראה יומית בשעה מסוימת
-  async scheduleDailyNotification(time, homework) {
-    const [hours, minutes] = time.split(':').map(Number);
-    const now = new Date();
-    const scheduledTime = new Date(now.getFullYear(), now.getMonth(), now.getDate(), hours, minutes, 0);
-
-    if (scheduledTime <= now) {
-      scheduledTime.setDate(scheduledTime.getDate() + 1);
-    }
-
-    const timeUntilNotification = scheduledTime - now;
-
-    setTimeout(async () => {
-      await this.sendDailySummary(homework);
-      // תזמן מחדש למחר
-      this.scheduleDailyNotification(time, homework);
-    }, timeUntilNotification);
-  }
-
-  // סיכום יומי
-  async sendDailySummary(homework) {
-    const pendingHomework = homework.filter(h => !h.completed);
-    const urgentHomework = pendingHomework.filter(h => {
-      const daysUntil = this.getDaysUntilDue(h.dueDate);
-      return daysUntil <= 2;
-    });
-
-    if (urgentHomework.length > 0) {
-      await this.sendNotification('סיכום משימות יומי', {
-        body: `יש לך ${urgentHomework.length} משימות דחופות היום`,
-        tag: 'daily-summary'
-      });
-    } else if (pendingHomework.length > 0) {
-      await this.sendNotification('סיכום משימות יומי', {
-        body: `יש לך ${pendingHomework.length} משימות ממתינות`,
-        tag: 'daily-summary'
-      });
-    }
-  }
-
   // חישוב ימים עד המועד
   getDaysUntilDue(dueDate) {
     const today = new Date();
@@ -176,7 +136,6 @@ class NotificationsManager {
     const notification = document.createElement('div');
     notification.className = `notification-badge ${type}`;
     
-    const icon = type === 'success' ? '✓' : type === 'error' ? '✗' : 'ℹ';
     notification.innerHTML = `
       <svg width="24" height="24"><use href="#bell"></use></svg>
       <span>${message}</span>
@@ -187,7 +146,9 @@ class NotificationsManager {
     setTimeout(() => {
       notification.style.animation = 'slideOut 0.3s ease-out';
       setTimeout(() => {
-        document.body.removeChild(notification);
+        if (document.body.contains(notification)) {
+          document.body.removeChild(notification);
+        }
       }, 300);
     }, 5000);
   }
