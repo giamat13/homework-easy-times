@@ -441,13 +441,14 @@ body {
   align-items: center;
   justify-content: center;
   z-index: 1000;
+  padding: 1rem;
 }
 
 .modal-content {
   background: white;
   border-radius: 1rem;
   max-width: 600px;
-  width: 90%;
+  width: 100%;
   max-height: 90vh;
   overflow-y: auto;
   box-shadow: 0 10px 25px rgba(0,0,0,0.2);
@@ -459,24 +460,41 @@ body {
   align-items: center;
   padding: 1.5rem;
   border-bottom: 1px solid #e5e7eb;
+  position: sticky;
+  top: 0;
+  background: white;
+  z-index: 10;
+  border-radius: 1rem 1rem 0 0;
 }
 
 .modal-header h2 {
   font-size: 1.5rem;
   color: #1f2937;
+  margin: 0;
 }
 
 .close-btn {
-  background: none;
+  background: #f3f4f6;
   border: none;
   cursor: pointer;
-  padding: 0.25rem;
+  padding: 0.5rem;
   color: #6b7280;
-  transition: color 0.2s;
+  transition: all 0.2s;
+  border-radius: 0.5rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 2.5rem;
+  min-height: 2.5rem;
 }
 
 .close-btn:hover {
+  background: #e5e7eb;
   color: #1f2937;
+}
+
+.close-btn:active {
+  background: #d1d5db;
 }
 
 .modal-body {
@@ -485,6 +503,10 @@ body {
 
 .settings-section {
   margin-bottom: 2rem;
+}
+
+.settings-section:last-child {
+  margin-bottom: 0;
 }
 
 .settings-section h3 {
@@ -497,6 +519,10 @@ body {
 
 .setting-item {
   margin-bottom: 1rem;
+}
+
+.setting-item:last-child {
+  margin-bottom: 0;
 }
 
 .setting-item label {
@@ -517,6 +543,39 @@ body {
   font-size: 0.875rem;
   color: #dc2626;
   font-weight: 600;
+}
+
+/* Report Links Styles */
+.report-links {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.report-link {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.75rem 1rem;
+  background: #f9fafb;
+  border: 2px solid #e5e7eb;
+  border-radius: 0.75rem;
+  color: #1f2937;
+  text-decoration: none;
+  font-weight: 500;
+  transition: all 0.2s;
+}
+
+.report-link:hover {
+  background: #f3f4f6;
+  border-color: #3b82f6;
+  color: #3b82f6;
+  transform: translateX(4px);
+}
+
+.report-link svg {
+  flex-shrink: 0;
+  color: currentColor;
 }
 
 /* Notification Badge */
@@ -567,5 +626,18 @@ body {
   
   .stats {
     grid-template-columns: repeat(2, 1fr);
+  }
+
+  .modal {
+    padding: 0;
+  }
+
+  .modal-content {
+    max-height: 100vh;
+    border-radius: 0;
+  }
+
+  .modal-header {
+    border-radius: 0;
   }
 }

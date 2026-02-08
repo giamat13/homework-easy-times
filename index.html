@@ -126,7 +126,7 @@
     <div class="modal-content">
       <div class="modal-header">
         <h2>הגדרות</h2>
-        <button class="close-btn" id="close-settings">
+        <button class="close-btn" id="close-settings" type="button">
           <svg width="24" height="24"><use href="#x"></use></svg>
         </button>
       </div>
@@ -157,13 +157,13 @@
         <div class="settings-section">
           <h3>ייבוא/ייצוא נתונים</h3>
           <div class="setting-item">
-            <button class="btn btn-primary" id="export-data">
+            <button class="btn btn-primary" id="export-data" type="button">
               <svg width="20" height="20"><use href="#download"></use></svg>
               ייצא נתונים
             </button>
           </div>
           <div class="setting-item">
-            <button class="btn btn-secondary" id="import-data">
+            <button class="btn btn-secondary" id="import-data" type="button">
               <svg width="20" height="20"><use href="#upload"></use></svg>
               ייבא נתונים
             </button>
@@ -174,7 +174,7 @@
         <div class="settings-section">
           <h3>ניהול נתונים</h3>
           <div class="setting-item">
-            <button class="btn btn-danger" id="clear-all-data">
+            <button class="btn btn-danger" id="clear-all-data" type="button">
               <svg width="20" height="20"><use href="#trash"></use></svg>
               מחק את כל הנתונים
             </button>
@@ -192,6 +192,25 @@
           </div>
           <div class="setting-item" id="last-backup-info">
             גיבוי אחרון: אף פעם
+          </div>
+        </div>
+
+        <div class="settings-section">
+          <h3>דיווח על בעיות</h3>
+          <div class="setting-item">
+            <p style="margin-bottom: 0.75rem; color: #6b7280; font-size: 0.875rem;">
+              מצאת באג או שיש לך הצעה לשיפור? נשמח לשמוע ממך!
+            </p>
+            <div class="report-links">
+              <a href="https://github.com/giamat13/homework-easy-times/issues" target="_blank" rel="noopener noreferrer" class="report-link">
+                <svg width="20" height="20"><use href="#github"></use></svg>
+                דווח ב-GitHub Issues
+              </a>
+              <a href="https://forms.gle/WDPPpqAv2mydg4qX7" target="_blank" rel="noopener noreferrer" class="report-link">
+                <svg width="20" height="20"><use href="#message-square"></use></svg>
+                מלא טופס דיווח
+              </a>
+            </div>
           </div>
         </div>
       </div>
@@ -240,6 +259,12 @@
     <symbol id="bell" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
       <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"></path>
       <path d="M13.73 21a2 2 0 0 1-3.46 0"></path>
+    </symbol>
+    <symbol id="github" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+      <path d="M9 19c-5 1.5-5-2.5-7-3m14 6v-3.87a3.37 3.37 0 0 0-.94-2.61c3.14-.35 6.44-1.54 6.44-7A5.44 5.44 0 0 0 20 4.77 5.07 5.07 0 0 0 19.91 1S18.73.65 16 2.48a13.38 13.38 0 0 0-7 0C6.27.65 5.09 1 5.09 1A5.07 5.07 0 0 0 5 4.77a5.44 5.44 0 0 0-1.5 3.78c0 5.42 3.3 6.61 6.44 7A3.37 3.37 0 0 0 9 18.13V22"></path>
+    </symbol>
+    <symbol id="message-square" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+      <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path>
     </symbol>
   </svg>
 
