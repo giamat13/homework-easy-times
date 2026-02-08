@@ -19,4 +19,4 @@ jobs:
         with:
           folder: .
           target-folder: test-test
-          branch: test # זה ידחוף את התיקייה לתוך ה-test שלך
+          branch: main # זה ידחוף את התיקייה לתוך ה-test שלך
