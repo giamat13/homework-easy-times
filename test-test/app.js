@@ -8,7 +8,8 @@ let settings = {
   notificationTime: '09:00',
   autoBackup: false,
   darkMode: false,
-  recentColors: []
+  recentColors: [],
+  viewMode: 'list' // תצוגת ברירת מחדל
 };
 let selectedColor = '#3b82f6';
 let showArchive = false;
@@ -19,7 +20,6 @@ let filters = {
   tags: []
 };
 let availableTags = [];
-let viewMode = 'list'; // 'list' or 'calendar'
 
 // =============== טעינה ושמירה ===============
 
@@ -45,7 +45,8 @@ async function loadData() {
       notificationTime: '09:00',
       autoBackup: false,
       darkMode: false,
-      recentColors: []
+      recentColors: [],
+      viewMode: 'list'
     };
     console.log('✅ loadData: Settings loaded:', settings);
     
@@ -67,7 +68,27 @@ async function loadData() {
       console.log('✅ loadData: Dark mode applied');
     }
     
+    // החל תצוגה שמורה (רשימה או לוח שנה)
+    if (settings.viewMode) {
+      console.log('📅 loadData: Applying saved view mode:', settings.viewMode);
+      const toggleViewBtn = document.getElementById('toggle-view-mode');
+      if (toggleViewBtn) {
+        const svg = toggleViewBtn.querySelector('svg use');
+        if (svg) {
+          // עדכון האייקון לפי המצב השמור
+          svg.setAttribute('href', settings.viewMode === 'list' ? '#calendar' : '#list');
+          console.log('📅 loadData: View mode icon updated to', settings.viewMode === 'list' ? 'calendar' : 'list');
+        }
+      }
+    }
+    
     console.log('🎨 loadData: Starting render...');
+    
+    // נקה צבעים כפולים
+    if (deduplicateColors()) {
+      console.log('✅ loadData: Removed duplicate colors');
+    }
+    
     render();
     console.log('✅ loadData: Render complete');
     
@@ -198,6 +219,36 @@ function addToRecentColors(color) {
   saveData();
 }
 
+// פונקציה לניקוי צבעים כפולים
+function deduplicateColors() {
+  console.log('🎨 deduplicateColors: Starting color deduplication...');
+  
+  if (!settings.recentColors || settings.recentColors.length === 0) {
+    console.log('⏸️ deduplicateColors: No recent colors to deduplicate');
+    return false;
+  }
+  
+  const originalLength = settings.recentColors.length;
+  console.log('🎨 deduplicateColors: Original colors:', settings.recentColors);
+  
+  // הסר צבעים שזהים לצבעי ברירת המחדל
+  settings.recentColors = settings.recentColors.filter(color => !colors.includes(color));
+  
+  // הסר כפילויות
+  settings.recentColors = [...new Set(settings.recentColors)];
+  
+  const newLength = settings.recentColors.length;
+  console.log('🎨 deduplicateColors: Cleaned colors:', settings.recentColors);
+  console.log('🎨 deduplicateColors: Removed', originalLength - newLength, 'duplicate colors');
+  
+  if (originalLength !== newLength) {
+    saveData();
+    return true;
+  }
+  
+  return false;
+}
+
 // =============== מצב לילה ===============
 
 function toggleDarkMode() {
@@ -228,22 +279,25 @@ function toggleDarkMode() {
 }
 
 function toggleViewMode() {
-  viewMode = viewMode === 'list' ? 'calendar' : 'list';
+  settings.viewMode = settings.viewMode === 'list' ? 'calendar' : 'list';
   
   // עדכון האייקון
   const toggleBtn = document.getElementById('toggle-view-mode');
   if (toggleBtn) {
     const svg = toggleBtn.querySelector('svg use');
     if (svg) {
-      svg.setAttribute('href', viewMode === 'list' ? '#calendar' : '#list');
+      svg.setAttribute('href', settings.viewMode === 'list' ? '#calendar' : '#list');
     }
   }
   
-  const message = `תצוגת ${viewMode === 'list' ? 'רשימה' : 'לוח שנה'}`;
+  // שמירת ההגדרה
+  saveData();
+  
+  const message = `תצוגת ${settings.viewMode === 'list' ? 'רשימה' : 'לוח שנה'}`;
   notifications.showInAppNotification(message, 'info');
   
   // החלפת התצוגה בפועל
-  if (viewMode === 'calendar') {
+  if (settings.viewMode === 'calendar') {
     console.log('📅 toggleViewMode: Switching to calendar view');
     if (typeof calendar !== 'undefined' && calendar.renderCalendar) {
       calendar.renderCalendar();
@@ -482,7 +536,7 @@ function renderTagSelector() {
 
 function renderHomework() {
   // אם במצב לוח שנה, השתמש ב-calendar manager
-  if (viewMode === 'calendar') {
+  if (settings.viewMode === 'calendar') {
     if (typeof calendar !== 'undefined' && calendar.renderCalendar) {
       calendar.renderCalendar();
       return;
@@ -798,6 +852,7 @@ async function loadSettingsUI() {
   document.getElementById('notification-time').value = settings.notificationTime;
   document.getElementById('auto-backup').checked = settings.autoBackup;
   document.getElementById('dark-mode-toggle').checked = settings.darkMode;
+  document.getElementById('view-mode-toggle').checked = settings.viewMode === 'calendar';
   
   const lastBackup = await storage.getLastBackupDate();
   const lastBackupInfo = document.getElementById('last-backup-info');
@@ -846,11 +901,215 @@ async function exportData() {
 }
 
 async function exportToPDF() {
-  notifications.showInAppNotification('ייצוא ל-PDF בפיתוח...', 'info');
+  console.log('📄 exportToPDF: Starting PDF export...');
+  
+  try {
+    // יצירת תוכן HTML למסמך
+    let htmlContent = `
+<!DOCTYPE html>
+<html dir="rtl" lang="he">
+<head>
+  <meta charset="UTF-8">
+  <title>דוח שיעורי בית - ${new Date().toLocaleDateString('he-IL')}</title>
+  <style>
+    body { font-family: Arial, sans-serif; direction: rtl; padding: 20px; }
+    h1 { color: #3b82f6; border-bottom: 3px solid #3b82f6; padding-bottom: 10px; }
+    h2 { color: #1f2937; margin-top: 30px; border-bottom: 2px solid #e5e7eb; padding-bottom: 5px; }
+    .stats { display: flex; gap: 20px; margin: 20px 0; }
+    .stat-box { border: 2px solid #e5e7eb; padding: 15px; border-radius: 8px; flex: 1; text-align: center; }
+    .stat-number { font-size: 2em; font-weight: bold; color: #3b82f6; }
+    .stat-label { color: #6b7280; margin-top: 5px; }
+    table { width: 100%; border-collapse: collapse; margin: 20px 0; }
+    th { background: #3b82f6; color: white; padding: 12px; text-align: right; }
+    td { border: 1px solid #e5e7eb; padding: 10px; }
+    tr:nth-child(even) { background: #f9fafb; }
+    .completed { text-decoration: line-through; color: #6b7280; }
+    .urgent { background: #fef3c7 !important; }
+    .overdue { background: #fee2e2 !important; }
+    .subject-badge { display: inline-block; padding: 4px 8px; border-radius: 4px; color: white; font-size: 0.9em; margin-left: 5px; }
+    .footer { margin-top: 40px; text-align: center; color: #6b7280; font-size: 0.9em; border-top: 1px solid #e5e7eb; padding-top: 20px; }
+  </style>
+</head>
+<body>
+  <h1>📚 דוח שיעורי בית</h1>
+  <p><strong>תאריך יצירת הדוח:</strong> ${new Date().toLocaleDateString('he-IL', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })}</p>
+  
+  <div class="stats">
+    <div class="stat-box">
+      <div class="stat-number">${homework.length}</div>
+      <div class="stat-label">סך הכל משימות</div>
+    </div>
+    <div class="stat-box">
+      <div class="stat-number">${homework.filter(h => h.completed).length}</div>
+      <div class="stat-label">הושלמו</div>
+    </div>
+    <div class="stat-box">
+      <div class="stat-number">${homework.filter(h => !h.completed).length}</div>
+      <div class="stat-label">ממתינים</div>
+    </div>
+    <div class="stat-box">
+      <div class="stat-number">${homework.filter(h => !h.completed && getDaysUntilDue(h.dueDate) <= 2).length}</div>
+      <div class="stat-label">דחופים</div>
+    </div>
+  </div>
+  
+  <h2>רשימת מקצועות (${subjects.length})</h2>
+  <table>
+    <tr>
+      <th>שם המקצוע</th>
+      <th>צבע</th>
+      <th>מספר משימות</th>
+    </tr>
+`;
+
+    subjects.forEach(subject => {
+      const count = homework.filter(h => h.subject == subject.id).length;
+      htmlContent += `
+    <tr>
+      <td>${subject.name}</td>
+      <td><span class="subject-badge" style="background-color: ${subject.color};">${subject.color}</span></td>
+      <td>${count}</td>
+    </tr>
+`;
+    });
+
+    htmlContent += `
+  </table>
+  
+  <h2>כל המשימות (${homework.length})</h2>
+  <table>
+    <tr>
+      <th>כותרת</th>
+      <th>מקצוע</th>
+      <th>תאריך הגשה</th>
+      <th>סטטוס</th>
+      <th>ימים עד הגשה</th>
+    </tr>
+`;
+
+    const sortedHomework = [...homework].sort((a, b) => new Date(a.dueDate) - new Date(b.dueDate));
+    
+    sortedHomework.forEach(hw => {
+      const subject = subjects.find(s => s.id == hw.subject);
+      const daysLeft = getDaysUntilDue(hw.dueDate);
+      const isUrgent = daysLeft <= 2 && !hw.completed;
+      const isOverdue = daysLeft < 0 && !hw.completed;
+      
+      let rowClass = '';
+      if (isOverdue) rowClass = 'overdue';
+      else if (isUrgent) rowClass = 'urgent';
+      
+      let status = hw.completed ? '✅ הושלם' : '⏳ ממתין';
+      if (isOverdue && !hw.completed) status = '⚠️ באיחור';
+      else if (isUrgent && !hw.completed) status = '🔥 דחוף';
+      
+      htmlContent += `
+    <tr class="${rowClass}">
+      <td class="${hw.completed ? 'completed' : ''}">${hw.title}</td>
+      <td>${subject ? `<span class="subject-badge" style="background-color: ${subject.color};">${subject.name}</span>` : '-'}</td>
+      <td>${new Date(hw.dueDate).toLocaleDateString('he-IL')}</td>
+      <td>${status}</td>
+      <td>${hw.completed ? '-' : (daysLeft < 0 ? `איחור ${Math.abs(daysLeft)} ימים` : `${daysLeft} ימים`)}</td>
+    </tr>
+`;
+    });
+
+    htmlContent += `
+  </table>
+  
+  <div class="footer">
+    <p>מערכת ניהול שיעורי בית</p>
+    <p>© ${new Date().getFullYear()} - נוצר ב-${new Date().toLocaleString('he-IL')}</p>
+  </div>
+</body>
+</html>
+`;
+
+    // יצירת Blob והורדה
+    const blob = new Blob([htmlContent], { type: 'text/html' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = `homework-report-${new Date().toISOString().split('T')[0]}.html`;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
+    
+    notifications.showInAppNotification('📄 דוח HTML נוצר בהצלחה! (פתח בדפדפן ושמור כ-PDF)', 'success');
+    console.log('✅ exportToPDF: PDF export complete');
+    
+  } catch (error) {
+    console.error('❌ exportToPDF: Error:', error);
+    notifications.showInAppNotification('שגיאה ביצירת הדוח', 'error');
+  }
 }
 
 async function exportToExcel() {
-  notifications.showInAppNotification('ייצוא ל-Excel בפיתוח...', 'info');
+  console.log('📊 exportToExcel: Starting Excel export...');
+  
+  try {
+    // יצירת תוכן CSV (Excel יכול לפתוח את זה)
+    let csvContent = '\uFEFF'; // BOM for UTF-8
+    
+    // כותרת
+    csvContent += `דוח שיעורי בית - ${new Date().toLocaleDateString('he-IL')}\n\n`;
+    
+    // סטטיסטיקות
+    csvContent += 'סטטיסטיקות\n';
+    csvContent += 'סך הכל,הושלמו,ממתינים,דחופים\n';
+    csvContent += `${homework.length},${homework.filter(h => h.completed).length},${homework.filter(h => !h.completed).length},${homework.filter(h => !h.completed && getDaysUntilDue(h.dueDate) <= 2).length}\n\n`;
+    
+    // מקצועות
+    csvContent += 'מקצועות\n';
+    csvContent += 'שם המקצוע,צבע,מספר משימות\n';
+    subjects.forEach(subject => {
+      const count = homework.filter(h => h.subject == subject.id).length;
+      csvContent += `${subject.name},${subject.color},${count}\n`;
+    });
+    csvContent += '\n';
+    
+    // משימות
+    csvContent += 'כל המשימות\n';
+    csvContent += 'כותרת,מקצוע,תיאור,תאריך הגשה,עדיפות,סטטוס,ימים עד הגשה,תגיות\n';
+    
+    const sortedHomework = [...homework].sort((a, b) => new Date(a.dueDate) - new Date(b.dueDate));
+    
+    sortedHomework.forEach(hw => {
+      const subject = subjects.find(s => s.id == hw.subject);
+      const daysLeft = getDaysUntilDue(hw.dueDate);
+      const isUrgent = daysLeft <= 2 && !hw.completed;
+      const isOverdue = daysLeft < 0 && !hw.completed;
+      
+      let status = hw.completed ? 'הושלם' : 'ממתין';
+      if (isOverdue && !hw.completed) status = 'באיחור';
+      else if (isUrgent && !hw.completed) status = 'דחוף';
+      
+      const daysText = hw.completed ? '-' : (daysLeft < 0 ? `איחור ${Math.abs(daysLeft)} ימים` : `${daysLeft} ימים`);
+      const tags = hw.tags ? hw.tags.join('; ') : '';
+      const description = hw.description ? hw.description.replace(/,/g, '،').replace(/\n/g, ' ') : '';
+      
+      csvContent += `"${hw.title}","${subject ? subject.name : '-'}","${description}",${new Date(hw.dueDate).toLocaleDateString('he-IL')},${hw.priority},${status},${daysText},"${tags}"\n`;
+    });
+    
+    // יצירת Blob והורדה
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = `homework-report-${new Date().toISOString().split('T')[0]}.csv`;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
+    
+    notifications.showInAppNotification('📊 קובץ CSV נוצר בהצלחה! (פתח ב-Excel)', 'success');
+    console.log('✅ exportToExcel: Excel export complete');
+    
+  } catch (error) {
+    console.error('❌ exportToExcel: Error:', error);
+    notifications.showInAppNotification('שגיאה ביצירת הקובץ', 'error');
+  }
 }
 
 function importData() {
@@ -985,6 +1244,18 @@ function initializeEventListeners() {
   const darkModeToggle = document.getElementById('dark-mode-toggle');
   if (darkModeToggle) darkModeToggle.addEventListener('change', toggleDarkMode);
   
+  // מצב תצוגה
+  const viewModeToggle = document.getElementById('view-mode-toggle');
+  if (viewModeToggle) {
+    viewModeToggle.addEventListener('change', () => {
+      console.log('📅 viewModeToggle: Toggle changed in settings');
+      const newMode = viewModeToggle.checked ? 'calendar' : 'list';
+      if (settings.viewMode !== newMode) {
+        toggleViewMode();
+      }
+    });
+  }
+  
   // שמירת הגדרות
   const enableNotifications = document.getElementById('enable-notifications');
   if (enableNotifications) enableNotifications.addEventListener('change', saveSettings);
@@ -1001,6 +1272,12 @@ function initializeEventListeners() {
   // ייבוא/ייצוא
   const exportDataBtn = document.getElementById('export-data');
   if (exportDataBtn) exportDataBtn.addEventListener('click', exportData);
+  
+  const exportPdfBtn = document.getElementById('export-pdf');
+  if (exportPdfBtn) exportPdfBtn.addEventListener('click', exportToPDF);
+  
+  const exportExcelBtn = document.getElementById('export-excel');
+  if (exportExcelBtn) exportExcelBtn.addEventListener('click', exportToExcel);
 
   const importDataBtn = document.getElementById('import-data');
   if (importDataBtn) importDataBtn.addEventListener('click', importData);
