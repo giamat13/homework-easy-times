@@ -1,4 +1,4 @@
-name: Deploy Test
+name: Deploy test
 on:
   push:
     branches:
@@ -19,4 +19,5 @@ jobs:
         with:
           folder: .
           target-folder: test
-          branch: main # זה ידחוף את התיקייה לתוך ה-main שלך
+          branch: main # זה ידחוף את התיקייה לתוך ה-test שלך
+
