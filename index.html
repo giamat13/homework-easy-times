@@ -620,27 +620,43 @@ function addHomework() {
 <footer class="footer">
   <div style="margin-bottom: 2rem; padding: 2rem; background: linear-gradient(135deg, #eff6ff 0%, #dbeafe 100%); border-radius: 1.5rem; border: 2px solid #3b82f6; box-shadow: 0 10px 15px -3px rgba(59, 130, 246, 0.1);">
     
-    <div style="text-align: center; margin-bottom: 1.5rem;">
-      <h2 style="color: #1e40af; font-size: 2rem; margin-bottom: 0.5rem; font-weight: 800;">🔥 עומס של פיצ'רים חדשים!</h2>
-      <p style="color: #1d4ed8; font-size: 1.2rem; font-weight: 600;">העלינו המון עדכונים משמעותיים לעמוד הבדיקה – אל תפספסו!</p>
-    </div>
+<div id="beta-footer-container"></div>
 
-    <div style="background: white; padding: 1.5rem; border-radius: 1rem; border: 1px dashed #3b82f6;">
-      <h3 style="color: #1f2937; margin-bottom: 0.5rem;">גרסת בטא (Beta Testing)</h3>
-      <p style="margin-bottom: 1rem;">אנחנו עובדים על פיצ'רים חדשים בקצב מהיר! שימו לב שבעמוד הבדיקות ייתכנו באגים, אך כרגע הוא מלא בכלים חדשים שטרם שוחררו לגרסה הרגילה.</p>
-      
-      <div style="text-align: center;">
-        <a href="test/" class="btn btn-primary" style="display: inline-flex; width: auto; padding: 0.8rem 3rem; text-decoration: none; font-size: 1.1rem; font-weight: bold; border-radius: 0.75rem; background-color: #3b82f6; color: white; box-shadow: 0 4px 6px rgba(0,0,0,0.1);">
-          כניסה לעמוד הבדיקה המורחב
+<script src="config.js"></script>
+
+<script>
+  const container = document.getElementById('beta-footer-container');
+
+  const oldDesign = `
+    <div style="margin-bottom: 2rem; padding: 1.5rem; background: rgba(255, 255, 255, 0.5); border-radius: 1rem; border: 1px dashed #3b82f6;">
+      <h3 style="color: #1f2937; margin-bottom: 0.5rem;">גרסת בטא (Testing)</h3>
+      <p style="margin-bottom: 1rem;">אנחנו עובדים על פיצ'רים חדשים! שימו לב שבעמוד הבדיקות ייתכנו באגים.</p>
+      <a href="test/" style="display: inline-flex; padding: 0.5rem 2rem; background: #3b82f6; color: white; text-decoration: none; border-radius: 0.5rem;">כניסה לעמוד הבדיקה</a>
+    </div>
+  `;
+
+  const newDesign = `
+    <div style="margin-bottom: 2rem; padding: 2rem; background: linear-gradient(135deg, #eff6ff 0%, #dbeafe 100%); border-radius: 1.5rem; border: 2px solid #3b82f6; box-shadow: 0 10px 15px -3px rgba(59, 130, 246, 0.1); font-family: sans-serif; direction: rtl;">
+      <div style="text-align: center; margin-bottom: 1.5rem;">
+        <h2 style="color: #1e40af; font-size: 2.2rem; margin-bottom: 0.5rem; font-weight: 800;">🔥 עומס של פיצ'רים חדשים!</h2>
+        <p style="color: #1d4ed8; font-size: 1.3rem; font-weight: 600;">העלינו המון עדכונים משמעותיים לעמוד הבדיקה – כדאי לבדוק!</p>
+      </div>
+      <div style="background: white; padding: 1.5rem; border-radius: 1rem; border: 1px dashed #3b82f6; text-align: center;">
+        <p style="margin-bottom: 1rem; color: #374151;">שימו לב שבעמוד הבדיקות ייתכנו באגים, אך הוא מלא בכלים חדשים שטרם שוחררו.</p>
+        <a href="test/" style="display: inline-block; padding: 1rem 3.5rem; background: #3b82f6; color: white; text-decoration: none; font-size: 1.2rem; font-weight: bold; border-radius: 0.75rem; box-shadow: 0 4px 6px rgba(59, 130, 246, 0.3);">
+          כניסה לעמוד הבדיקה המורחב 🚀
         </a>
       </div>
-
-      <p style="margin-top: 1rem; font-style: italic; font-size: 0.9rem; text-align: center; color: #4b5563;">
-        נשמח אם תשתמשו בגרסה זו כדי לדווח על תקלות ולעזור לנו להשתפר.
-      </p>
     </div>
-  </div>
-</footer>
+  `;
+
+  // בדיקה אם המשתנה קיים והוא true
+  if (typeof isBigUpdate !== 'undefined' && isBigUpdate) {
+    container.innerHTML = newDesign;
+  } else {
+    container.innerHTML = oldDesign;
+  }
+</script>
 
   <p>© 2025 giamat13 כל הזכויות שמורות.</p>
   <p>התוכן זמין תחת רישיון <a href="https://creativecommons.org/licenses/by-nc/4.0/deed.he" target="_blank" style="color: #3b82f6; text-decoration: none;">Creative Commons BY-NC 4.0</a></p>
