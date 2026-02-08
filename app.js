@@ -8,7 +8,8 @@ let settings = {
   notificationTime: '09:00',
   autoBackup: false,
   darkMode: false,
-  recentColors: []
+  recentColors: [],
+  viewMode: 'list' // תצוגת ברירת מחדל
 };
 let selectedColor = '#3b82f6';
 let showArchive = false;
@@ -19,7 +20,6 @@ let filters = {
   tags: []
 };
 let availableTags = [];
-let viewMode = 'list'; // 'list' or 'calendar'
 
 // =============== טעינה ושמירה ===============
 
@@ -45,7 +45,8 @@ async function loadData() {
       notificationTime: '09:00',
       autoBackup: false,
       darkMode: false,
-      recentColors: []
+      recentColors: [],
+      viewMode: 'list'
     };
     console.log('✅ loadData: Settings loaded:', settings);
     
@@ -67,7 +68,27 @@ async function loadData() {
       console.log('✅ loadData: Dark mode applied');
     }
     
+    // החל תצוגה שמורה (רשימה או לוח שנה)
+    if (settings.viewMode) {
+      console.log('📅 loadData: Applying saved view mode:', settings.viewMode);
+      const toggleViewBtn = document.getElementById('toggle-view-mode');
+      if (toggleViewBtn) {
+        const svg = toggleViewBtn.querySelector('svg use');
+        if (svg) {
+          // עדכון האייקון לפי המצב השמור
+          svg.setAttribute('href', settings.viewMode === 'list' ? '#calendar' : '#list');
+          console.log('📅 loadData: View mode icon updated to', settings.viewMode === 'list' ? 'calendar' : 'list');
+        }
+      }
+    }
+    
     console.log('🎨 loadData: Starting render...');
+    
+    // נקה צבעים כפולים
+    if (deduplicateColors()) {
+      console.log('✅ loadData: Removed duplicate colors');
+    }
+    
     render();
     console.log('✅ loadData: Render complete');
     
@@ -198,6 +219,36 @@ function addToRecentColors(color) {
   saveData();
 }
 
+// פונקציה לניקוי צבעים כפולים
+function deduplicateColors() {
+  console.log('🎨 deduplicateColors: Starting color deduplication...');
+  
+  if (!settings.recentColors || settings.recentColors.length === 0) {
+    console.log('⏸️ deduplicateColors: No recent colors to deduplicate');
+    return false;
+  }
+  
+  const originalLength = settings.recentColors.length;
+  console.log('🎨 deduplicateColors: Original colors:', settings.recentColors);
+  
+  // הסר צבעים שזהים לצבעי ברירת המחדל
+  settings.recentColors = settings.recentColors.filter(color => !colors.includes(color));
+  
+  // הסר כפילויות
+  settings.recentColors = [...new Set(settings.recentColors)];
+  
+  const newLength = settings.recentColors.length;
+  console.log('🎨 deduplicateColors: Cleaned colors:', settings.recentColors);
+  console.log('🎨 deduplicateColors: Removed', originalLength - newLength, 'duplicate colors');
+  
+  if (originalLength !== newLength) {
+    saveData();
+    return true;
+  }
+  
+  return false;
+}
+
 // =============== מצב לילה ===============
 
 function toggleDarkMode() {
@@ -228,22 +279,35 @@ function toggleDarkMode() {
 }
 
 function toggleViewMode() {
-  viewMode = viewMode === 'list' ? 'calendar' : 'list';
+  settings.viewMode = settings.viewMode === 'list' ? 'calendar' : 'list';
   
   // עדכון האייקון
   const toggleBtn = document.getElementById('toggle-view-mode');
   if (toggleBtn) {
     const svg = toggleBtn.querySelector('svg use');
     if (svg) {
-      svg.setAttribute('href', viewMode === 'list' ? '#calendar' : '#list');
+      svg.setAttribute('href', settings.viewMode === 'list' ? '#calendar' : '#list');
     }
   }
   
-  const message = `תצוגת ${viewMode === 'list' ? 'רשימה' : 'לוח שנה'}`;
+  // שמירת ההגדרה
+  saveData();
+  
+  const message = `תצוגת ${settings.viewMode === 'list' ? 'רשימה' : 'לוח שנה'}`;
   notifications.showInAppNotification(message, 'info');
   
-  if (viewMode === 'calendar') {
-    notifications.showInAppNotification('תצוגת לוח שנה תתווסף בקרוב', 'info');
+  // החלפת התצוגה בפועל
+  if (settings.viewMode === 'calendar') {
+    console.log('📅 toggleViewMode: Switching to calendar view');
+    if (typeof calendar !== 'undefined' && calendar.renderCalendar) {
+      calendar.renderCalendar();
+    } else {
+      console.error('❌ toggleViewMode: Calendar manager not found');
+      notifications.showInAppNotification('שגיאה בטעינת לוח השנה', 'error');
+    }
+  } else {
+    console.log('📋 toggleViewMode: Switching to list view');
+    renderHomework();
   }
 }
 
@@ -471,6 +535,15 @@ function renderTagSelector() {
 }
 
 function renderHomework() {
+  // אם במצב לוח שנה, השתמש ב-calendar manager
+  if (settings.viewMode === 'calendar') {
+    if (typeof calendar !== 'undefined' && calendar.renderCalendar) {
+      calendar.renderCalendar();
+      return;
+    }
+  }
+  
+  // אחרת, הצג רשימה רגילה
   const list = document.getElementById('homework-list');
   const archiveBtn = document.getElementById('archive-toggle');
 
@@ -779,6 +852,7 @@ async function loadSettingsUI() {
   document.getElementById('notification-time').value = settings.notificationTime;
   document.getElementById('auto-backup').checked = settings.autoBackup;
   document.getElementById('dark-mode-toggle').checked = settings.darkMode;
+  document.getElementById('view-mode-toggle').checked = settings.viewMode === 'calendar';
   
   const lastBackup = await storage.getLastBackupDate();
   const lastBackupInfo = document.getElementById('last-backup-info');
@@ -827,11 +901,231 @@ async function exportData() {
 }
 
 async function exportToPDF() {
-  notifications.showInAppNotification('ייצוא ל-PDF בפיתוח...', 'info');
+  console.log('📄 exportToPDF: Starting PDF export...');
+  
+  try {
+    notifications.showInAppNotification('מכין דוח PDF...', 'info');
+    
+    // יצירת תוכן HTML למסמך
+    const pdfContent = document.createElement('div');
+    pdfContent.style.fontFamily = 'Arial, sans-serif';
+    pdfContent.style.direction = 'rtl';
+    pdfContent.style.padding = '20px';
+    pdfContent.style.backgroundColor = 'white';
+    pdfContent.style.color = '#000';
+    
+    pdfContent.innerHTML = `
+      <div style="text-align: center; margin-bottom: 30px;">
+        <h1 style="color: #3b82f6; font-size: 28px; margin-bottom: 10px;">📚 דוח שיעורי בית</h1>
+        <p style="color: #6b7280; font-size: 14px;">
+          <strong>תאריך יצירת הדוח:</strong> ${new Date().toLocaleDateString('he-IL', { 
+            weekday: 'long', 
+            day: 'numeric', 
+            month: 'long', 
+            year: 'numeric' 
+          })}
+        </p>
+      </div>
+      
+      <div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 15px; margin-bottom: 30px;">
+        <div style="background: #dbeafe; padding: 15px; border-radius: 8px; text-align: center;">
+          <div style="font-size: 32px; font-weight: bold; color: #2563eb;">${homework.length}</div>
+          <div style="color: #6b7280; font-size: 14px; margin-top: 5px;">סך הכל משימות</div>
+        </div>
+        <div style="background: #dcfce7; padding: 15px; border-radius: 8px; text-align: center;">
+          <div style="font-size: 32px; font-weight: bold; color: #16a34a;">${homework.filter(h => h.completed).length}</div>
+          <div style="color: #6b7280; font-size: 14px; margin-top: 5px;">הושלמו</div>
+        </div>
+        <div style="background: #fed7aa; padding: 15px; border-radius: 8px; text-align: center;">
+          <div style="font-size: 32px; font-weight: bold; color: #ea580c;">${homework.filter(h => !h.completed).length}</div>
+          <div style="color: #6b7280; font-size: 14px; margin-top: 5px;">ממתינים</div>
+        </div>
+        <div style="background: #fecaca; padding: 15px; border-radius: 8px; text-align: center;">
+          <div style="font-size: 32px; font-weight: bold; color: #dc2626;">${homework.filter(h => !h.completed && getDaysUntilDue(h.dueDate) <= 2).length}</div>
+          <div style="color: #6b7280; font-size: 14px; margin-top: 5px;">דחופים</div>
+        </div>
+      </div>
+      
+      <h2 style="color: #1f2937; font-size: 20px; margin: 30px 0 15px 0; border-bottom: 2px solid #e5e7eb; padding-bottom: 8px;">
+        רשימת מקצועות (${subjects.length})
+      </h2>
+      <table style="width: 100%; border-collapse: collapse; margin-bottom: 30px;">
+        <thead>
+          <tr style="background: #3b82f6; color: white;">
+            <th style="padding: 12px; text-align: right; border: 1px solid #2563eb;">שם המקצוע</th>
+            <th style="padding: 12px; text-align: right; border: 1px solid #2563eb;">צבע</th>
+            <th style="padding: 12px; text-align: right; border: 1px solid #2563eb;">מספר משימות</th>
+          </tr>
+        </thead>
+        <tbody>
+          ${subjects.map((subject, index) => {
+            const count = homework.filter(h => h.subject == subject.id).length;
+            return `
+              <tr style="background: ${index % 2 === 0 ? '#f9fafb' : 'white'};">
+                <td style="padding: 10px; border: 1px solid #e5e7eb;">${subject.name}</td>
+                <td style="padding: 10px; border: 1px solid #e5e7eb;">
+                  <span style="display: inline-block; padding: 4px 12px; background: ${subject.color}; color: white; border-radius: 4px; font-size: 12px;">
+                    ${subject.color}
+                  </span>
+                </td>
+                <td style="padding: 10px; border: 1px solid #e5e7eb;">${count}</td>
+              </tr>
+            `;
+          }).join('')}
+        </tbody>
+      </table>
+      
+      <h2 style="color: #1f2937; font-size: 20px; margin: 30px 0 15px 0; border-bottom: 2px solid #e5e7eb; padding-bottom: 8px;">
+        כל המשימות (${homework.length})
+      </h2>
+      <table style="width: 100%; border-collapse: collapse; margin-bottom: 30px;">
+        <thead>
+          <tr style="background: #3b82f6; color: white;">
+            <th style="padding: 12px; text-align: right; border: 1px solid #2563eb;">כותרת</th>
+            <th style="padding: 12px; text-align: right; border: 1px solid #2563eb;">מקצוע</th>
+            <th style="padding: 12px; text-align: right; border: 1px solid #2563eb;">תאריך הגשה</th>
+            <th style="padding: 12px; text-align: right; border: 1px solid #2563eb;">סטטוס</th>
+            <th style="padding: 12px; text-align: right; border: 1px solid #2563eb;">ימים עד הגשה</th>
+          </tr>
+        </thead>
+        <tbody>
+          ${homework.map((hw, index) => {
+            const subject = subjects.find(s => s.id == hw.subject);
+            const daysLeft = getDaysUntilDue(hw.dueDate);
+            const isUrgent = daysLeft <= 2 && !hw.completed;
+            const isOverdue = daysLeft < 0 && !hw.completed;
+            
+            let bgColor = index % 2 === 0 ? '#f9fafb' : 'white';
+            if (isOverdue) bgColor = '#fee2e2';
+            else if (isUrgent) bgColor = '#fef3c7';
+            
+            let status = hw.completed ? '✅ הושלם' : '⏳ ממתין';
+            if (isOverdue && !hw.completed) status = '⚠️ באיחור';
+            else if (isUrgent && !hw.completed) status = '🔥 דחוף';
+            
+            const titleDecoration = hw.completed ? 'text-decoration: line-through; color: #6b7280;' : '';
+            
+            return `
+              <tr style="background: ${bgColor};">
+                <td style="padding: 10px; border: 1px solid #e5e7eb; ${titleDecoration}">${hw.title}</td>
+                <td style="padding: 10px; border: 1px solid #e5e7eb;">
+                  ${subject ? `<span style="display: inline-block; padding: 4px 8px; background: ${subject.color}; color: white; border-radius: 4px; font-size: 12px;">${subject.name}</span>` : '-'}
+                </td>
+                <td style="padding: 10px; border: 1px solid #e5e7eb;">${new Date(hw.dueDate).toLocaleDateString('he-IL')}</td>
+                <td style="padding: 10px; border: 1px solid #e5e7eb;">${status}</td>
+                <td style="padding: 10px; border: 1px solid #e5e7eb;">
+                  ${hw.completed ? '-' : (daysLeft < 0 ? `איחור ${Math.abs(daysLeft)} ימים` : `${daysLeft} ימים`)}
+                </td>
+              </tr>
+            `;
+          }).join('')}
+        </tbody>
+      </table>
+      
+      <div style="margin-top: 40px; text-align: center; color: #6b7280; font-size: 12px; border-top: 1px solid #e5e7eb; padding-top: 20px;">
+        <p>מערכת ניהול שיעורי בית</p>
+        <p>© ${new Date().getFullYear()} - נוצר ב-${new Date().toLocaleString('he-IL')}</p>
+      </div>
+    `;
+    
+    // הגדרות ייצוא ל-PDF
+    const opt = {
+      margin: [10, 10, 10, 10],
+      filename: `homework-report-${new Date().toISOString().split('T')[0]}.pdf`,
+      image: { type: 'jpeg', quality: 0.98 },
+      html2canvas: { 
+        scale: 2,
+        useCORS: true,
+        letterRendering: true
+      },
+      jsPDF: { 
+        unit: 'mm', 
+        format: 'a4', 
+        orientation: 'portrait',
+        compress: true
+      },
+      pagebreak: { mode: ['avoid-all', 'css', 'legacy'] }
+    };
+    
+    console.log('📄 exportToPDF: Generating PDF...');
+    
+    // יצירת ה-PDF
+    await html2pdf().set(opt).from(pdfContent).save();
+    
+    notifications.showInAppNotification('📄 דוח PDF נוצר בהצלחה!', 'success');
+    console.log('✅ exportToPDF: PDF export complete');
+    
+  } catch (error) {
+    console.error('❌ exportToPDF: Error:', error);
+    notifications.showInAppNotification('שגיאה ביצירת הדוח', 'error');
+  }
 }
 
 async function exportToExcel() {
-  notifications.showInAppNotification('ייצוא ל-Excel בפיתוח...', 'info');
+  console.log('📊 exportToExcel: Starting Excel export...');
+  
+  try {
+    // יצירת תוכן CSV (Excel יכול לפתוח את זה)
+    let csvContent = '\uFEFF'; // BOM for UTF-8
+    
+    // כותרת
+    csvContent += `דוח שיעורי בית - ${new Date().toLocaleDateString('he-IL')}\n\n`;
+    
+    // סטטיסטיקות
+    csvContent += 'סטטיסטיקות\n';
+    csvContent += 'סך הכל,הושלמו,ממתינים,דחופים\n';
+    csvContent += `${homework.length},${homework.filter(h => h.completed).length},${homework.filter(h => !h.completed).length},${homework.filter(h => !h.completed && getDaysUntilDue(h.dueDate) <= 2).length}\n\n`;
+    
+    // מקצועות
+    csvContent += 'מקצועות\n';
+    csvContent += 'שם המקצוע,צבע,מספר משימות\n';
+    subjects.forEach(subject => {
+      const count = homework.filter(h => h.subject == subject.id).length;
+      csvContent += `${subject.name},${subject.color},${count}\n`;
+    });
+    csvContent += '\n';
+    
+    // משימות
+    csvContent += 'כל המשימות\n';
+    csvContent += 'כותרת,מקצוע,תיאור,תאריך הגשה,עדיפות,סטטוס,ימים עד הגשה,תגיות\n';
+    
+    const sortedHomework = [...homework].sort((a, b) => new Date(a.dueDate) - new Date(b.dueDate));
+    
+    sortedHomework.forEach(hw => {
+      const subject = subjects.find(s => s.id == hw.subject);
+      const daysLeft = getDaysUntilDue(hw.dueDate);
+      const isUrgent = daysLeft <= 2 && !hw.completed;
+      const isOverdue = daysLeft < 0 && !hw.completed;
+      
+      let status = hw.completed ? 'הושלם' : 'ממתין';
+      if (isOverdue && !hw.completed) status = 'באיחור';
+      else if (isUrgent && !hw.completed) status = 'דחוף';
+      
+      const daysText = hw.completed ? '-' : (daysLeft < 0 ? `איחור ${Math.abs(daysLeft)} ימים` : `${daysLeft} ימים`);
+      const tags = hw.tags ? hw.tags.join('; ') : '';
+      const description = hw.description ? hw.description.replace(/,/g, '،').replace(/\n/g, ' ') : '';
+      
+      csvContent += `"${hw.title}","${subject ? subject.name : '-'}","${description}",${new Date(hw.dueDate).toLocaleDateString('he-IL')},${hw.priority},${status},${daysText},"${tags}"\n`;
+    });
+    
+    // יצירת Blob והורדה
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = `homework-report-${new Date().toISOString().split('T')[0]}.csv`;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
+    
+    notifications.showInAppNotification('📊 קובץ CSV נוצר בהצלחה! (פתח ב-Excel)', 'success');
+    console.log('✅ exportToExcel: Excel export complete');
+    
+  } catch (error) {
+    console.error('❌ exportToExcel: Error:', error);
+    notifications.showInAppNotification('שגיאה ביצירת הקובץ', 'error');
+  }
 }
 
 function importData() {
@@ -966,6 +1260,18 @@ function initializeEventListeners() {
   const darkModeToggle = document.getElementById('dark-mode-toggle');
   if (darkModeToggle) darkModeToggle.addEventListener('change', toggleDarkMode);
   
+  // מצב תצוגה
+  const viewModeToggle = document.getElementById('view-mode-toggle');
+  if (viewModeToggle) {
+    viewModeToggle.addEventListener('change', () => {
+      console.log('📅 viewModeToggle: Toggle changed in settings');
+      const newMode = viewModeToggle.checked ? 'calendar' : 'list';
+      if (settings.viewMode !== newMode) {
+        toggleViewMode();
+      }
+    });
+  }
+  
   // שמירת הגדרות
   const enableNotifications = document.getElementById('enable-notifications');
   if (enableNotifications) enableNotifications.addEventListener('change', saveSettings);
@@ -982,6 +1288,12 @@ function initializeEventListeners() {
   // ייבוא/ייצוא
   const exportDataBtn = document.getElementById('export-data');
   if (exportDataBtn) exportDataBtn.addEventListener('click', exportData);
+  
+  const exportPdfBtn = document.getElementById('export-pdf');
+  if (exportPdfBtn) exportPdfBtn.addEventListener('click', exportToPDF);
+  
+  const exportExcelBtn = document.getElementById('export-excel');
+  if (exportExcelBtn) exportExcelBtn.addEventListener('click', exportToExcel);
 
   const importDataBtn = document.getElementById('import-data');
   if (importDataBtn) importDataBtn.addEventListener('click', importData);

@@ -3,8 +3,10 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>מערכת ניהול שיעורי בית - משופרת</title>
+  <title>מערכת ניהול שיעורי בית</title>
+  <link rel="icon" href="icon.png" type="image/png">
   <link rel="stylesheet" href="styles.css">
+  <link rel="stylesheet" href="calendar-styles.css">
   <script src="https://cdnjs.cloudflare.com/ajax/libs/lucide/0.263.1/umd/lucide.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
 </head>
@@ -165,6 +167,12 @@
             <label>
               <input type="checkbox" id="dark-mode-toggle">
               מצב לילה
+            </label>
+          </div>
+          <div class="setting-item">
+            <label>
+              <input type="checkbox" id="view-mode-toggle">
+              תצוגת לוח שנה כברירת מחדל
             </label>
           </div>
         </div>
@@ -356,10 +364,17 @@
       <line x1="3" y1="12" x2="3.01" y2="12"></line>
       <line x1="3" y1="18" x2="3.01" y2="18"></line>
     </symbol>
+    <symbol id="chevron-left" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+      <polyline points="15 18 9 12 15 6"></polyline>
+    </symbol>
+    <symbol id="chevron-right" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+      <polyline points="9 18 15 12 9 6"></polyline>
+    </symbol>
   </svg>
 
   <script src="storage.js"></script>
   <script src="notifications.js"></script>
+  <script src="calendar.js"></script>
   <script src="charts.js"></script>
   <script src="app.js"></script>
   
