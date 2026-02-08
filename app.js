@@ -53,6 +53,17 @@ async function loadData() {
     if (settings.darkMode) {
       console.log('🌙 loadData: Applying dark mode...');
       document.body.classList.add('dark-mode');
+      
+      // עדכון האייקון של כפתור מצב הלילה
+      const toggleBtn = document.getElementById('toggle-dark-mode');
+      if (toggleBtn) {
+        const svg = toggleBtn.querySelector('svg use');
+        if (svg) {
+          svg.setAttribute('href', '#sun');
+          console.log('🌙 loadData: Dark mode icon updated to sun');
+        }
+      }
+      
       console.log('✅ loadData: Dark mode applied');
     }
     
@@ -183,34 +194,71 @@ function renderColorPicker() {
 
 function selectColor(color) {
   console.log('🎨 selectColor: Color selected:', color);
+  console.log('🎨 selectColor: Is predefined color?', colors.includes(color));
+  
   selectedColor = color;
-  addToRecentColors(color);
+  
+  // רק אם זה לא צבע מהרשימה הקבועה, הוסף לצבעים אחרונים
+  if (!colors.includes(color)) {
+    console.log('🎨 selectColor: Adding to recent colors (custom color)');
+    addToRecentColors(color);
+  } else {
+    console.log('🎨 selectColor: Skipping recent colors (predefined color)');
+  }
+  
   renderColorPicker();
   console.log('✅ selectColor: Color picker updated');
 }
 
 function selectCustomColor(color) {
   console.log('🎨 selectCustomColor: Custom color selected:', color);
+  console.log('🎨 selectCustomColor: Is predefined color?', colors.includes(color));
+  
   selectedColor = color;
-  addToRecentColors(color);
+  
+  // תמיד הוסף צבעים מותאמים אישית לצבעים אחרונים
+  if (!colors.includes(color)) {
+    console.log('🎨 selectCustomColor: Adding to recent colors');
+    addToRecentColors(color);
+  } else {
+    console.log('🎨 selectCustomColor: Skipping recent colors (matches predefined)');
+  }
+  
   renderColorPicker();
   console.log('✅ selectCustomColor: Color picker updated');
 }
 
 function addToRecentColors(color) {
   console.log('🎨 addToRecentColors: Adding color to recent:', color);
-  if (!settings.recentColors) settings.recentColors = [];
+  
+  // בדיקה שזה לא צבע מהרשימה הקבועה
+  if (colors.includes(color)) {
+    console.log('⚠️ addToRecentColors: Skipping predefined color:', color);
+    return;
+  }
+  
+  if (!settings.recentColors) {
+    settings.recentColors = [];
+    console.log('🎨 addToRecentColors: Initialized recent colors array');
+  }
   
   // הסר אם כבר קיים
+  const beforeLength = settings.recentColors.length;
   settings.recentColors = settings.recentColors.filter(c => c !== color);
-  console.log('🎨 addToRecentColors: Removed duplicates');
+  if (beforeLength !== settings.recentColors.length) {
+    console.log('🎨 addToRecentColors: Removed duplicate');
+  }
   
   // הוסף בתחילה
   settings.recentColors.unshift(color);
   console.log('🎨 addToRecentColors: Added to beginning');
   
   // שמור רק 12 אחרונים
-  settings.recentColors = settings.recentColors.slice(0, 12);
+  if (settings.recentColors.length > 12) {
+    settings.recentColors = settings.recentColors.slice(0, 12);
+    console.log('🎨 addToRecentColors: Trimmed to 12 colors');
+  }
+  
   console.log('🎨 addToRecentColors: Recent colors array:', settings.recentColors);
   
   saveData();
@@ -227,6 +275,16 @@ function toggleDarkMode() {
   document.body.classList.toggle('dark-mode');
   console.log('🌙 toggleDarkMode: Body classList:', document.body.classList.toString());
   
+  // עדכון האייקון של הכפתור
+  const toggleBtn = document.getElementById('toggle-dark-mode');
+  if (toggleBtn) {
+    const svg = toggleBtn.querySelector('svg use');
+    if (svg) {
+      svg.setAttribute('href', settings.darkMode ? '#sun' : '#moon');
+      console.log('🌙 toggleDarkMode: Icon updated to:', settings.darkMode ? 'sun' : 'moon');
+    }
+  }
+  
   saveData();
   
   const icon = settings.darkMode ? '🌙' : '☀️';
@@ -234,6 +292,43 @@ function toggleDarkMode() {
   console.log('🌙 toggleDarkMode: Showing notification:', message);
   notifications.showInAppNotification(message, 'success');
   console.log('✅ toggleDarkMode: Dark mode toggle complete');
+}
+
+function toggleViewMode() {
+  console.log('📅 toggleViewMode: Current view mode:', viewMode);
+  
+  if (viewMode === 'list') {
+    viewMode = 'calendar';
+    console.log('📅 toggleViewMode: Switching to calendar view');
+  } else {
+    viewMode = 'list';
+    console.log('📅 toggleViewMode: Switching to list view');
+  }
+  
+  console.log('📅 toggleViewMode: New view mode:', viewMode);
+  
+  // עדכון האייקון
+  const toggleBtn = document.getElementById('toggle-view-mode');
+  if (toggleBtn) {
+    const svg = toggleBtn.querySelector('svg use');
+    if (svg) {
+      svg.setAttribute('href', viewMode === 'list' ? '#calendar' : '#list');
+      console.log('📅 toggleViewMode: Icon updated to:', viewMode === 'list' ? 'calendar' : 'list');
+    }
+  }
+  
+  // הצגת הודעה
+  const message = `תצוגת ${viewMode === 'list' ? 'רשימה' : 'לוח שנה'}`;
+  console.log('📅 toggleViewMode: Showing notification:', message);
+  notifications.showInAppNotification(message, 'info');
+  
+  // TODO: בעתיד להוסיף מימוש של תצוגת לוח שנה
+  if (viewMode === 'calendar') {
+    console.warn('⚠️ toggleViewMode: Calendar view not yet implemented');
+    notifications.showInAppNotification('תצוגת לוח שנה תתווסף בקרוב', 'info');
+  }
+  
+  console.log('✅ toggleViewMode: View mode toggle complete');
 }
 
 // =============== סינון משימות ===============
@@ -1269,6 +1364,29 @@ function initializeEventListeners() {
     console.log('✅ Add homework listener attached');
   } else {
     console.warn('⚠️ add-homework element not found');
+  }
+
+  // כפתורים בכותרת
+  const toggleDarkModeBtn = document.getElementById('toggle-dark-mode');
+  if (toggleDarkModeBtn) {
+    toggleDarkModeBtn.addEventListener('click', () => {
+      console.log('🌙 Header dark mode button clicked');
+      toggleDarkMode();
+    });
+    console.log('✅ Header toggle dark mode listener attached');
+  } else {
+    console.warn('⚠️ toggle-dark-mode button not found in header');
+  }
+
+  const toggleViewModeBtn = document.getElementById('toggle-view-mode');
+  if (toggleViewModeBtn) {
+    toggleViewModeBtn.addEventListener('click', () => {
+      console.log('📅 View mode toggle button clicked');
+      toggleViewMode();
+    });
+    console.log('✅ Toggle view mode listener attached');
+  } else {
+    console.warn('⚠️ toggle-view-mode button not found');
   }
 
   // הגדרות
