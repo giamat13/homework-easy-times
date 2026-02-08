@@ -1,22 +1,22 @@
-name: Deploy Test Version
+name: Deploy Test
 on:
   push:
     branches:
-      - test  # כאן הגדרנו שהאקשן ירוץ רק כשאתה מעדכן את ה-Branch שנקרא test
+      - test
 
 permissions:
   contents: write
 
 jobs:
-  build-and-deploy:
+  deploy:
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout 🛎️
+      - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Deploy 🚀
+      - name: Deploy to Subfolder
         uses: JamesIves/github-pages-deploy-action@v4
         with:
-          folder: . 
-          target-folder: test # זה השם של התיקייה שתיווצר באתר הראשי שלך
-          branch: gh-pages
+          folder: .
+          target-folder: test
+          branch: main # זה ידחוף את התיקייה לתוך ה-main שלך
