@@ -28,15 +28,15 @@ async function loadData() {
   try {
     console.log('📊 loadData: Loading subjects...');
     subjects = await storage.get('homework-subjects') || [];
-    console.log('✅ loadData: Subjects loaded:', subjects.length, 'items', subjects);
+    console.log('✅ loadData: Subjects loaded:', subjects.length, 'items');
     
     console.log('📚 loadData: Loading homework...');
     homework = await storage.get('homework-list') || [];
-    console.log('✅ loadData: Homework loaded:', homework.length, 'items', homework);
+    console.log('✅ loadData: Homework loaded:', homework.length, 'items');
     
     console.log('🏷️ loadData: Loading tags...');
     availableTags = await storage.get('homework-tags') || [];
-    console.log('✅ loadData: Tags loaded:', availableTags.length, 'items', availableTags);
+    console.log('✅ loadData: Tags loaded:', availableTags.length, 'items');
     
     console.log('⚙️ loadData: Loading settings...');
     settings = await storage.get('homework-settings') || {
@@ -76,8 +76,6 @@ async function loadData() {
       console.log('🔔 loadData: Starting periodic notification check...');
       await notifications.startPeriodicCheck(homework, settings);
       console.log('✅ loadData: Notification check started');
-    } else {
-      console.log('⏸️ loadData: Notifications not enabled or permission not granted');
     }
     
     // בדיקת גיבוי אוטומטי
@@ -85,14 +83,11 @@ async function loadData() {
       console.log('💾 loadData: Running auto backup...');
       await storage.autoBackup();
       console.log('✅ loadData: Auto backup complete');
-    } else {
-      console.log('⏸️ loadData: Auto backup not enabled');
     }
     
-    console.log('✅✅✅ loadData: הנתונים נטעמו בהצלחה');
+    console.log('✅✅✅ loadData: הנתונים נטענו בהצלחה');
   } catch (error) {
     console.error('❌❌❌ loadData: שגיאה בטעינת נתונים:', error);
-    console.error('❌ loadData: Error stack:', error.stack);
     if (notifications && notifications.showInAppNotification) {
       notifications.showInAppNotification('שגיאה בטעינת הנתונים', 'error');
     }
@@ -102,28 +97,15 @@ async function loadData() {
 async function saveData() {
   console.log('💾 saveData: Starting data save...');
   try {
-    console.log('📊 saveData: Saving subjects...', subjects);
     await storage.set('homework-subjects', subjects);
-    console.log('✅ saveData: Subjects saved');
-    
-    console.log('📚 saveData: Saving homework...', homework);
     await storage.set('homework-list', homework);
-    console.log('✅ saveData: Homework saved');
-    
-    console.log('⚙️ saveData: Saving settings...', settings);
     await storage.set('homework-settings', settings);
-    console.log('✅ saveData: Settings saved');
-    
-    console.log('🏷️ saveData: Saving tags...', availableTags);
     await storage.set('homework-tags', availableTags);
-    console.log('✅ saveData: Tags saved');
-    
     console.log('✅✅✅ saveData: הנתונים נשמרו בהצלחה');
   } catch (error) {
     console.error('❌❌❌ saveData: שגיאה בשמירת נתונים:', error);
-    console.error('❌ saveData: Error stack:', error.stack);
     if (notifications && notifications.showInAppNotification) {
-      notifications.showInAppNotification('⚠️ שגיאה בשמירת הנתונים - ייתכן שהשינויים לא נשמרו', 'error');
+      notifications.showInAppNotification('⚠️ שגיאה בשמירת הנתונים', 'error');
     }
   }
 }
@@ -131,12 +113,10 @@ async function saveData() {
 // =============== חישובים ועזרים ===============
 
 function getDaysUntilDue(dueDate) {
-  console.log('📅 getDaysUntilDue: Calculating days for:', dueDate);
   const today = new Date();
   today.setHours(0, 0, 0, 0);
   const due = new Date(dueDate + 'T00:00:00');
   const days = Math.round((due - today) / (1000 * 60 * 60 * 24));
-  console.log('📅 getDaysUntilDue: Result:', days, 'days');
   return days;
 }
 
@@ -153,7 +133,6 @@ function downloadFile(filename, dataUrl) {
 
 function renderColorPicker() {
   const picker = document.getElementById('color-picker');
-  const customInput = document.getElementById('custom-color-input');
   
   let html = '<div class="color-grid">';
   
@@ -193,87 +172,39 @@ function renderColorPicker() {
 }
 
 function selectColor(color) {
-  console.log('🎨 selectColor: Color selected:', color);
-  console.log('🎨 selectColor: Is predefined color?', colors.includes(color));
-  
   selectedColor = color;
-  
-  // רק אם זה לא צבע מהרשימה הקבועה, הוסף לצבעים אחרונים
   if (!colors.includes(color)) {
-    console.log('🎨 selectColor: Adding to recent colors (custom color)');
     addToRecentColors(color);
-  } else {
-    console.log('🎨 selectColor: Skipping recent colors (predefined color)');
   }
-  
   renderColorPicker();
-  console.log('✅ selectColor: Color picker updated');
 }
 
 function selectCustomColor(color) {
-  console.log('🎨 selectCustomColor: Custom color selected:', color);
-  console.log('🎨 selectCustomColor: Is predefined color?', colors.includes(color));
-  
   selectedColor = color;
-  
-  // תמיד הוסף צבעים מותאמים אישית לצבעים אחרונים
   if (!colors.includes(color)) {
-    console.log('🎨 selectCustomColor: Adding to recent colors');
     addToRecentColors(color);
-  } else {
-    console.log('🎨 selectCustomColor: Skipping recent colors (matches predefined)');
   }
-  
   renderColorPicker();
-  console.log('✅ selectCustomColor: Color picker updated');
 }
 
 function addToRecentColors(color) {
-  console.log('🎨 addToRecentColors: Adding color to recent:', color);
-  
-  // בדיקה שזה לא צבע מהרשימה הקבועה
-  if (colors.includes(color)) {
-    console.log('⚠️ addToRecentColors: Skipping predefined color:', color);
-    return;
-  }
-  
-  if (!settings.recentColors) {
-    settings.recentColors = [];
-    console.log('🎨 addToRecentColors: Initialized recent colors array');
-  }
-  
-  // הסר אם כבר קיים
-  const beforeLength = settings.recentColors.length;
+  if (colors.includes(color)) return;
+  if (!settings.recentColors) settings.recentColors = [];
   settings.recentColors = settings.recentColors.filter(c => c !== color);
-  if (beforeLength !== settings.recentColors.length) {
-    console.log('🎨 addToRecentColors: Removed duplicate');
-  }
-  
-  // הוסף בתחילה
   settings.recentColors.unshift(color);
-  console.log('🎨 addToRecentColors: Added to beginning');
-  
-  // שמור רק 12 אחרונים
   if (settings.recentColors.length > 12) {
     settings.recentColors = settings.recentColors.slice(0, 12);
-    console.log('🎨 addToRecentColors: Trimmed to 12 colors');
   }
-  
-  console.log('🎨 addToRecentColors: Recent colors array:', settings.recentColors);
-  
   saveData();
-  console.log('✅ addToRecentColors: Saved to storage');
 }
 
 // =============== מצב לילה ===============
 
 function toggleDarkMode() {
-  console.log('🌙 toggleDarkMode: Current dark mode state:', settings.darkMode);
+  console.log('🌙 toggleDarkMode: Toggling dark mode...');
   settings.darkMode = !settings.darkMode;
-  console.log('🌙 toggleDarkMode: New dark mode state:', settings.darkMode);
   
   document.body.classList.toggle('dark-mode');
-  console.log('🌙 toggleDarkMode: Body classList:', document.body.classList.toString());
   
   // עדכון האייקון של הכפתור
   const toggleBtn = document.getElementById('toggle-dark-mode');
@@ -281,31 +212,23 @@ function toggleDarkMode() {
     const svg = toggleBtn.querySelector('svg use');
     if (svg) {
       svg.setAttribute('href', settings.darkMode ? '#sun' : '#moon');
-      console.log('🌙 toggleDarkMode: Icon updated to:', settings.darkMode ? 'sun' : 'moon');
     }
   }
   
   saveData();
   
+  // עדכון צבעי הגרפים
+  if (typeof updateChartColors === 'function') {
+    setTimeout(() => updateChartColors(), 100);
+  }
+  
   const icon = settings.darkMode ? '🌙' : '☀️';
   const message = `מצב ${settings.darkMode ? 'לילה' : 'יום'} הופעל ${icon}`;
-  console.log('🌙 toggleDarkMode: Showing notification:', message);
   notifications.showInAppNotification(message, 'success');
-  console.log('✅ toggleDarkMode: Dark mode toggle complete');
 }
 
 function toggleViewMode() {
-  console.log('📅 toggleViewMode: Current view mode:', viewMode);
-  
-  if (viewMode === 'list') {
-    viewMode = 'calendar';
-    console.log('📅 toggleViewMode: Switching to calendar view');
-  } else {
-    viewMode = 'list';
-    console.log('📅 toggleViewMode: Switching to list view');
-  }
-  
-  console.log('📅 toggleViewMode: New view mode:', viewMode);
+  viewMode = viewMode === 'list' ? 'calendar' : 'list';
   
   // עדכון האייקון
   const toggleBtn = document.getElementById('toggle-view-mode');
@@ -313,209 +236,117 @@ function toggleViewMode() {
     const svg = toggleBtn.querySelector('svg use');
     if (svg) {
       svg.setAttribute('href', viewMode === 'list' ? '#calendar' : '#list');
-      console.log('📅 toggleViewMode: Icon updated to:', viewMode === 'list' ? 'calendar' : 'list');
     }
   }
   
-  // הצגת הודעה
   const message = `תצוגת ${viewMode === 'list' ? 'רשימה' : 'לוח שנה'}`;
-  console.log('📅 toggleViewMode: Showing notification:', message);
   notifications.showInAppNotification(message, 'info');
   
-  // TODO: בעתיד להוסיף מימוש של תצוגת לוח שנה
   if (viewMode === 'calendar') {
-    console.warn('⚠️ toggleViewMode: Calendar view not yet implemented');
     notifications.showInAppNotification('תצוגת לוח שנה תתווסף בקרוב', 'info');
   }
-  
-  console.log('✅ toggleViewMode: View mode toggle complete');
 }
 
 // =============== סינון משימות ===============
 
 function applyFilters() {
-  console.log('🔍 applyFilters: Applying filters:', filters);
   render();
-  console.log('✅ applyFilters: Filters applied and rendered');
 }
 
 function setFilter(type, value) {
-  console.log('🔍 setFilter: Setting filter -', type, ':', value);
   filters[type] = value;
-  console.log('🔍 setFilter: Current filters:', filters);
   applyFilters();
 }
 
 function toggleTagFilter(tag) {
-  console.log('🏷️ toggleTagFilter: Toggling tag filter:', tag);
   const index = filters.tags.indexOf(tag);
-  console.log('🏷️ toggleTagFilter: Current index:', index);
-  
   if (index > -1) {
     filters.tags.splice(index, 1);
-    console.log('🏷️ toggleTagFilter: Tag removed from filters');
   } else {
     filters.tags.push(tag);
-    console.log('🏷️ toggleTagFilter: Tag added to filters');
   }
-  
-  console.log('🏷️ toggleTagFilter: Current tag filters:', filters.tags);
   applyFilters();
 }
 
 function getFilteredHomework(homeworkList) {
-  console.log('🔍 getFilteredHomework: Filtering', homeworkList.length, 'homework items');
-  console.log('🔍 getFilteredHomework: Current filters:', filters);
-  
-  const filtered = homeworkList.filter(hw => {
-    // סינון לפי מקצוע
-    if (filters.subject !== 'all' && hw.subject != filters.subject) {
-      console.log('🔍 getFilteredHomework: Filtered out by subject:', hw.id, hw.title);
-      return false;
-    }
+  return homeworkList.filter(hw => {
+    if (filters.subject !== 'all' && hw.subject != filters.subject) return false;
+    if (filters.status === 'completed' && !hw.completed) return false;
+    if (filters.status === 'pending' && hw.completed) return false;
     
-    // סינון לפי סטטוס
-    if (filters.status === 'completed' && !hw.completed) {
-      console.log('🔍 getFilteredHomework: Filtered out - not completed:', hw.id, hw.title);
-      return false;
-    }
-    if (filters.status === 'pending' && hw.completed) {
-      console.log('🔍 getFilteredHomework: Filtered out - is completed:', hw.id, hw.title);
-      return false;
-    }
-    
-    // סינון לפי דחיפות
     if (filters.urgency !== 'all') {
       const daysLeft = getDaysUntilDue(hw.dueDate);
-      if (filters.urgency === 'urgent' && (daysLeft > 2 || hw.completed)) {
-        console.log('🔍 getFilteredHomework: Filtered out - not urgent:', hw.id, hw.title, 'days left:', daysLeft);
-        return false;
-      }
-      if (filters.urgency === 'overdue' && (daysLeft >= 0 || hw.completed)) {
-        console.log('🔍 getFilteredHomework: Filtered out - not overdue:', hw.id, hw.title, 'days left:', daysLeft);
-        return false;
-      }
+      if (filters.urgency === 'urgent' && (daysLeft > 2 || hw.completed)) return false;
+      if (filters.urgency === 'overdue' && (daysLeft >= 0 || hw.completed)) return false;
     }
     
-    // סינון לפי תגיות
     if (filters.tags.length > 0) {
-      if (!hw.tags || !hw.tags.some(tag => filters.tags.includes(tag))) {
-        console.log('🔍 getFilteredHomework: Filtered out by tags:', hw.id, hw.title);
-        return false;
-      }
+      if (!hw.tags || !hw.tags.some(tag => filters.tags.includes(tag))) return false;
     }
     
     return true;
   });
-  
-  console.log('✅ getFilteredHomework: Filtered result:', filtered.length, 'items');
-  return filtered;
 }
 
 // =============== תגיות ===============
 
 function addTag() {
-  console.log('🏷️ addTag: Adding new tag...');
   const input = document.getElementById('new-tag-input');
   const tag = input.value.trim();
-  console.log('🏷️ addTag: Tag value:', tag);
   
-  if (!tag) {
-    console.log('⚠️ addTag: Empty tag, aborting');
-    return;
-  }
-  
+  if (!tag) return;
   if (availableTags.includes(tag)) {
-    console.log('⚠️ addTag: Tag already exists:', tag);
     notifications.showInAppNotification('תגית זו כבר קיימת', 'error');
     return;
   }
   
   availableTags.push(tag);
-  console.log('✅ addTag: Tag added, available tags:', availableTags);
-  
   input.value = '';
   saveData();
   renderTagSelector();
   notifications.showInAppNotification(`התגית "${tag}" נוספה`, 'success');
-  console.log('✅ addTag: Tag addition complete');
 }
 
 function removeTag(tag) {
-  console.log('🗑️ removeTag: Attempting to remove tag:', tag);
-  if (!confirm(`האם למחוק את התגית "${tag}"? היא תוסר מכל המשימות`)) {
-    console.log('⏸️ removeTag: User cancelled tag removal');
-    return;
-  }
+  if (!confirm(`האם למחוק את התגית "${tag}"? היא תוסר מכל המשימות`)) return;
   
-  console.log('🗑️ removeTag: Removing tag from available tags...');
   availableTags = availableTags.filter(t => t !== tag);
-  console.log('✅ removeTag: Tag removed, remaining tags:', availableTags);
-  
-  // הסר מכל המשימות
-  console.log('🗑️ removeTag: Removing tag from all homework items...');
-  let removedCount = 0;
   homework.forEach(hw => {
-    if (hw.tags) {
-      const beforeLength = hw.tags.length;
-      hw.tags = hw.tags.filter(t => t !== tag);
-      if (hw.tags.length < beforeLength) {
-        removedCount++;
-        console.log('🗑️ removeTag: Removed from homework:', hw.id, hw.title);
-      }
-    }
+    if (hw.tags) hw.tags = hw.tags.filter(t => t !== tag);
   });
-  console.log('✅ removeTag: Tag removed from', removedCount, 'homework items');
   
   saveData();
   render();
   notifications.showInAppNotification(`התגית "${tag}" נמחקה`, 'success');
-  console.log('✅ removeTag: Tag removal complete');
 }
 
 function toggleHomeworkTag(homeworkId, tag) {
-  console.log('🏷️ toggleHomeworkTag: Toggling tag for homework:', homeworkId, 'tag:', tag);
   const hw = homework.find(h => h.id === homeworkId);
-  if (!hw) {
-    console.error('❌ toggleHomeworkTag: Homework not found:', homeworkId);
-    return;
-  }
+  if (!hw) return;
   
   if (!hw.tags) hw.tags = [];
-  console.log('🏷️ toggleHomeworkTag: Current tags:', hw.tags);
-  
   const index = hw.tags.indexOf(tag);
+  
   if (index > -1) {
     hw.tags.splice(index, 1);
-    console.log('✅ toggleHomeworkTag: Tag removed');
   } else {
     hw.tags.push(tag);
-    console.log('✅ toggleHomeworkTag: Tag added');
   }
   
-  console.log('🏷️ toggleHomeworkTag: New tags:', hw.tags);
   saveData();
   render();
-  console.log('✅ toggleHomeworkTag: Toggle complete');
 }
 
 // =============== רינדור ===============
 
 function renderSubjects() {
-  console.log('🎨 renderSubjects: Starting subject render...');
-  console.log('📊 renderSubjects: Total subjects:', subjects.length);
-  
   const list = document.getElementById('subject-list');
   const select = document.getElementById('hw-subject');
   const filterSelect = document.getElementById('filter-subject');
   
-  console.log('🎨 renderSubjects: DOM elements found:', {list: !!list, select: !!select, filterSelect: !!filterSelect});
-  
   if (subjects.length === 0) {
-    console.log('⚠️ renderSubjects: No subjects found, showing empty state');
     list.innerHTML = '<p class="empty-state">טרם הוספו מקצועות</p>';
   } else {
-    console.log('🎨 renderSubjects: Rendering', subjects.length, 'subjects');
     list.innerHTML = subjects.map(s => `
       <div class="subject-item" style="border-color: ${s.color};">
         <div class="subject-info">
@@ -532,29 +363,17 @@ function renderSubjects() {
   const subjectOptions = '<option value="">בחר מקצוע</option>' + 
     subjects.map(s => `<option value="${s.id}">${s.name}</option>`).join('');
   
-  if (select) {
-    select.innerHTML = subjectOptions;
-    console.log('✅ renderSubjects: Updated homework subject select');
-  }
+  if (select) select.innerHTML = subjectOptions;
   
   if (filterSelect) {
     filterSelect.innerHTML = '<option value="all">כל המקצועות</option>' + 
       subjects.map(s => `<option value="${s.id}" ${filters.subject == s.id ? 'selected' : ''}>${s.name}</option>`).join('');
-    console.log('✅ renderSubjects: Updated filter subject select');
   }
-  
-  console.log('✅ renderSubjects: Subject render complete');
 }
 
 function renderFilters() {
-  console.log('🔍 renderFilters: Starting filters render...');
-  console.log('🔍 renderFilters: Current filters:', filters);
-  
   const container = document.getElementById('filters-container');
-  if (!container) {
-    console.warn('⚠️ renderFilters: filters-container not found');
-    return;
-  }
+  if (!container) return;
   
   let html = `
     <div class="filters-panel">
@@ -607,35 +426,23 @@ function renderFilters() {
   `;
   
   container.innerHTML = html;
-  renderSubjects(); // עדכון select של מקצועות
-  console.log('✅ renderFilters: Filters render complete');
+  renderSubjects();
 }
 
 function clearFilters() {
-  console.log('🔍 clearFilters: Clearing all filters...');
-  console.log('🔍 clearFilters: Previous filters:', filters);
-  
   filters = {
     subject: 'all',
     status: 'all',
     urgency: 'all',
     tags: []
   };
-  
-  console.log('✅ clearFilters: Filters cleared:', filters);
   renderFilters();
   render();
 }
 
 function renderTagSelector() {
-  console.log('🏷️ renderTagSelector: Starting tag selector render...');
-  console.log('🏷️ renderTagSelector: Available tags:', availableTags);
-  
   const container = document.getElementById('tag-management');
-  if (!container) {
-    console.warn('⚠️ renderTagSelector: tag-management container not found');
-    return;
-  }
+  if (!container) return;
   
   let html = `
     <div class="tag-management-section">
@@ -661,14 +468,9 @@ function renderTagSelector() {
   `;
   
   container.innerHTML = html;
-  console.log('✅ renderTagSelector: Tag selector render complete');
 }
 
 function renderHomework() {
-  console.log('📚 renderHomework: Starting homework render...');
-  console.log('📚 renderHomework: Total homework items:', homework.length);
-  console.log('📚 renderHomework: Show archive mode:', showArchive);
-  
   const list = document.getElementById('homework-list');
   const archiveBtn = document.getElementById('archive-toggle');
 
@@ -676,33 +478,24 @@ function renderHomework() {
     if (!h.completed) return true;
     return getDaysUntilDue(h.dueDate) >= 0;
   });
-  console.log('📚 renderHomework: Active homework items:', activeHomework.length);
 
   const archivedHomework = homework.filter(h => {
     if (!h.completed) return false;
     return getDaysUntilDue(h.dueDate) < 0;
   });
-  console.log('📚 renderHomework: Archived homework items:', archivedHomework.length);
 
   if (archivedHomework.length > 0) {
     archiveBtn.classList.remove('hidden');
     archiveBtn.textContent = showArchive ? 'הסתר ארכיון' : `ארכיון (${archivedHomework.length})`;
-    console.log('📚 renderHomework: Archive button shown with', archivedHomework.length, 'items');
   } else {
     archiveBtn.classList.add('hidden');
-    console.log('📚 renderHomework: Archive button hidden (no archived items)');
   }
 
   let displayList = showArchive ? archivedHomework : activeHomework;
-  console.log('📚 renderHomework: Display list before filter:', displayList.length);
-  
-  // החל סינון
   displayList = getFilteredHomework(displayList);
-  console.log('📚 renderHomework: Display list after filter:', displayList.length);
 
   if (displayList.length === 0) {
     const message = showArchive ? 'אין פריטים בארכיון' : 'אין שיעורי בית להצגה';
-    console.log('⚠️ renderHomework: No items to display:', message);
     list.innerHTML = `<p class="empty-state">${message}</p>`;
     return;
   }
@@ -711,15 +504,12 @@ function renderHomework() {
     if (a.completed !== b.completed) return a.completed ? 1 : -1;
     return new Date(a.dueDate) - new Date(b.dueDate);
   });
-  console.log('📚 renderHomework: Items sorted, rendering', sorted.length, 'items');
 
   list.innerHTML = sorted.map(hw => {
     const subject = subjects.find(s => s.id == hw.subject);
     const daysLeft = getDaysUntilDue(hw.dueDate);
     const isUrgent = daysLeft <= 2 && !hw.completed;
     const isOverdue = daysLeft < 0 && !hw.completed;
-    
-    console.log('📚 renderHomework: Rendering item:', hw.id, hw.title, 'days left:', daysLeft, 'urgent:', isUrgent, 'overdue:', isOverdue);
 
     let classes = 'homework-item';
     if (hw.completed) classes += ' completed';
@@ -799,143 +589,84 @@ function renderHomework() {
       </div>
     `;
   }).join('');
-  
-  console.log('✅ renderHomework: Homework render complete');
 }
 
 function toggleTagEditor(homeworkId) {
-  console.log('🏷️ toggleTagEditor: Toggling tag editor for homework:', homeworkId);
   const editor = document.getElementById(`tags-editor-${homeworkId}`);
-  if (editor) {
-    editor.classList.toggle('hidden');
-    console.log('✅ toggleTagEditor: Tag editor toggled, hidden:', editor.classList.contains('hidden'));
-  } else {
-    console.error('❌ toggleTagEditor: Editor element not found for homework:', homeworkId);
-  }
+  if (editor) editor.classList.toggle('hidden');
 }
 
 function updateStats() {
-  console.log('📊 updateStats: Updating statistics...');
-  
   const total = homework.length;
   const completed = homework.filter(h => h.completed).length;
   const pending = homework.filter(h => !h.completed).length;
   const urgent = homework.filter(h => !h.completed && getDaysUntilDue(h.dueDate) <= 2).length;
-  
-  console.log('📊 updateStats: Stats calculated:', {total, completed, pending, urgent});
   
   document.getElementById('stat-total').textContent = total;
   document.getElementById('stat-completed').textContent = completed;
   document.getElementById('stat-pending').textContent = pending;
   document.getElementById('stat-urgent').textContent = urgent;
   
-  console.log('✅ updateStats: Stats DOM updated');
-  
-  // עדכון גרפים אם קיימים
   if (typeof updateCharts === 'function') {
-    console.log('📈 updateStats: Updating charts...');
     updateCharts();
-    console.log('✅ updateStats: Charts updated');
-  } else {
-    console.log('⚠️ updateStats: updateCharts function not available');
   }
 }
 
 function render() {
-  console.log('🎨🎨🎨 render: STARTING FULL RENDER');
-  console.log('🎨 render: Current state:', {
-    subjects: subjects.length,
-    homework: homework.length,
-    tags: availableTags.length,
-    filters: filters
-  });
-  
   renderSubjects();
   renderHomework();
   renderFilters();
   renderTagSelector();
   updateStats();
-  
-  console.log('✅✅✅ render: FULL RENDER COMPLETE');
 }
 
 // =============== פעולות על מקצועות ===============
 
 function addSubject() {
-  console.log('📚 addSubject: Adding new subject...');
   const name = document.getElementById('subject-name').value.trim();
-  console.log('📚 addSubject: Subject name:', name);
-  console.log('📚 addSubject: Selected color:', selectedColor);
   
   if (!name) {
-    console.warn('⚠️ addSubject: No subject name provided');
     notifications.showInAppNotification('נא להזין שם מקצוע', 'error');
     return;
   }
   
   const newSubject = { id: Date.now(), name, color: selectedColor };
-  console.log('📚 addSubject: Creating new subject:', newSubject);
-  
   subjects.push(newSubject);
-  console.log('✅ addSubject: Subject added, total subjects:', subjects.length);
   
   document.getElementById('subject-name').value = '';
   selectedColor = '#3b82f6';
-  console.log('📚 addSubject: Reset form, color reset to default');
-  
   document.getElementById('add-subject-form').classList.add('hidden');
   document.getElementById('show-add-subject').classList.remove('hidden');
-  console.log('📚 addSubject: Form hidden');
   
   saveData();
   render();
   notifications.showInAppNotification(`המקצוע "${name}" נוסף בהצלחה`, 'success');
-  console.log('✅ addSubject: Subject addition complete');
 }
 
 function deleteSubject(id) {
-  console.log('🗑️ deleteSubject: Attempting to delete subject:', id);
   const subject = subjects.find(s => s.id === id);
-  
-  if (!subject) {
-    console.error('❌ deleteSubject: Subject not found:', id);
-    return;
-  }
-  
-  console.log('🗑️ deleteSubject: Found subject:', subject);
+  if (!subject) return;
   
   const relatedHomework = homework.filter(h => h.subject == id).length;
-  console.log('🗑️ deleteSubject: Related homework count:', relatedHomework);
-  
   let confirmMsg = `האם אתה בטוח שברצונך למחוק את המקצוע "${subject.name}"?`;
   
   if (relatedHomework > 0) {
     confirmMsg += `\n\n⚠️ פעולה זו תמחק גם ${relatedHomework} משימות הקשורות למקצוע זה!`;
-    console.warn('⚠️ deleteSubject: Will delete', relatedHomework, 'related homework items');
   }
   
-  if (!confirm(confirmMsg)) {
-    console.log('⏸️ deleteSubject: User cancelled deletion');
-    return;
-  }
+  if (!confirm(confirmMsg)) return;
   
-  console.log('🗑️ deleteSubject: Deleting subject and related homework...');
   subjects = subjects.filter(s => s.id !== id);
   homework = homework.filter(h => h.subject != id);
-  console.log('✅ deleteSubject: Subject deleted, remaining subjects:', subjects.length);
-  console.log('✅ deleteSubject: Homework filtered, remaining homework:', homework.length);
   
   saveData();
   render();
   notifications.showInAppNotification(`המקצוע "${subject.name}" נמחק`, 'success');
-  console.log('✅ deleteSubject: Subject deletion complete');
 }
 
 // =============== פעולות על משימות ===============
 
 function addHomework() {
-  console.log('📝 addHomework: Adding new homework...');
-  
   const subject = document.getElementById('hw-subject').value;
   const title = document.getElementById('hw-title').value.trim();
   const description = document.getElementById('hw-desc').value.trim();
@@ -943,25 +674,19 @@ function addHomework() {
   const priority = document.getElementById('hw-priority').value;
   const fileInput = document.getElementById('hw-files');
 
-  console.log('📝 addHomework: Form data:', {subject, title, description, dueDate, priority, filesCount: fileInput.files.length});
-
   if (!subject || !title || !dueDate) {
-    console.warn('⚠️ addHomework: Missing required fields');
     notifications.showInAppNotification('נא למלא את כל השדות החובה (מקצוע, כותרת, תאריך)', 'error');
     return;
   }
 
   const files = Array.from(fileInput.files);
   const hwFiles = [];
-  console.log('📝 addHomework: Processing', files.length, 'files...');
 
   if (files.length === 0) {
-    console.log('📝 addHomework: No files, saving homework directly');
     saveHomework([]);
   } else {
     let loadedCount = 0;
-    files.forEach((file, index) => {
-      console.log('📝 addHomework: Loading file', index + 1, ':', file.name);
+    files.forEach(file => {
       const reader = new FileReader();
       reader.onload = function(e) {
         hwFiles.push({
@@ -970,23 +695,15 @@ function addHomework() {
           data: e.target.result
         });
         loadedCount++;
-        console.log('📝 addHomework: File loaded', loadedCount, '/', files.length);
-        
         if (loadedCount === files.length) {
-          console.log('✅ addHomework: All files loaded');
           saveHomework(hwFiles);
         }
-      };
-      reader.onerror = function(error) {
-        console.error('❌ addHomework: Error loading file', file.name, error);
       };
       reader.readAsDataURL(file);
     });
   }
 
   function saveHomework(hwFiles) {
-    console.log('💾 saveHomework: Saving homework with', hwFiles.length, 'files');
-    
     const newHomework = {
       id: Date.now(),
       subject,
@@ -1001,9 +718,7 @@ function addHomework() {
       todayNotified: false
     };
     
-    console.log('📝 saveHomework: New homework object:', newHomework);
     homework.push(newHomework);
-    console.log('✅ saveHomework: Homework added, total homework:', homework.length);
 
     document.getElementById('hw-subject').value = '';
     document.getElementById('hw-title').value = '';
@@ -1011,249 +726,144 @@ function addHomework() {
     document.getElementById('hw-date').value = '';
     document.getElementById('hw-priority').value = 'medium';
     document.getElementById('hw-files').value = '';
-    console.log('📝 saveHomework: Form cleared');
 
     saveData();
     render();
     notifications.showInAppNotification(`המשימה "${title}" נוספה בהצלחה`, 'success');
-    console.log('✅ saveHomework: Homework save complete');
   }
 }
 
 function toggleComplete(id) {
-  console.log('✅ toggleComplete: Toggling completion for homework:', id);
   const hw = homework.find(h => h.id === id);
+  if (!hw) return;
   
-  if (!hw) {
-    console.error('❌ toggleComplete: Homework not found:', id);
-    return;
-  }
-  
-  console.log('✅ toggleComplete: Current completed state:', hw.completed);
   hw.completed = !hw.completed;
-  console.log('✅ toggleComplete: New completed state:', hw.completed);
-  
   saveData();
   render();
   
   if (hw.completed) {
-    console.log('🎉 toggleComplete: Homework completed!');
     notifications.showInAppNotification(`כל הכבוד! סיימת את "${hw.title}"`, 'success');
-  } else {
-    console.log('⏸️ toggleComplete: Homework uncompleted');
   }
-  
-  console.log('✅ toggleComplete: Toggle complete');
 }
 
 function deleteHomework(id) {
-  console.log('🗑️ deleteHomework: Attempting to delete homework:', id);
   const hw = homework.find(h => h.id === id);
-  
-  if (!hw) {
-    console.error('❌ deleteHomework: Homework not found:', id);
-    return;
-  }
-  
-  console.log('🗑️ deleteHomework: Found homework:', hw);
+  if (!hw) return;
   
   if (confirm(`האם אתה בטוח שברצונך למחוק את המשימה "${hw.title}"?\n\n⚠️ פעולה זו לא ניתנת לביטול!`)) {
-    console.log('🗑️ deleteHomework: User confirmed, deleting...');
     homework = homework.filter(h => h.id !== id);
-    console.log('✅ deleteHomework: Homework deleted, remaining homework:', homework.length);
-    
     saveData();
     render();
     notifications.showInAppNotification('המשימה נמחקה', 'success');
-    console.log('✅ deleteHomework: Homework deletion complete');
-  } else {
-    console.log('⏸️ deleteHomework: User cancelled deletion');
   }
 }
 
 // =============== הגדרות ===============
 
 function openSettings() {
-  console.log('⚙️ openSettings: Opening settings modal...');
   const modal = document.getElementById('settings-modal');
-  if (!modal) {
-    console.error('❌ openSettings: Settings modal not found');
-    return;
-  }
-  
+  if (!modal) return;
   modal.classList.remove('hidden');
-  console.log('⚙️ openSettings: Modal opened');
   loadSettingsUI();
-  console.log('✅ openSettings: Settings opened');
 }
 
 function closeSettings() {
-  console.log('⚙️ closeSettings: Closing settings modal...');
   const modal = document.getElementById('settings-modal');
-  if (!modal) {
-    console.error('❌ closeSettings: Settings modal not found');
-    return;
-  }
-  
+  if (!modal) return;
   modal.classList.add('hidden');
-  console.log('✅ closeSettings: Settings closed');
 }
 
 async function loadSettingsUI() {
-  console.log('⚙️ loadSettingsUI: Loading settings UI...');
-  console.log('⚙️ loadSettingsUI: Current settings:', settings);
-  
   document.getElementById('enable-notifications').checked = settings.enableNotifications;
   document.getElementById('notification-days').value = settings.notificationDays;
   document.getElementById('notification-time').value = settings.notificationTime;
   document.getElementById('auto-backup').checked = settings.autoBackup;
   document.getElementById('dark-mode-toggle').checked = settings.darkMode;
-  console.log('⚙️ loadSettingsUI: Form fields populated');
   
   const lastBackup = await storage.getLastBackupDate();
-  console.log('⚙️ loadSettingsUI: Last backup date:', lastBackup);
-  
   const lastBackupInfo = document.getElementById('last-backup-info');
   if (lastBackup) {
     lastBackupInfo.textContent = `גיבוי אחרון: ${lastBackup.toLocaleDateString('he-IL')} בשעה ${lastBackup.toLocaleTimeString('he-IL', { hour: '2-digit', minute: '2-digit' })}`;
   } else {
     lastBackupInfo.textContent = 'גיבוי אחרון: אף פעם';
   }
-  
-  console.log('✅ loadSettingsUI: Settings UI loaded');
 }
 
 async function saveSettings() {
-  console.log('💾 saveSettings: Saving settings...');
-  
   settings.enableNotifications = document.getElementById('enable-notifications').checked;
   settings.notificationDays = parseInt(document.getElementById('notification-days').value);
   settings.notificationTime = document.getElementById('notification-time').value;
   settings.autoBackup = document.getElementById('auto-backup').checked;
   
-  console.log('💾 saveSettings: New settings:', settings);
-  
   await storage.set('homework-settings', settings);
-  console.log('✅ saveSettings: Settings saved to storage');
   
   if (settings.enableNotifications) {
-    console.log('🔔 saveSettings: Notifications enabled, requesting permission...');
     const granted = await notifications.requestPermission();
-    console.log('🔔 saveSettings: Permission granted:', granted);
-    
     if (granted) {
       await notifications.startPeriodicCheck(homework, settings);
       notifications.showInAppNotification('התראות הופעלו בהצלחה', 'success');
-      console.log('✅ saveSettings: Notifications started');
     } else {
-      console.warn('⚠️ saveSettings: Permission denied, disabling notifications');
       notifications.showInAppNotification('לא ניתן להפעיל התראות - ההרשאה נדחתה', 'error');
       settings.enableNotifications = false;
       document.getElementById('enable-notifications').checked = false;
     }
   } else {
-    console.log('⏸️ saveSettings: Notifications disabled, stopping periodic check');
     notifications.stopPeriodicCheck();
   }
   
   notifications.showInAppNotification('ההגדרות נשמרו', 'success');
-  console.log('✅ saveSettings: Settings save complete');
 }
 
 // =============== ייבוא/ייצוא ===============
 
 async function exportData() {
-  console.log('📤 exportData: Starting data export...');
   const success = await storage.exportData();
-  console.log('📤 exportData: Export result:', success);
-  
   if (success) {
     notifications.showInAppNotification('הנתונים יוצאו בהצלחה', 'success');
     loadSettingsUI();
-    console.log('✅ exportData: Export complete');
   } else {
-    console.error('❌ exportData: Export failed');
     notifications.showInAppNotification('שגיאה בייצוא הנתונים', 'error');
   }
 }
 
 async function exportToPDF() {
-  console.log('📄 exportToPDF: PDF export not yet implemented');
   notifications.showInAppNotification('ייצוא ל-PDF בפיתוח...', 'info');
-  // TODO: להוסיף ייצוא PDF בעתיד
 }
 
 async function exportToExcel() {
-  console.log('📊 exportToExcel: Excel export not yet implemented');
   notifications.showInAppNotification('ייצוא ל-Excel בפיתוח...', 'info');
-  // TODO: להוסיף ייצוא Excel בעתיד
 }
 
 function importData() {
-  console.log('📥 importData: Triggering file input...');
   document.getElementById('import-file').click();
-  console.log('✅ importData: File dialog opened');
 }
 
 async function handleImportFile(event) {
-  console.log('📥 handleImportFile: Handling import file...');
   const file = event.target.files[0];
-  
-  if (!file) {
-    console.warn('⚠️ handleImportFile: No file selected');
-    return;
-  }
-  
-  console.log('📥 handleImportFile: File selected:', file.name, file.size, 'bytes');
+  if (!file) return;
 
   try {
-    console.log('📥 handleImportFile: Starting import...');
     const result = await storage.importData(file);
-    console.log('📥 handleImportFile: Import result:', result);
-    
     if (result.success) {
-      console.log('✅ handleImportFile: Import successful');
-      console.log('📊 handleImportFile: Importing', result.data.subjects.length, 'subjects');
-      console.log('📚 handleImportFile: Importing', result.data.homework.length, 'homework items');
-      
       subjects = result.data.subjects;
       homework = result.data.homework;
-      
-      if (result.data.settings) {
-        console.log('⚙️ handleImportFile: Importing settings');
-        settings = result.data.settings;
-      }
-      if (result.data.tags) {
-        console.log('🏷️ handleImportFile: Importing', result.data.tags.length, 'tags');
-        availableTags = result.data.tags;
-      }
+      if (result.data.settings) settings = result.data.settings;
+      if (result.data.tags) availableTags = result.data.tags;
       
       render();
       loadSettingsUI();
       notifications.showInAppNotification(result.message, 'success');
-      console.log('✅ handleImportFile: Import complete');
     } else {
-      console.error('❌ handleImportFile: Import failed:', result.message);
       notifications.showInAppNotification(result.message, 'error');
     }
   } catch (error) {
-    console.error('❌ handleImportFile: Error during import:', error);
-    console.error('❌ handleImportFile: Error stack:', error.stack);
     notifications.showInAppNotification(error.message || 'שגיאה בייבוא הנתונים', 'error');
   }
   
   event.target.value = '';
-  console.log('📥 handleImportFile: File input cleared');
 }
 
 async function clearAllData() {
-  console.log('🗑️ clearAllData: Starting data clear...');
-  console.log('🗑️ clearAllData: Current data:', {
-    subjects: subjects.length,
-    homework: homework.length,
-    tags: availableTags.length
-  });
-  
   const confirmMsg = '⚠️ אזהרה!\n\n' +
                     'פעולה זו תמחק את כל הנתונים במערכת:\n' +
                     `- ${subjects.length} מקצועות\n` +
@@ -1263,24 +873,15 @@ async function clearAllData() {
                     '❌ פעולה זו לא ניתנת לשחזור!\n\n' +
                     'האם אתה בטוח לחלוטין?';
   
-  if (!confirm(confirmMsg)) {
-    console.log('⏸️ clearAllData: User cancelled first confirmation');
-    return;
-  }
+  if (!confirm(confirmMsg)) return;
   
   const doubleConfirm = prompt('כדי לאשר, הקלד "מחק הכל":');
-  console.log('🗑️ clearAllData: User input:', doubleConfirm);
-  
   if (doubleConfirm !== 'מחק הכל') {
-    console.log('⏸️ clearAllData: User cancelled second confirmation');
     notifications.showInAppNotification('המחיקה בוטלה', 'success');
     return;
   }
   
-  console.log('🗑️ clearAllData: User confirmed, clearing all data...');
   const success = await storage.clearAll();
-  console.log('🗑️ clearAllData: Clear result:', success);
-  
   if (success) {
     subjects = [];
     homework = [];
@@ -1294,13 +895,10 @@ async function clearAllData() {
       recentColors: []
     };
     
-    console.log('✅ clearAllData: All data cleared');
     render();
     closeSettings();
     notifications.showInAppNotification('כל הנתונים נמחקו', 'success');
-    console.log('✅ clearAllData: Clear complete');
   } else {
-    console.error('❌ clearAllData: Clear failed');
     notifications.showInAppNotification('שגיאה במחיקת הנתונים', 'error');
   }
 }
@@ -1308,232 +906,104 @@ async function clearAllData() {
 // =============== Event Listeners ===============
 
 function initializeEventListeners() {
-  console.log('🎧 initializeEventListeners: Starting event listener initialization...');
+  console.log('🎧 initializeEventListeners: Starting...');
   
   // ארכיון
   const archiveToggle = document.getElementById('archive-toggle');
   if (archiveToggle) {
     archiveToggle.addEventListener('click', () => {
-      console.log('📦 Archive toggle clicked, current state:', showArchive);
       showArchive = !showArchive;
-      console.log('📦 New archive state:', showArchive);
       renderHomework();
     });
-    console.log('✅ Archive toggle listener attached');
-  } else {
-    console.warn('⚠️ archive-toggle element not found');
   }
 
   // הוספת מקצוע
   const showAddSubject = document.getElementById('show-add-subject');
   if (showAddSubject) {
     showAddSubject.addEventListener('click', () => {
-      console.log('➕ Show add subject button clicked');
       document.getElementById('add-subject-form').classList.remove('hidden');
       document.getElementById('show-add-subject').classList.add('hidden');
       renderColorPicker();
     });
-    console.log('✅ Show add subject listener attached');
-  } else {
-    console.warn('⚠️ show-add-subject element not found');
   }
 
   const cancelSubject = document.getElementById('cancel-subject');
   if (cancelSubject) {
     cancelSubject.addEventListener('click', () => {
-      console.log('❌ Cancel subject button clicked');
       document.getElementById('add-subject-form').classList.add('hidden');
       document.getElementById('show-add-subject').classList.remove('hidden');
     });
-    console.log('✅ Cancel subject listener attached');
-  } else {
-    console.warn('⚠️ cancel-subject element not found');
   }
 
   const saveSubject = document.getElementById('save-subject');
-  if (saveSubject) {
-    saveSubject.addEventListener('click', addSubject);
-    console.log('✅ Save subject listener attached');
-  } else {
-    console.warn('⚠️ save-subject element not found');
-  }
+  if (saveSubject) saveSubject.addEventListener('click', addSubject);
 
   const addHomeworkBtn = document.getElementById('add-homework');
-  if (addHomeworkBtn) {
-    addHomeworkBtn.addEventListener('click', addHomework);
-    console.log('✅ Add homework listener attached');
-  } else {
-    console.warn('⚠️ add-homework element not found');
-  }
+  if (addHomeworkBtn) addHomeworkBtn.addEventListener('click', addHomework);
 
   // כפתורים בכותרת
   const toggleDarkModeBtn = document.getElementById('toggle-dark-mode');
-  if (toggleDarkModeBtn) {
-    toggleDarkModeBtn.addEventListener('click', () => {
-      console.log('🌙 Header dark mode button clicked');
-      toggleDarkMode();
-    });
-    console.log('✅ Header toggle dark mode listener attached');
-  } else {
-    console.warn('⚠️ toggle-dark-mode button not found in header');
-  }
+  if (toggleDarkModeBtn) toggleDarkModeBtn.addEventListener('click', toggleDarkMode);
 
   const toggleViewModeBtn = document.getElementById('toggle-view-mode');
-  if (toggleViewModeBtn) {
-    toggleViewModeBtn.addEventListener('click', () => {
-      console.log('📅 View mode toggle button clicked');
-      toggleViewMode();
-    });
-    console.log('✅ Toggle view mode listener attached');
-  } else {
-    console.warn('⚠️ toggle-view-mode button not found');
-  }
+  if (toggleViewModeBtn) toggleViewModeBtn.addEventListener('click', toggleViewMode);
 
   // הגדרות
   const openSettingsBtn = document.getElementById('open-settings');
-  if (openSettingsBtn) {
-    openSettingsBtn.addEventListener('click', openSettings);
-    console.log('✅ Open settings listener attached');
-  } else {
-    console.warn('⚠️ open-settings element not found');
-  }
+  if (openSettingsBtn) openSettingsBtn.addEventListener('click', openSettings);
 
   const closeSettingsBtn = document.getElementById('close-settings');
-  if (closeSettingsBtn) {
-    closeSettingsBtn.addEventListener('click', closeSettings);
-    console.log('✅ Close settings listener attached');
-  } else {
-    console.warn('⚠️ close-settings element not found');
-  }
+  if (closeSettingsBtn) closeSettingsBtn.addEventListener('click', closeSettings);
 
   const settingsModal = document.getElementById('settings-modal');
   if (settingsModal) {
     settingsModal.addEventListener('click', (e) => {
-      if (e.target === settingsModal) {
-        console.log('⚙️ Settings modal background clicked, closing...');
-        closeSettings();
-      }
+      if (e.target === settingsModal) closeSettings();
     });
-    console.log('✅ Settings modal listener attached');
-  } else {
-    console.warn('⚠️ settings-modal element not found');
   }
   
   // מצב לילה
   const darkModeToggle = document.getElementById('dark-mode-toggle');
-  if (darkModeToggle) {
-    darkModeToggle.addEventListener('change', toggleDarkMode);
-    console.log('✅ Dark mode toggle listener attached');
-  } else {
-    console.warn('⚠️ dark-mode-toggle element not found');
-  }
+  if (darkModeToggle) darkModeToggle.addEventListener('change', toggleDarkMode);
   
   // שמירת הגדרות
   const enableNotifications = document.getElementById('enable-notifications');
-  if (enableNotifications) {
-    enableNotifications.addEventListener('change', saveSettings);
-    console.log('✅ Enable notifications listener attached');
-  } else {
-    console.warn('⚠️ enable-notifications element not found');
-  }
+  if (enableNotifications) enableNotifications.addEventListener('change', saveSettings);
 
   const notificationDays = document.getElementById('notification-days');
-  if (notificationDays) {
-    notificationDays.addEventListener('change', saveSettings);
-    console.log('✅ Notification days listener attached');
-  } else {
-    console.warn('⚠️ notification-days element not found');
-  }
+  if (notificationDays) notificationDays.addEventListener('change', saveSettings);
 
   const notificationTime = document.getElementById('notification-time');
-  if (notificationTime) {
-    notificationTime.addEventListener('change', saveSettings);
-    console.log('✅ Notification time listener attached');
-  } else {
-    console.warn('⚠️ notification-time element not found');
-  }
+  if (notificationTime) notificationTime.addEventListener('change', saveSettings);
 
   const autoBackup = document.getElementById('auto-backup');
-  if (autoBackup) {
-    autoBackup.addEventListener('change', saveSettings);
-    console.log('✅ Auto backup listener attached');
-  } else {
-    console.warn('⚠️ auto-backup element not found');
-  }
+  if (autoBackup) autoBackup.addEventListener('change', saveSettings);
 
   // ייבוא/ייצוא
   const exportDataBtn = document.getElementById('export-data');
-  if (exportDataBtn) {
-    exportDataBtn.addEventListener('click', exportData);
-    console.log('✅ Export data listener attached');
-  } else {
-    console.warn('⚠️ export-data element not found');
-  }
+  if (exportDataBtn) exportDataBtn.addEventListener('click', exportData);
 
   const importDataBtn = document.getElementById('import-data');
-  if (importDataBtn) {
-    importDataBtn.addEventListener('click', importData);
-    console.log('✅ Import data listener attached');
-  } else {
-    console.warn('⚠️ import-data element not found');
-  }
+  if (importDataBtn) importDataBtn.addEventListener('click', importData);
 
   const importFile = document.getElementById('import-file');
-  if (importFile) {
-    importFile.addEventListener('change', handleImportFile);
-    console.log('✅ Import file listener attached');
-  } else {
-    console.warn('⚠️ import-file element not found');
-  }
+  if (importFile) importFile.addEventListener('change', handleImportFile);
 
   const clearAllDataBtn = document.getElementById('clear-all-data');
-  if (clearAllDataBtn) {
-    clearAllDataBtn.addEventListener('click', clearAllData);
-    console.log('✅ Clear all data listener attached');
-  } else {
-    console.warn('⚠️ clear-all-data element not found');
-  }
+  if (clearAllDataBtn) clearAllDataBtn.addEventListener('click', clearAllData);
   
-  console.log('✅✅✅ initializeEventListeners: All event listeners initialized');
+  console.log('✅ initializeEventListeners: Complete');
 }
 
 // =============== אתחול ===============
 
 window.addEventListener('DOMContentLoaded', async () => {
-  console.log('🚀🚀🚀 APPLICATION STARTING - DOMContentLoaded event fired');
-  console.log('🌐 Browser:', navigator.userAgent);
-  console.log('📍 Location:', window.location.href);
-  console.log('⏰ Time:', new Date().toLocaleString('he-IL'));
-  
+  console.log('🚀 APPLICATION STARTING');
   try {
-    console.log('📊 Starting data load...');
     await loadData();
-    console.log('✅ Data loaded successfully');
-    
-    console.log('🎧 Initializing event listeners...');
     initializeEventListeners();
-    console.log('✅ Event listeners initialized');
-    
-    console.log('🎉🎉🎉 APPLICATION STARTED SUCCESSFULLY');
+    console.log('🎉 APPLICATION STARTED SUCCESSFULLY');
   } catch (error) {
-    console.error('❌❌❌ APPLICATION START FAILED:', error);
-    console.error('❌ Error stack:', error.stack);
+    console.error('❌ APPLICATION START FAILED:', error);
   }
-});
-
-window.addEventListener('beforeunload', (e) => {
-  console.log('⚠️ beforeunload: Window closing...');
-  console.log('⚠️ beforeunload: Current data:', {
-    subjects: subjects.length,
-    homework: homework.length
-  });
-  
-  if (homework.length > 0 || subjects.length > 0) {
-    const message = '⚠️ יש לך נתונים שלא נשמרו. האם אתה בטוח שברצונך לעזוב?';
-    console.warn('⚠️ beforeunload: Showing warning to user');
-    e.returnValue = message;
-    return message;
-  }
-  
-  console.log('✅ beforeunload: No data to save, allowing close');
 });
