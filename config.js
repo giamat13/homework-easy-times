@@ -1,2 +1,2 @@
 // הגדר כאן אם זה עדכון גדול או לא
-const isBigUpdate = false;
+const isBigUpdate = true;
