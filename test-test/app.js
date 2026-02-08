@@ -904,139 +904,155 @@ async function exportToPDF() {
   console.log('📄 exportToPDF: Starting PDF export...');
   
   try {
+    notifications.showInAppNotification('מכין דוח PDF...', 'info');
+    
     // יצירת תוכן HTML למסמך
-    let htmlContent = `
-<!DOCTYPE html>
-<html dir="rtl" lang="he">
-<head>
-  <meta charset="UTF-8">
-  <title>דוח שיעורי בית - ${new Date().toLocaleDateString('he-IL')}</title>
-  <style>
-    body { font-family: Arial, sans-serif; direction: rtl; padding: 20px; }
-    h1 { color: #3b82f6; border-bottom: 3px solid #3b82f6; padding-bottom: 10px; }
-    h2 { color: #1f2937; margin-top: 30px; border-bottom: 2px solid #e5e7eb; padding-bottom: 5px; }
-    .stats { display: flex; gap: 20px; margin: 20px 0; }
-    .stat-box { border: 2px solid #e5e7eb; padding: 15px; border-radius: 8px; flex: 1; text-align: center; }
-    .stat-number { font-size: 2em; font-weight: bold; color: #3b82f6; }
-    .stat-label { color: #6b7280; margin-top: 5px; }
-    table { width: 100%; border-collapse: collapse; margin: 20px 0; }
-    th { background: #3b82f6; color: white; padding: 12px; text-align: right; }
-    td { border: 1px solid #e5e7eb; padding: 10px; }
-    tr:nth-child(even) { background: #f9fafb; }
-    .completed { text-decoration: line-through; color: #6b7280; }
-    .urgent { background: #fef3c7 !important; }
-    .overdue { background: #fee2e2 !important; }
-    .subject-badge { display: inline-block; padding: 4px 8px; border-radius: 4px; color: white; font-size: 0.9em; margin-left: 5px; }
-    .footer { margin-top: 40px; text-align: center; color: #6b7280; font-size: 0.9em; border-top: 1px solid #e5e7eb; padding-top: 20px; }
-  </style>
-</head>
-<body>
-  <h1>📚 דוח שיעורי בית</h1>
-  <p><strong>תאריך יצירת הדוח:</strong> ${new Date().toLocaleDateString('he-IL', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })}</p>
-  
-  <div class="stats">
-    <div class="stat-box">
-      <div class="stat-number">${homework.length}</div>
-      <div class="stat-label">סך הכל משימות</div>
-    </div>
-    <div class="stat-box">
-      <div class="stat-number">${homework.filter(h => h.completed).length}</div>
-      <div class="stat-label">הושלמו</div>
-    </div>
-    <div class="stat-box">
-      <div class="stat-number">${homework.filter(h => !h.completed).length}</div>
-      <div class="stat-label">ממתינים</div>
-    </div>
-    <div class="stat-box">
-      <div class="stat-number">${homework.filter(h => !h.completed && getDaysUntilDue(h.dueDate) <= 2).length}</div>
-      <div class="stat-label">דחופים</div>
-    </div>
-  </div>
-  
-  <h2>רשימת מקצועות (${subjects.length})</h2>
-  <table>
-    <tr>
-      <th>שם המקצוע</th>
-      <th>צבע</th>
-      <th>מספר משימות</th>
-    </tr>
-`;
-
-    subjects.forEach(subject => {
-      const count = homework.filter(h => h.subject == subject.id).length;
-      htmlContent += `
-    <tr>
-      <td>${subject.name}</td>
-      <td><span class="subject-badge" style="background-color: ${subject.color};">${subject.color}</span></td>
-      <td>${count}</td>
-    </tr>
-`;
-    });
-
-    htmlContent += `
-  </table>
-  
-  <h2>כל המשימות (${homework.length})</h2>
-  <table>
-    <tr>
-      <th>כותרת</th>
-      <th>מקצוע</th>
-      <th>תאריך הגשה</th>
-      <th>סטטוס</th>
-      <th>ימים עד הגשה</th>
-    </tr>
-`;
-
-    const sortedHomework = [...homework].sort((a, b) => new Date(a.dueDate) - new Date(b.dueDate));
+    const pdfContent = document.createElement('div');
+    pdfContent.style.fontFamily = 'Arial, sans-serif';
+    pdfContent.style.direction = 'rtl';
+    pdfContent.style.padding = '20px';
+    pdfContent.style.backgroundColor = 'white';
+    pdfContent.style.color = '#000';
     
-    sortedHomework.forEach(hw => {
-      const subject = subjects.find(s => s.id == hw.subject);
-      const daysLeft = getDaysUntilDue(hw.dueDate);
-      const isUrgent = daysLeft <= 2 && !hw.completed;
-      const isOverdue = daysLeft < 0 && !hw.completed;
+    pdfContent.innerHTML = `
+      <div style="text-align: center; margin-bottom: 30px;">
+        <h1 style="color: #3b82f6; font-size: 28px; margin-bottom: 10px;">📚 דוח שיעורי בית</h1>
+        <p style="color: #6b7280; font-size: 14px;">
+          <strong>תאריך יצירת הדוח:</strong> ${new Date().toLocaleDateString('he-IL', { 
+            weekday: 'long', 
+            day: 'numeric', 
+            month: 'long', 
+            year: 'numeric' 
+          })}
+        </p>
+      </div>
       
-      let rowClass = '';
-      if (isOverdue) rowClass = 'overdue';
-      else if (isUrgent) rowClass = 'urgent';
+      <div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 15px; margin-bottom: 30px;">
+        <div style="background: #dbeafe; padding: 15px; border-radius: 8px; text-align: center;">
+          <div style="font-size: 32px; font-weight: bold; color: #2563eb;">${homework.length}</div>
+          <div style="color: #6b7280; font-size: 14px; margin-top: 5px;">סך הכל משימות</div>
+        </div>
+        <div style="background: #dcfce7; padding: 15px; border-radius: 8px; text-align: center;">
+          <div style="font-size: 32px; font-weight: bold; color: #16a34a;">${homework.filter(h => h.completed).length}</div>
+          <div style="color: #6b7280; font-size: 14px; margin-top: 5px;">הושלמו</div>
+        </div>
+        <div style="background: #fed7aa; padding: 15px; border-radius: 8px; text-align: center;">
+          <div style="font-size: 32px; font-weight: bold; color: #ea580c;">${homework.filter(h => !h.completed).length}</div>
+          <div style="color: #6b7280; font-size: 14px; margin-top: 5px;">ממתינים</div>
+        </div>
+        <div style="background: #fecaca; padding: 15px; border-radius: 8px; text-align: center;">
+          <div style="font-size: 32px; font-weight: bold; color: #dc2626;">${homework.filter(h => !h.completed && getDaysUntilDue(h.dueDate) <= 2).length}</div>
+          <div style="color: #6b7280; font-size: 14px; margin-top: 5px;">דחופים</div>
+        </div>
+      </div>
       
-      let status = hw.completed ? '✅ הושלם' : '⏳ ממתין';
-      if (isOverdue && !hw.completed) status = '⚠️ באיחור';
-      else if (isUrgent && !hw.completed) status = '🔥 דחוף';
+      <h2 style="color: #1f2937; font-size: 20px; margin: 30px 0 15px 0; border-bottom: 2px solid #e5e7eb; padding-bottom: 8px;">
+        רשימת מקצועות (${subjects.length})
+      </h2>
+      <table style="width: 100%; border-collapse: collapse; margin-bottom: 30px;">
+        <thead>
+          <tr style="background: #3b82f6; color: white;">
+            <th style="padding: 12px; text-align: right; border: 1px solid #2563eb;">שם המקצוע</th>
+            <th style="padding: 12px; text-align: right; border: 1px solid #2563eb;">צבע</th>
+            <th style="padding: 12px; text-align: right; border: 1px solid #2563eb;">מספר משימות</th>
+          </tr>
+        </thead>
+        <tbody>
+          ${subjects.map((subject, index) => {
+            const count = homework.filter(h => h.subject == subject.id).length;
+            return `
+              <tr style="background: ${index % 2 === 0 ? '#f9fafb' : 'white'};">
+                <td style="padding: 10px; border: 1px solid #e5e7eb;">${subject.name}</td>
+                <td style="padding: 10px; border: 1px solid #e5e7eb;">
+                  <span style="display: inline-block; padding: 4px 12px; background: ${subject.color}; color: white; border-radius: 4px; font-size: 12px;">
+                    ${subject.color}
+                  </span>
+                </td>
+                <td style="padding: 10px; border: 1px solid #e5e7eb;">${count}</td>
+              </tr>
+            `;
+          }).join('')}
+        </tbody>
+      </table>
       
-      htmlContent += `
-    <tr class="${rowClass}">
-      <td class="${hw.completed ? 'completed' : ''}">${hw.title}</td>
-      <td>${subject ? `<span class="subject-badge" style="background-color: ${subject.color};">${subject.name}</span>` : '-'}</td>
-      <td>${new Date(hw.dueDate).toLocaleDateString('he-IL')}</td>
-      <td>${status}</td>
-      <td>${hw.completed ? '-' : (daysLeft < 0 ? `איחור ${Math.abs(daysLeft)} ימים` : `${daysLeft} ימים`)}</td>
-    </tr>
-`;
-    });
-
-    htmlContent += `
-  </table>
-  
-  <div class="footer">
-    <p>מערכת ניהול שיעורי בית</p>
-    <p>© ${new Date().getFullYear()} - נוצר ב-${new Date().toLocaleString('he-IL')}</p>
-  </div>
-</body>
-</html>
-`;
-
-    // יצירת Blob והורדה
-    const blob = new Blob([htmlContent], { type: 'text/html' });
-    const url = URL.createObjectURL(blob);
-    const link = document.createElement('a');
-    link.href = url;
-    link.download = `homework-report-${new Date().toISOString().split('T')[0]}.html`;
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-    URL.revokeObjectURL(url);
+      <h2 style="color: #1f2937; font-size: 20px; margin: 30px 0 15px 0; border-bottom: 2px solid #e5e7eb; padding-bottom: 8px;">
+        כל המשימות (${homework.length})
+      </h2>
+      <table style="width: 100%; border-collapse: collapse; margin-bottom: 30px;">
+        <thead>
+          <tr style="background: #3b82f6; color: white;">
+            <th style="padding: 12px; text-align: right; border: 1px solid #2563eb;">כותרת</th>
+            <th style="padding: 12px; text-align: right; border: 1px solid #2563eb;">מקצוע</th>
+            <th style="padding: 12px; text-align: right; border: 1px solid #2563eb;">תאריך הגשה</th>
+            <th style="padding: 12px; text-align: right; border: 1px solid #2563eb;">סטטוס</th>
+            <th style="padding: 12px; text-align: right; border: 1px solid #2563eb;">ימים עד הגשה</th>
+          </tr>
+        </thead>
+        <tbody>
+          ${homework.map((hw, index) => {
+            const subject = subjects.find(s => s.id == hw.subject);
+            const daysLeft = getDaysUntilDue(hw.dueDate);
+            const isUrgent = daysLeft <= 2 && !hw.completed;
+            const isOverdue = daysLeft < 0 && !hw.completed;
+            
+            let bgColor = index % 2 === 0 ? '#f9fafb' : 'white';
+            if (isOverdue) bgColor = '#fee2e2';
+            else if (isUrgent) bgColor = '#fef3c7';
+            
+            let status = hw.completed ? '✅ הושלם' : '⏳ ממתין';
+            if (isOverdue && !hw.completed) status = '⚠️ באיחור';
+            else if (isUrgent && !hw.completed) status = '🔥 דחוף';
+            
+            const titleDecoration = hw.completed ? 'text-decoration: line-through; color: #6b7280;' : '';
+            
+            return `
+              <tr style="background: ${bgColor};">
+                <td style="padding: 10px; border: 1px solid #e5e7eb; ${titleDecoration}">${hw.title}</td>
+                <td style="padding: 10px; border: 1px solid #e5e7eb;">
+                  ${subject ? `<span style="display: inline-block; padding: 4px 8px; background: ${subject.color}; color: white; border-radius: 4px; font-size: 12px;">${subject.name}</span>` : '-'}
+                </td>
+                <td style="padding: 10px; border: 1px solid #e5e7eb;">${new Date(hw.dueDate).toLocaleDateString('he-IL')}</td>
+                <td style="padding: 10px; border: 1px solid #e5e7eb;">${status}</td>
+                <td style="padding: 10px; border: 1px solid #e5e7eb;">
+                  ${hw.completed ? '-' : (daysLeft < 0 ? `איחור ${Math.abs(daysLeft)} ימים` : `${daysLeft} ימים`)}
+                </td>
+              </tr>
+            `;
+          }).join('')}
+        </tbody>
+      </table>
+      
+      <div style="margin-top: 40px; text-align: center; color: #6b7280; font-size: 12px; border-top: 1px solid #e5e7eb; padding-top: 20px;">
+        <p>מערכת ניהול שיעורי בית</p>
+        <p>© ${new Date().getFullYear()} - נוצר ב-${new Date().toLocaleString('he-IL')}</p>
+      </div>
+    `;
     
-    notifications.showInAppNotification('📄 דוח HTML נוצר בהצלחה! (פתח בדפדפן ושמור כ-PDF)', 'success');
+    // הגדרות ייצוא ל-PDF
+    const opt = {
+      margin: [10, 10, 10, 10],
+      filename: `homework-report-${new Date().toISOString().split('T')[0]}.pdf`,
+      image: { type: 'jpeg', quality: 0.98 },
+      html2canvas: { 
+        scale: 2,
+        useCORS: true,
+        letterRendering: true
+      },
+      jsPDF: { 
+        unit: 'mm', 
+        format: 'a4', 
+        orientation: 'portrait',
+        compress: true
+      },
+      pagebreak: { mode: ['avoid-all', 'css', 'legacy'] }
+    };
+    
+    console.log('📄 exportToPDF: Generating PDF...');
+    
+    // יצירת ה-PDF
+    await html2pdf().set(opt).from(pdfContent).save();
+    
+    notifications.showInAppNotification('📄 דוח PDF נוצר בהצלחה!', 'success');
     console.log('✅ exportToPDF: PDF export complete');
     
   } catch (error) {
