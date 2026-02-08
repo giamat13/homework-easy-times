@@ -3,12 +3,36 @@ let completionChart = null;
 let subjectChart = null;
 
 function initializeCharts() {
+  console.log('📊 initializeCharts: Initializing charts...');
+  
   const completionCtx = document.getElementById('completion-chart');
   const subjectCtx = document.getElementById('subject-chart');
   
-  if (!completionCtx || !subjectCtx) return;
+  if (!completionCtx || !subjectCtx) {
+    console.warn('⚠️ initializeCharts: Chart elements not found', {
+      completionCtx: !!completionCtx,
+      subjectCtx: !!subjectCtx
+    });
+    return;
+  }
+  
+  console.log('📊 initializeCharts: Chart elements found');
+  
+  // *** FIX: Destroy existing charts before creating new ones ***
+  if (completionChart) {
+    console.log('📊 initializeCharts: Destroying existing completion chart...');
+    completionChart.destroy();
+    completionChart = null;
+  }
+  
+  if (subjectChart) {
+    console.log('📊 initializeCharts: Destroying existing subject chart...');
+    subjectChart.destroy();
+    subjectChart = null;
+  }
   
   // גרף השלמה
+  console.log('📊 initializeCharts: Creating completion chart...');
   completionChart = new Chart(completionCtx, {
     type: 'doughnut',
     data: {
@@ -51,8 +75,10 @@ function initializeCharts() {
       }
     }
   });
+  console.log('✅ initializeCharts: Completion chart created');
   
   // גרף מקצועות
+  console.log('📊 initializeCharts: Creating subject chart...');
   subjectChart = new Chart(subjectCtx, {
     type: 'bar',
     data: {
@@ -104,24 +130,37 @@ function initializeCharts() {
       }
     }
   });
+  console.log('✅ initializeCharts: Subject chart created');
+  console.log('✅ initializeCharts: Charts initialization complete');
 }
 
 function updateCharts() {
+  console.log('📊 updateCharts: Updating charts...');
+  
   if (!completionChart || !subjectChart) {
+    console.warn('⚠️ updateCharts: Charts not initialized, initializing now...');
     initializeCharts();
-    if (!completionChart || !subjectChart) return;
+    if (!completionChart || !subjectChart) {
+      console.error('❌ updateCharts: Failed to initialize charts');
+      return;
+    }
   }
   
+  console.log('📊 updateCharts: Calculating completion statistics...');
   // עדכון גרף השלמה
   const completed = homework.filter(h => h.completed).length;
   const pending = homework.filter(h => !h.completed && getDaysUntilDue(h.dueDate) > 2).length;
   const urgent = homework.filter(h => !h.completed && getDaysUntilDue(h.dueDate) <= 2 && getDaysUntilDue(h.dueDate) >= 0).length;
   const overdue = homework.filter(h => !h.completed && getDaysUntilDue(h.dueDate) < 0).length;
   
+  console.log('📊 updateCharts: Stats:', {completed, pending, urgent, overdue});
+  
   completionChart.data.datasets[0].data = [completed, pending, urgent, overdue];
   completionChart.update();
+  console.log('✅ updateCharts: Completion chart updated');
   
   // עדכון גרף מקצועות
+  console.log('📊 updateCharts: Calculating subject statistics...');
   const subjectStats = {};
   subjects.forEach(s => {
     subjectStats[s.id] = {
@@ -141,20 +180,31 @@ function updateCharts() {
     .filter(s => s.count > 0)
     .sort((a, b) => b.count - a.count);
   
+  console.log('📊 updateCharts: Subject stats:', sortedSubjects);
+  
   subjectChart.data.labels = sortedSubjects.map(s => s.name);
   subjectChart.data.datasets[0].data = sortedSubjects.map(s => s.count);
   subjectChart.data.datasets[0].backgroundColor = sortedSubjects.map(s => s.color + '80'); // 50% opacity
   subjectChart.data.datasets[0].borderColor = sortedSubjects.map(s => s.color);
   subjectChart.update();
+  console.log('✅ updateCharts: Subject chart updated');
+  console.log('✅ updateCharts: Charts update complete');
 }
 
 // עדכון צבעי גרפים במצב לילה
 function updateChartColors() {
-  if (!completionChart || !subjectChart) return;
+  console.log('🎨 updateChartColors: Updating chart colors for dark mode...');
+  
+  if (!completionChart || !subjectChart) {
+    console.warn('⚠️ updateChartColors: Charts not initialized');
+    return;
+  }
   
   const textColor = getComputedStyle(document.body).getPropertyValue('--text-primary');
   const secondaryColor = getComputedStyle(document.body).getPropertyValue('--text-secondary');
   const borderColor = getComputedStyle(document.body).getPropertyValue('--border-color');
+  
+  console.log('🎨 updateChartColors: Colors:', {textColor, secondaryColor, borderColor});
   
   // עדכון גרף השלמה
   completionChart.options.plugins.legend.labels.color = textColor;
@@ -168,16 +218,29 @@ function updateChartColors() {
   
   completionChart.update();
   subjectChart.update();
+  console.log('✅ updateChartColors: Chart colors updated');
 }
 
-// אתחול גרפים עם הדף
+// *** FIX: Better initialization timing ***
 window.addEventListener('DOMContentLoaded', () => {
-  setTimeout(initializeCharts, 500);
+  console.log('📊 charts.js: DOMContentLoaded event - waiting for data to load...');
+  
+  // Wait for app.js to load data first, then initialize charts
+  const checkDataLoaded = setInterval(() => {
+    if (typeof homework !== 'undefined' && typeof subjects !== 'undefined') {
+      console.log('📊 charts.js: Data loaded, initializing charts...');
+      clearInterval(checkDataLoaded);
+      initializeCharts();
+      updateCharts();
+    }
+  }, 100);
+  
+  // Safety timeout - initialize after 2 seconds even if data isn't detected
+  setTimeout(() => {
+    clearInterval(checkDataLoaded);
+    if (!completionChart && !subjectChart) {
+      console.log('📊 charts.js: Timeout reached, forcing chart initialization...');
+      initializeCharts();
+    }
+  }, 2000);
 });
-
-// עדכון גרפים כשמשנים מצב לילה
-const originalToggleDarkMode = window.toggleDarkMode || function() {};
-window.toggleDarkMode = function() {
-  originalToggleDarkMode();
-  setTimeout(updateChartColors, 100);
-};

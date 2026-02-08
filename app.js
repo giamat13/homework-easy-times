@@ -24,10 +24,21 @@ let viewMode = 'list'; // 'list' or 'calendar'
 // =============== טעינה ושמירה ===============
 
 async function loadData() {
+  console.log('🔄 loadData: Starting data load...');
   try {
+    console.log('📊 loadData: Loading subjects...');
     subjects = await storage.get('homework-subjects') || [];
+    console.log('✅ loadData: Subjects loaded:', subjects.length, 'items');
+    
+    console.log('📚 loadData: Loading homework...');
     homework = await storage.get('homework-list') || [];
+    console.log('✅ loadData: Homework loaded:', homework.length, 'items');
+    
+    console.log('🏷️ loadData: Loading tags...');
     availableTags = await storage.get('homework-tags') || [];
+    console.log('✅ loadData: Tags loaded:', availableTags.length, 'items');
+    
+    console.log('⚙️ loadData: Loading settings...');
     settings = await storage.get('homework-settings') || {
       enableNotifications: false,
       notificationDays: 1,
@@ -36,41 +47,66 @@ async function loadData() {
       darkMode: false,
       recentColors: []
     };
+    console.log('✅ loadData: Settings loaded:', settings);
     
     // החל מצב לילה אם נבחר
     if (settings.darkMode) {
+      console.log('🌙 loadData: Applying dark mode...');
       document.body.classList.add('dark-mode');
+      
+      // עדכון האייקון של כפתור מצב הלילה
+      const toggleBtn = document.getElementById('toggle-dark-mode');
+      if (toggleBtn) {
+        const svg = toggleBtn.querySelector('svg use');
+        if (svg) {
+          svg.setAttribute('href', '#sun');
+          console.log('🌙 loadData: Dark mode icon updated to sun');
+        }
+      }
+      
+      console.log('✅ loadData: Dark mode applied');
     }
     
+    console.log('🎨 loadData: Starting render...');
     render();
+    console.log('✅ loadData: Render complete');
     
     // התחל בדיקת התראות אם מופעל
     if (settings.enableNotifications && notifications.permission === 'granted') {
+      console.log('🔔 loadData: Starting periodic notification check...');
       await notifications.startPeriodicCheck(homework, settings);
+      console.log('✅ loadData: Notification check started');
     }
     
     // בדיקת גיבוי אוטומטי
     if (settings.autoBackup) {
+      console.log('💾 loadData: Running auto backup...');
       await storage.autoBackup();
+      console.log('✅ loadData: Auto backup complete');
     }
     
-    console.log('✓ הנתונים נטעמו בהצלחה');
+    console.log('✅✅✅ loadData: הנתונים נטענו בהצלחה');
   } catch (error) {
-    console.error('שגיאה בטעינת נתונים:', error);
-    notifications.showInAppNotification('שגיאה בטעינת הנתונים', 'error');
+    console.error('❌❌❌ loadData: שגיאה בטעינת נתונים:', error);
+    if (notifications && notifications.showInAppNotification) {
+      notifications.showInAppNotification('שגיאה בטעינת הנתונים', 'error');
+    }
   }
 }
 
 async function saveData() {
+  console.log('💾 saveData: Starting data save...');
   try {
     await storage.set('homework-subjects', subjects);
     await storage.set('homework-list', homework);
     await storage.set('homework-settings', settings);
     await storage.set('homework-tags', availableTags);
-    console.log('✓ הנתונים נשמרו בהצלחה');
+    console.log('✅✅✅ saveData: הנתונים נשמרו בהצלחה');
   } catch (error) {
-    console.error('שגיאה בשמירת נתונים:', error);
-    notifications.showInAppNotification('⚠️ שגיאה בשמירת הנתונים - ייתכן שהשינויים לא נשמרו', 'error');
+    console.error('❌❌❌ saveData: שגיאה בשמירת נתונים:', error);
+    if (notifications && notifications.showInAppNotification) {
+      notifications.showInAppNotification('⚠️ שגיאה בשמירת הנתונים', 'error');
+    }
   }
 }
 
@@ -80,7 +116,8 @@ function getDaysUntilDue(dueDate) {
   const today = new Date();
   today.setHours(0, 0, 0, 0);
   const due = new Date(dueDate + 'T00:00:00');
-  return Math.round((due - today) / (1000 * 60 * 60 * 24));
+  const days = Math.round((due - today) / (1000 * 60 * 60 * 24));
+  return days;
 }
 
 function downloadFile(filename, dataUrl) {
@@ -96,7 +133,6 @@ function downloadFile(filename, dataUrl) {
 
 function renderColorPicker() {
   const picker = document.getElementById('color-picker');
-  const customInput = document.getElementById('custom-color-input');
   
   let html = '<div class="color-grid">';
   
@@ -137,40 +173,78 @@ function renderColorPicker() {
 
 function selectColor(color) {
   selectedColor = color;
-  addToRecentColors(color);
+  if (!colors.includes(color)) {
+    addToRecentColors(color);
+  }
   renderColorPicker();
 }
 
 function selectCustomColor(color) {
   selectedColor = color;
-  addToRecentColors(color);
+  if (!colors.includes(color)) {
+    addToRecentColors(color);
+  }
   renderColorPicker();
 }
 
 function addToRecentColors(color) {
+  if (colors.includes(color)) return;
   if (!settings.recentColors) settings.recentColors = [];
-  
-  // הסר אם כבר קיים
   settings.recentColors = settings.recentColors.filter(c => c !== color);
-  
-  // הוסף בתחילה
   settings.recentColors.unshift(color);
-  
-  // שמור רק 12 אחרונים
-  settings.recentColors = settings.recentColors.slice(0, 12);
-  
+  if (settings.recentColors.length > 12) {
+    settings.recentColors = settings.recentColors.slice(0, 12);
+  }
   saveData();
 }
 
 // =============== מצב לילה ===============
 
 function toggleDarkMode() {
+  console.log('🌙 toggleDarkMode: Toggling dark mode...');
   settings.darkMode = !settings.darkMode;
+  
   document.body.classList.toggle('dark-mode');
+  
+  // עדכון האייקון של הכפתור
+  const toggleBtn = document.getElementById('toggle-dark-mode');
+  if (toggleBtn) {
+    const svg = toggleBtn.querySelector('svg use');
+    if (svg) {
+      svg.setAttribute('href', settings.darkMode ? '#sun' : '#moon');
+    }
+  }
+  
   saveData();
   
+  // עדכון צבעי הגרפים
+  if (typeof updateChartColors === 'function') {
+    setTimeout(() => updateChartColors(), 100);
+  }
+  
   const icon = settings.darkMode ? '🌙' : '☀️';
-  notifications.showInAppNotification(`מצב ${settings.darkMode ? 'לילה' : 'יום'} הופעל ${icon}`, 'success');
+  const message = `מצב ${settings.darkMode ? 'לילה' : 'יום'} הופעל ${icon}`;
+  notifications.showInAppNotification(message, 'success');
+}
+
+function toggleViewMode() {
+  viewMode = viewMode === 'list' ? 'calendar' : 'list';
+  
+  // עדכון האייקון
+  const toggleBtn = document.getElementById('toggle-view-mode');
+  if (toggleBtn) {
+    const svg = toggleBtn.querySelector('svg use');
+    if (svg) {
+      svg.setAttribute('href', viewMode === 'list' ? '#calendar' : '#list');
+    }
+  }
+  
+  const message = `תצוגת ${viewMode === 'list' ? 'רשימה' : 'לוח שנה'}`;
+  notifications.showInAppNotification(message, 'info');
+  
+  if (viewMode === 'calendar') {
+    notifications.showInAppNotification('תצוגת לוח שנה תתווסף בקרוב', 'info');
+  }
 }
 
 // =============== סינון משימות ===============
@@ -196,27 +270,18 @@ function toggleTagFilter(tag) {
 
 function getFilteredHomework(homeworkList) {
   return homeworkList.filter(hw => {
-    // סינון לפי מקצוע
-    if (filters.subject !== 'all' && hw.subject != filters.subject) {
-      return false;
-    }
-    
-    // סינון לפי סטטוס
+    if (filters.subject !== 'all' && hw.subject != filters.subject) return false;
     if (filters.status === 'completed' && !hw.completed) return false;
     if (filters.status === 'pending' && hw.completed) return false;
     
-    // סינון לפי דחיפות
     if (filters.urgency !== 'all') {
       const daysLeft = getDaysUntilDue(hw.dueDate);
       if (filters.urgency === 'urgent' && (daysLeft > 2 || hw.completed)) return false;
       if (filters.urgency === 'overdue' && (daysLeft >= 0 || hw.completed)) return false;
     }
     
-    // סינון לפי תגיות
     if (filters.tags.length > 0) {
-      if (!hw.tags || !hw.tags.some(tag => filters.tags.includes(tag))) {
-        return false;
-      }
+      if (!hw.tags || !hw.tags.some(tag => filters.tags.includes(tag))) return false;
     }
     
     return true;
@@ -230,7 +295,6 @@ function addTag() {
   const tag = input.value.trim();
   
   if (!tag) return;
-  
   if (availableTags.includes(tag)) {
     notifications.showInAppNotification('תגית זו כבר קיימת', 'error');
     return;
@@ -247,12 +311,8 @@ function removeTag(tag) {
   if (!confirm(`האם למחוק את התגית "${tag}"? היא תוסר מכל המשימות`)) return;
   
   availableTags = availableTags.filter(t => t !== tag);
-  
-  // הסר מכל המשימות
   homework.forEach(hw => {
-    if (hw.tags) {
-      hw.tags = hw.tags.filter(t => t !== tag);
-    }
+    if (hw.tags) hw.tags = hw.tags.filter(t => t !== tag);
   });
   
   saveData();
@@ -265,8 +325,8 @@ function toggleHomeworkTag(homeworkId, tag) {
   if (!hw) return;
   
   if (!hw.tags) hw.tags = [];
-  
   const index = hw.tags.indexOf(tag);
+  
   if (index > -1) {
     hw.tags.splice(index, 1);
   } else {
@@ -366,7 +426,7 @@ function renderFilters() {
   `;
   
   container.innerHTML = html;
-  renderSubjects(); // עדכון select של מקצועות
+  renderSubjects();
 }
 
 function clearFilters() {
@@ -432,12 +492,11 @@ function renderHomework() {
   }
 
   let displayList = showArchive ? archivedHomework : activeHomework;
-  
-  // החל סינון
   displayList = getFilteredHomework(displayList);
 
   if (displayList.length === 0) {
-    list.innerHTML = `<p class="empty-state">${showArchive ? 'אין פריטים בארכיון' : 'אין שיעורי בית להצגה'}</p>`;
+    const message = showArchive ? 'אין פריטים בארכיון' : 'אין שיעורי בית להצגה';
+    list.innerHTML = `<p class="empty-state">${message}</p>`;
     return;
   }
 
@@ -534,9 +593,7 @@ function renderHomework() {
 
 function toggleTagEditor(homeworkId) {
   const editor = document.getElementById(`tags-editor-${homeworkId}`);
-  if (editor) {
-    editor.classList.toggle('hidden');
-  }
+  if (editor) editor.classList.toggle('hidden');
 }
 
 function updateStats() {
@@ -550,7 +607,6 @@ function updateStats() {
   document.getElementById('stat-pending').textContent = pending;
   document.getElementById('stat-urgent').textContent = urgent;
   
-  // עדכון גרפים אם קיימים
   if (typeof updateCharts === 'function') {
     updateCharts();
   }
@@ -568,12 +624,15 @@ function render() {
 
 function addSubject() {
   const name = document.getElementById('subject-name').value.trim();
+  
   if (!name) {
     notifications.showInAppNotification('נא להזין שם מקצוע', 'error');
     return;
   }
   
-  subjects.push({ id: Date.now(), name, color: selectedColor });
+  const newSubject = { id: Date.now(), name, color: selectedColor };
+  subjects.push(newSubject);
+  
   document.getElementById('subject-name').value = '';
   selectedColor = '#3b82f6';
   document.getElementById('add-subject-form').classList.add('hidden');
@@ -599,6 +658,7 @@ function deleteSubject(id) {
   
   subjects = subjects.filter(s => s.id !== id);
   homework = homework.filter(h => h.subject != id);
+  
   saveData();
   render();
   notifications.showInAppNotification(`המקצוע "${subject.name}" נמחק`, 'success');
@@ -644,7 +704,7 @@ function addHomework() {
   }
 
   function saveHomework(hwFiles) {
-    homework.push({
+    const newHomework = {
       id: Date.now(),
       subject,
       title,
@@ -656,7 +716,9 @@ function addHomework() {
       tags: [],
       notified: false,
       todayNotified: false
-    });
+    };
+    
+    homework.push(newHomework);
 
     document.getElementById('hw-subject').value = '';
     document.getElementById('hw-title').value = '';
@@ -673,14 +735,14 @@ function addHomework() {
 
 function toggleComplete(id) {
   const hw = homework.find(h => h.id === id);
-  if (hw) {
-    hw.completed = !hw.completed;
-    saveData();
-    render();
-    
-    if (hw.completed) {
-      notifications.showInAppNotification(`כל הכבוד! סיימת את "${hw.title}"`, 'success');
-    }
+  if (!hw) return;
+  
+  hw.completed = !hw.completed;
+  saveData();
+  render();
+  
+  if (hw.completed) {
+    notifications.showInAppNotification(`כל הכבוד! סיימת את "${hw.title}"`, 'success');
   }
 }
 
@@ -701,7 +763,6 @@ function deleteHomework(id) {
 function openSettings() {
   const modal = document.getElementById('settings-modal');
   if (!modal) return;
-  
   modal.classList.remove('hidden');
   loadSettingsUI();
 }
@@ -709,7 +770,6 @@ function openSettings() {
 function closeSettings() {
   const modal = document.getElementById('settings-modal');
   if (!modal) return;
-  
   modal.classList.add('hidden');
 }
 
@@ -768,12 +828,10 @@ async function exportData() {
 
 async function exportToPDF() {
   notifications.showInAppNotification('ייצוא ל-PDF בפיתוח...', 'info');
-  // TODO: להוסיף ייצוא PDF בעתיד
 }
 
 async function exportToExcel() {
   notifications.showInAppNotification('ייצוא ל-Excel בפיתוח...', 'info');
-  // TODO: להוסיף ייצוא Excel בעתיד
 }
 
 function importData() {
@@ -786,16 +844,11 @@ async function handleImportFile(event) {
 
   try {
     const result = await storage.importData(file);
-    
     if (result.success) {
       subjects = result.data.subjects;
       homework = result.data.homework;
-      if (result.data.settings) {
-        settings = result.data.settings;
-      }
-      if (result.data.tags) {
-        availableTags = result.data.tags;
-      }
+      if (result.data.settings) settings = result.data.settings;
+      if (result.data.tags) availableTags = result.data.tags;
       
       render();
       loadSettingsUI();
@@ -853,6 +906,8 @@ async function clearAllData() {
 // =============== Event Listeners ===============
 
 function initializeEventListeners() {
+  console.log('🎧 initializeEventListeners: Starting...');
+  
   // ארכיון
   const archiveToggle = document.getElementById('archive-toggle');
   if (archiveToggle) {
@@ -881,95 +936,74 @@ function initializeEventListeners() {
   }
 
   const saveSubject = document.getElementById('save-subject');
-  if (saveSubject) {
-    saveSubject.addEventListener('click', addSubject);
-  }
+  if (saveSubject) saveSubject.addEventListener('click', addSubject);
 
   const addHomeworkBtn = document.getElementById('add-homework');
-  if (addHomeworkBtn) {
-    addHomeworkBtn.addEventListener('click', addHomework);
-  }
+  if (addHomeworkBtn) addHomeworkBtn.addEventListener('click', addHomework);
+
+  // כפתורים בכותרת
+  const toggleDarkModeBtn = document.getElementById('toggle-dark-mode');
+  if (toggleDarkModeBtn) toggleDarkModeBtn.addEventListener('click', toggleDarkMode);
+
+  const toggleViewModeBtn = document.getElementById('toggle-view-mode');
+  if (toggleViewModeBtn) toggleViewModeBtn.addEventListener('click', toggleViewMode);
 
   // הגדרות
   const openSettingsBtn = document.getElementById('open-settings');
-  if (openSettingsBtn) {
-    openSettingsBtn.addEventListener('click', openSettings);
-  }
+  if (openSettingsBtn) openSettingsBtn.addEventListener('click', openSettings);
 
   const closeSettingsBtn = document.getElementById('close-settings');
-  if (closeSettingsBtn) {
-    closeSettingsBtn.addEventListener('click', closeSettings);
-  }
+  if (closeSettingsBtn) closeSettingsBtn.addEventListener('click', closeSettings);
 
   const settingsModal = document.getElementById('settings-modal');
   if (settingsModal) {
     settingsModal.addEventListener('click', (e) => {
-      if (e.target === settingsModal) {
-        closeSettings();
-      }
+      if (e.target === settingsModal) closeSettings();
     });
   }
   
   // מצב לילה
   const darkModeToggle = document.getElementById('dark-mode-toggle');
-  if (darkModeToggle) {
-    darkModeToggle.addEventListener('change', toggleDarkMode);
-  }
+  if (darkModeToggle) darkModeToggle.addEventListener('change', toggleDarkMode);
   
   // שמירת הגדרות
   const enableNotifications = document.getElementById('enable-notifications');
-  if (enableNotifications) {
-    enableNotifications.addEventListener('change', saveSettings);
-  }
+  if (enableNotifications) enableNotifications.addEventListener('change', saveSettings);
 
   const notificationDays = document.getElementById('notification-days');
-  if (notificationDays) {
-    notificationDays.addEventListener('change', saveSettings);
-  }
+  if (notificationDays) notificationDays.addEventListener('change', saveSettings);
 
   const notificationTime = document.getElementById('notification-time');
-  if (notificationTime) {
-    notificationTime.addEventListener('change', saveSettings);
-  }
+  if (notificationTime) notificationTime.addEventListener('change', saveSettings);
 
   const autoBackup = document.getElementById('auto-backup');
-  if (autoBackup) {
-    autoBackup.addEventListener('change', saveSettings);
-  }
+  if (autoBackup) autoBackup.addEventListener('change', saveSettings);
 
   // ייבוא/ייצוא
   const exportDataBtn = document.getElementById('export-data');
-  if (exportDataBtn) {
-    exportDataBtn.addEventListener('click', exportData);
-  }
+  if (exportDataBtn) exportDataBtn.addEventListener('click', exportData);
 
   const importDataBtn = document.getElementById('import-data');
-  if (importDataBtn) {
-    importDataBtn.addEventListener('click', importData);
-  }
+  if (importDataBtn) importDataBtn.addEventListener('click', importData);
 
   const importFile = document.getElementById('import-file');
-  if (importFile) {
-    importFile.addEventListener('change', handleImportFile);
-  }
+  if (importFile) importFile.addEventListener('change', handleImportFile);
 
   const clearAllDataBtn = document.getElementById('clear-all-data');
-  if (clearAllDataBtn) {
-    clearAllDataBtn.addEventListener('click', clearAllData);
-  }
+  if (clearAllDataBtn) clearAllDataBtn.addEventListener('click', clearAllData);
+  
+  console.log('✅ initializeEventListeners: Complete');
 }
 
 // =============== אתחול ===============
 
 window.addEventListener('DOMContentLoaded', async () => {
-  await loadData();
-  initializeEventListeners();
-});
-
-window.addEventListener('beforeunload', (e) => {
-  if (homework.length > 0 || subjects.length > 0) {
-    const message = '⚠️ יש לך נתונים שלא נשמרו. האם אתה בטוח שברצונך לעזוב?';
-    e.returnValue = message;
-    return message;
+  console.log('🚀 APPLICATION STARTING');
+  try {
+    await loadData();
+    initializeEventListeners();
+    console.log('🎉 APPLICATION STARTED SUCCESSFULLY');
+  } catch (error) {
+    console.error('❌ APPLICATION START FAILED:', error);
   }
 });
