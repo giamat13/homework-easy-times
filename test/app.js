@@ -353,12 +353,14 @@ function deleteHomework(id) {
 // =============== הגדרות ===============
 
 function openSettings() {
-  document.getElementById('settings-modal').classList.remove('hidden');
+  const modal = document.getElementById('settings-modal');
+  modal.classList.remove('hidden');
   loadSettingsUI();
 }
 
 function closeSettings() {
-  document.getElementById('settings-modal').classList.add('hidden');
+  const modal = document.getElementById('settings-modal');
+  modal.classList.add('hidden');
 }
 
 async function loadSettingsUI() {
@@ -505,15 +507,30 @@ document.getElementById('cancel-subject').addEventListener('click', () => {
 document.getElementById('save-subject').addEventListener('click', addSubject);
 document.getElementById('add-homework').addEventListener('click', addHomework);
 
-// הגדרות
-document.getElementById('open-settings').addEventListener('click', openSettings);
-document.getElementById('close-settings').addEventListener('click', closeSettings);
+// הגדרות - כפתור פתיחה
+document.getElementById('open-settings').addEventListener('click', (e) => {
+  e.preventDefault();
+  e.stopPropagation();
+  openSettings();
+});
 
-// סגירת מודל בלחיצה מחוץ לתוכן
+// הגדרות - כפתור סגירה X
+document.getElementById('close-settings').addEventListener('click', (e) => {
+  e.preventDefault();
+  e.stopPropagation();
+  closeSettings();
+});
+
+// סגירת מודל בלחיצה על הרקע
 document.getElementById('settings-modal').addEventListener('click', (e) => {
   if (e.target.id === 'settings-modal') {
     closeSettings();
   }
+});
+
+// מניעת סגירה בלחיצה על תוכן המודל
+document.querySelector('.modal-content').addEventListener('click', (e) => {
+  e.stopPropagation();
 });
 
 // שמירת הגדרות אוטומטית
@@ -527,6 +544,16 @@ document.getElementById('export-data').addEventListener('click', exportData);
 document.getElementById('import-data').addEventListener('click', importData);
 document.getElementById('import-file').addEventListener('change', handleImportFile);
 document.getElementById('clear-all-data').addEventListener('click', clearAllData);
+
+// מקש ESC לסגירת מודל
+document.addEventListener('keydown', (e) => {
+  if (e.key === 'Escape') {
+    const modal = document.getElementById('settings-modal');
+    if (!modal.classList.contains('hidden')) {
+      closeSettings();
+    }
+  }
+});
 
 // =============== אתחול ===============
 
