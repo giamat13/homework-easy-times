@@ -556,26 +556,122 @@ body {
   display: flex;
   align-items: center;
   gap: 0.75rem;
-  padding: 0.75rem 1rem;
-  background: #f9fafb;
+  padding: 1rem 1.25rem;
+  background: linear-gradient(135deg, #f9fafb 0%, #ffffff 100%);
   border: 2px solid #e5e7eb;
   border-radius: 0.75rem;
   color: #1f2937;
   text-decoration: none;
-  font-weight: 500;
-  transition: all 0.2s;
+  font-weight: 600;
+  font-size: 0.95rem;
+  transition: all 0.3s ease;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+  position: relative;
+  overflow: hidden;
+}
+
+.report-link::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: -100%;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(90deg, transparent, rgba(59, 130, 246, 0.1), transparent);
+  transition: left 0.5s ease;
+}
+
+.report-link:hover::before {
+  left: 100%;
+}
+
+.report-link::after {
+  content: '→';
+  position: absolute;
+  left: 1rem;
+  opacity: 0;
+  transition: all 0.3s ease;
+  font-size: 1.2rem;
+  font-weight: bold;
 }
 
 .report-link:hover {
-  background: #f3f4f6;
+  background: linear-gradient(135deg, #eff6ff 0%, #dbeafe 100%);
   border-color: #3b82f6;
-  color: #3b82f6;
-  transform: translateX(4px);
+  color: #1e40af;
+  transform: translateX(-8px);
+  box-shadow: 0 4px 12px rgba(59, 130, 246, 0.2);
+  padding-right: 2rem;
+}
+
+.report-link:hover::after {
+  opacity: 1;
+  left: auto;
+  right: 1rem;
+}
+
+.report-link:active {
+  transform: translateX(-4px) scale(0.98);
+  box-shadow: 0 2px 8px rgba(59, 130, 246, 0.15);
 }
 
 .report-link svg {
   flex-shrink: 0;
   color: currentColor;
+  transition: transform 0.3s ease;
+}
+
+.report-link:hover svg {
+  transform: scale(1.15) rotate(-5deg);
+}
+
+/* סגנון ייחודי לכל קישור */
+.report-link:nth-child(1) {
+  border-right: 4px solid transparent;
+}
+
+.report-link:nth-child(1):hover {
+  background: linear-gradient(135deg, #f0fdf4 0%, #dcfce7 100%);
+  border-color: #22c55e;
+  border-right-color: #22c55e;
+  color: #15803d;
+  box-shadow: 0 4px 12px rgba(34, 197, 94, 0.2);
+}
+
+.report-link:nth-child(2) {
+  border-right: 4px solid transparent;
+}
+
+.report-link:nth-child(2):hover {
+  background: linear-gradient(135deg, #fef3c7 0%, #fde68a 100%);
+  border-color: #f59e0b;
+  border-right-color: #f59e0b;
+  color: #b45309;
+  box-shadow: 0 4px 12px rgba(245, 158, 11, 0.2);
+}
+
+/* אנימציה לטעינה */
+@keyframes fadeInUp {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.report-link {
+  animation: fadeInUp 0.4s ease-out;
+}
+
+.report-link:nth-child(1) {
+  animation-delay: 0.05s;
+}
+
+.report-link:nth-child(2) {
+  animation-delay: 0.1s;
 }
 
 /* Notification Badge */

@@ -353,14 +353,28 @@ function deleteHomework(id) {
 // =============== הגדרות ===============
 
 function openSettings() {
+  console.log('🔵 פותח הגדרות...');
   const modal = document.getElementById('settings-modal');
+  if (!modal) {
+    console.error('❌ לא נמצא אלמנט settings-modal');
+    return;
+  }
   modal.classList.remove('hidden');
+  console.log('✅ ההגדרות נפתחו - מחלקה "hidden" הוסרה');
+  console.log('📊 מצב המודל:', modal.classList.contains('hidden') ? 'סגור' : 'פתוח');
   loadSettingsUI();
 }
 
 function closeSettings() {
+  console.log('🔴 סוגר הגדרות...');
   const modal = document.getElementById('settings-modal');
+  if (!modal) {
+    console.error('❌ לא נמצא אלמנט settings-modal');
+    return;
+  }
   modal.classList.add('hidden');
+  console.log('✅ ההגדרות נסגרו - מחלקה "hidden" נוספה');
+  console.log('📊 מצב המודל:', modal.classList.contains('hidden') ? 'סגור' : 'פתוח');
 }
 
 async function loadSettingsUI() {
@@ -488,78 +502,209 @@ async function clearAllData() {
 
 // =============== Event Listeners ===============
 
-document.getElementById('archive-toggle').addEventListener('click', () => {
-  showArchive = !showArchive;
-  renderHomework();
-});
-
-document.getElementById('show-add-subject').addEventListener('click', () => {
-  document.getElementById('add-subject-form').classList.remove('hidden');
-  document.getElementById('show-add-subject').classList.add('hidden');
-  renderColorPicker();
-});
-
-document.getElementById('cancel-subject').addEventListener('click', () => {
-  document.getElementById('add-subject-form').classList.add('hidden');
-  document.getElementById('show-add-subject').classList.remove('hidden');
-});
-
-document.getElementById('save-subject').addEventListener('click', addSubject);
-document.getElementById('add-homework').addEventListener('click', addHomework);
-
-// הגדרות - כפתור פתיחה
-document.getElementById('open-settings').addEventListener('click', (e) => {
-  e.preventDefault();
-  e.stopPropagation();
-  openSettings();
-});
-
-// הגדרות - כפתור סגירה X
-document.getElementById('close-settings').addEventListener('click', (e) => {
-  e.preventDefault();
-  e.stopPropagation();
-  closeSettings();
-});
-
-// סגירת מודל בלחיצה על הרקע
-document.getElementById('settings-modal').addEventListener('click', (e) => {
-  if (e.target.id === 'settings-modal') {
-    closeSettings();
+// פונקציה לאתחול Event Listeners
+function initializeEventListeners() {
+  console.log('🎯 מאתחל Event Listeners...');
+  
+  // ארכיון
+  const archiveToggle = document.getElementById('archive-toggle');
+  if (archiveToggle) {
+    archiveToggle.addEventListener('click', () => {
+      showArchive = !showArchive;
+      renderHomework();
+    });
+    console.log('  ✅ archive-toggle listener');
   }
-});
 
-// מניעת סגירה בלחיצה על תוכן המודל
-document.querySelector('.modal-content').addEventListener('click', (e) => {
-  e.stopPropagation();
-});
+  // הוספת מקצוע
+  const showAddSubject = document.getElementById('show-add-subject');
+  if (showAddSubject) {
+    showAddSubject.addEventListener('click', () => {
+      document.getElementById('add-subject-form').classList.remove('hidden');
+      document.getElementById('show-add-subject').classList.add('hidden');
+      renderColorPicker();
+    });
+    console.log('  ✅ show-add-subject listener');
+  }
 
-// שמירת הגדרות אוטומטית
-document.getElementById('enable-notifications').addEventListener('change', saveSettings);
-document.getElementById('notification-days').addEventListener('change', saveSettings);
-document.getElementById('notification-time').addEventListener('change', saveSettings);
-document.getElementById('auto-backup').addEventListener('change', saveSettings);
+  const cancelSubject = document.getElementById('cancel-subject');
+  if (cancelSubject) {
+    cancelSubject.addEventListener('click', () => {
+      document.getElementById('add-subject-form').classList.add('hidden');
+      document.getElementById('show-add-subject').classList.remove('hidden');
+    });
+    console.log('  ✅ cancel-subject listener');
+  }
 
-// ייבוא/ייצוא
-document.getElementById('export-data').addEventListener('click', exportData);
-document.getElementById('import-data').addEventListener('click', importData);
-document.getElementById('import-file').addEventListener('change', handleImportFile);
-document.getElementById('clear-all-data').addEventListener('click', clearAllData);
+  const saveSubject = document.getElementById('save-subject');
+  if (saveSubject) {
+    saveSubject.addEventListener('click', addSubject);
+    console.log('  ✅ save-subject listener');
+  }
 
-// מקש ESC לסגירת מודל
-document.addEventListener('keydown', (e) => {
-  if (e.key === 'Escape') {
-    const modal = document.getElementById('settings-modal');
-    if (!modal.classList.contains('hidden')) {
+  const addHomeworkBtn = document.getElementById('add-homework');
+  if (addHomeworkBtn) {
+    addHomeworkBtn.addEventListener('click', addHomework);
+    console.log('  ✅ add-homework listener');
+  }
+
+  // הגדרות - כפתור פתיחה
+  const openSettingsBtn = document.getElementById('open-settings');
+  if (openSettingsBtn) {
+    openSettingsBtn.addEventListener('click', (e) => {
+      console.log('🖱️ לחיצה על כפתור פתיחת הגדרות');
+      e.preventDefault();
+      e.stopPropagation();
+      openSettings();
+    });
+    console.log('  ✅ open-settings listener');
+  } else {
+    console.error('  ❌ open-settings button לא נמצא!');
+  }
+
+  // הגדרות - כפתור סגירה X
+  const closeBtn = document.getElementById('close-settings');
+  if (closeBtn) {
+    closeBtn.addEventListener('click', (e) => {
+      console.log('🖱️ לחיצה על כפתור X (סגירה)');
+      e.preventDefault();
+      e.stopPropagation();
       closeSettings();
-    }
+    });
+    console.log('  ✅ close-settings listener');
+  } else {
+    console.error('  ❌ close-settings button לא נמצא!');
   }
-});
+
+  // סגירת מודל בלחיצה על הרקע
+  const settingsModal = document.getElementById('settings-modal');
+  if (settingsModal) {
+    settingsModal.addEventListener('click', (e) => {
+      console.log('🖱️ לחיצה על אזור המודל');
+      console.log('📍 יעד הלחיצה:', e.target.id, e.target.className);
+      if (e.target.id === 'settings-modal') {
+        console.log('✅ לחיצה על הרקע - סוגר מודל');
+        closeSettings();
+      } else {
+        console.log('⏭️ לחיצה על תוכן המודל - לא סוגר');
+      }
+    });
+    console.log('  ✅ settings-modal click listener');
+  } else {
+    console.error('  ❌ settings-modal לא נמצא!');
+  }
+
+  // מניעת סגירה בלחיצה על תוכן המודל
+  const modalContent = document.querySelector('.modal-content');
+  if (modalContent) {
+    modalContent.addEventListener('click', (e) => {
+      console.log('🖱️ לחיצה על תוכן המודל - עוצר התפשטות');
+      e.stopPropagation();
+    });
+    console.log('  ✅ modal-content click listener');
+  } else {
+    console.error('  ❌ modal-content לא נמצא!');
+  }
+
+  // שמירת הגדרות אוטומטית
+  const enableNotifications = document.getElementById('enable-notifications');
+  if (enableNotifications) {
+    enableNotifications.addEventListener('change', saveSettings);
+    console.log('  ✅ enable-notifications listener');
+  }
+
+  const notificationDays = document.getElementById('notification-days');
+  if (notificationDays) {
+    notificationDays.addEventListener('change', saveSettings);
+    console.log('  ✅ notification-days listener');
+  }
+
+  const notificationTime = document.getElementById('notification-time');
+  if (notificationTime) {
+    notificationTime.addEventListener('change', saveSettings);
+    console.log('  ✅ notification-time listener');
+  }
+
+  const autoBackup = document.getElementById('auto-backup');
+  if (autoBackup) {
+    autoBackup.addEventListener('change', saveSettings);
+    console.log('  ✅ auto-backup listener');
+  }
+
+  // ייבוא/ייצוא
+  const exportDataBtn = document.getElementById('export-data');
+  if (exportDataBtn) {
+    exportDataBtn.addEventListener('click', exportData);
+    console.log('  ✅ export-data listener');
+  }
+
+  const importDataBtn = document.getElementById('import-data');
+  if (importDataBtn) {
+    importDataBtn.addEventListener('click', importData);
+    console.log('  ✅ import-data listener');
+  }
+
+  const importFile = document.getElementById('import-file');
+  if (importFile) {
+    importFile.addEventListener('change', handleImportFile);
+    console.log('  ✅ import-file listener');
+  }
+
+  const clearAllDataBtn = document.getElementById('clear-all-data');
+  if (clearAllDataBtn) {
+    clearAllDataBtn.addEventListener('click', clearAllData);
+    console.log('  ✅ clear-all-data listener');
+  }
+
+  // מקש ESC לסגירת מודל
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape') {
+      console.log('⌨️ נלחץ מקש ESC');
+      const modal = document.getElementById('settings-modal');
+      if (modal && !modal.classList.contains('hidden')) {
+        console.log('✅ מודל פתוח - סוגר אותו');
+        closeSettings();
+      } else {
+        console.log('⏭️ מודל סגור - לא עושה כלום');
+      }
+    }
+  });
+  console.log('  ✅ ESC key listener');
+  
+  console.log('✅ כל ה-Event Listeners אותחלו בהצלחה');
+}
 
 // =============== אתחול ===============
 
 window.addEventListener('DOMContentLoaded', async () => {
+  console.log('🚀 מתחיל אתחול המערכת...');
+  
+  // בדיקת אלמנטים קריטיים
+  const criticalElements = {
+    'settings-modal': document.getElementById('settings-modal'),
+    'open-settings': document.getElementById('open-settings'),
+    'close-settings': document.getElementById('close-settings'),
+    'modal-content': document.querySelector('.modal-content')
+  };
+  
+  console.log('🔍 בדיקת אלמנטים קריטיים:');
+  for (const [name, element] of Object.entries(criticalElements)) {
+    if (element) {
+      console.log(`  ✅ ${name} - נמצא`);
+    } else {
+      console.error(`  ❌ ${name} - לא נמצא!`);
+    }
+  }
+  
+  // טעינת נתונים
   await loadData();
-  console.log('✓ המערכת נטענה בהצלחה');
+  
+  // אתחול Event Listeners
+  initializeEventListeners();
+  
+  console.log('✅ המערכת נטענה בהצלחה');
+  console.log('📊 מצב התחלתי של מודל ההגדרות:', 
+    criticalElements['settings-modal']?.classList.contains('hidden') ? 'סגור' : 'פתוח');
 });
 
 // שמירה אוטומטית לפני סגירת הדף
