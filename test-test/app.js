@@ -1,6 +1,3 @@
-// =============== Enhanced App.js - קובץ ראשי משודרג ===============
-// קובץ זה מחליף את app.js המקורי ומוסיף תמיכה בפיצ'רים החדשים
-
 // Enhanced Main Application Logic
 const colors = ['#3b82f6', '#ef4444', '#10b981', '#f59e0b', '#8b5cf6', '#ec4899'];
 let subjects = [];
@@ -12,7 +9,7 @@ let settings = {
   autoBackup: false,
   darkMode: false,
   recentColors: [],
-  viewMode: 'list'
+  viewMode: 'list' // תצוגת ברירת מחדל
 };
 let selectedColor = '#3b82f6';
 let showArchive = false;
@@ -58,6 +55,7 @@ async function loadData() {
       console.log('🌙 loadData: Applying dark mode...');
       document.body.classList.add('dark-mode');
       
+      // עדכון האייקון של כפתור מצב הלילה
       const toggleBtn = document.getElementById('toggle-dark-mode');
       if (toggleBtn) {
         const svg = toggleBtn.querySelector('svg use');
@@ -70,13 +68,14 @@ async function loadData() {
       console.log('✅ loadData: Dark mode applied');
     }
     
-    // החל תצוגה שמורה
+    // החל תצוגה שמורה (רשימה או לוח שנה)
     if (settings.viewMode) {
       console.log('📅 loadData: Applying saved view mode:', settings.viewMode);
       const toggleViewBtn = document.getElementById('toggle-view-mode');
       if (toggleViewBtn) {
         const svg = toggleViewBtn.querySelector('svg use');
         if (svg) {
+          // עדכון האייקון לפי המצב השמור
           svg.setAttribute('href', settings.viewMode === 'list' ? '#calendar' : '#list');
           console.log('📅 loadData: View mode icon updated to', settings.viewMode === 'list' ? 'calendar' : 'list');
         }
@@ -85,6 +84,7 @@ async function loadData() {
     
     console.log('🎨 loadData: Starting render...');
     
+    // נקה צבעים כפולים
     if (deduplicateColors()) {
       console.log('✅ loadData: Removed duplicate colors');
     }
@@ -157,6 +157,7 @@ function renderColorPicker() {
   
   let html = '<div class="color-grid">';
   
+  // צבעים קבועים
   colors.forEach(color => {
     html += `
       <div class="color-option ${color === selectedColor ? 'selected' : ''}" 
@@ -165,6 +166,7 @@ function renderColorPicker() {
     `;
   });
   
+  // צבעים אחרונים
   if (settings.recentColors && settings.recentColors.length > 0) {
     html += '<div class="color-divider"></div>';
     settings.recentColors.slice(0, 6).forEach(color => {
@@ -178,6 +180,7 @@ function renderColorPicker() {
   
   html += '</div>';
   
+  // Custom color picker
   html += `
     <div class="custom-color-section">
       <input type="color" id="custom-color-input" value="${selectedColor}" 
@@ -216,6 +219,7 @@ function addToRecentColors(color) {
   saveData();
 }
 
+// פונקציה לניקוי צבעים כפולים
 function deduplicateColors() {
   console.log('🎨 deduplicateColors: Starting color deduplication...');
   
@@ -227,7 +231,10 @@ function deduplicateColors() {
   const originalLength = settings.recentColors.length;
   console.log('🎨 deduplicateColors: Original colors:', settings.recentColors);
   
+  // הסר צבעים שזהים לצבעי ברירת המחדל
   settings.recentColors = settings.recentColors.filter(color => !colors.includes(color));
+  
+  // הסר כפילויות
   settings.recentColors = [...new Set(settings.recentColors)];
   
   const newLength = settings.recentColors.length;
@@ -250,6 +257,7 @@ function toggleDarkMode() {
   
   document.body.classList.toggle('dark-mode');
   
+  // עדכון האייקון של הכפתור
   const toggleBtn = document.getElementById('toggle-dark-mode');
   if (toggleBtn) {
     const svg = toggleBtn.querySelector('svg use');
@@ -260,13 +268,9 @@ function toggleDarkMode() {
   
   saveData();
   
+  // עדכון צבעי הגרפים
   if (typeof updateChartColors === 'function') {
     setTimeout(() => updateChartColors(), 100);
-  }
-  
-  // עדכון גרפי אנליטיקה
-  if (typeof analyticsManager !== 'undefined' && analyticsManager.updateChartColors) {
-    setTimeout(() => analyticsManager.updateChartColors(), 100);
   }
   
   const icon = settings.darkMode ? '🌙' : '☀️';
@@ -277,6 +281,7 @@ function toggleDarkMode() {
 function toggleViewMode() {
   settings.viewMode = settings.viewMode === 'list' ? 'calendar' : 'list';
   
+  // עדכון האייקון
   const toggleBtn = document.getElementById('toggle-view-mode');
   if (toggleBtn) {
     const svg = toggleBtn.querySelector('svg use');
@@ -285,11 +290,13 @@ function toggleViewMode() {
     }
   }
   
+  // שמירת ההגדרה
   saveData();
   
   const message = `תצוגת ${settings.viewMode === 'list' ? 'רשימה' : 'לוח שנה'}`;
   notifications.showInAppNotification(message, 'info');
   
+  // החלפת התצוגה בפועל
   if (settings.viewMode === 'calendar') {
     console.log('📅 toggleViewMode: Switching to calendar view');
     if (typeof calendar !== 'undefined' && calendar.renderCalendar) {
@@ -528,6 +535,7 @@ function renderTagSelector() {
 }
 
 function renderHomework() {
+  // אם במצב לוח שנה, השתמש ב-calendar manager
   if (settings.viewMode === 'calendar') {
     if (typeof calendar !== 'undefined' && calendar.renderCalendar) {
       calendar.renderCalendar();
@@ -535,6 +543,7 @@ function renderHomework() {
     }
   }
   
+  // אחרת, הצג רשימה רגילה
   const list = document.getElementById('homework-list');
   const archiveBtn = document.getElementById('archive-toggle');
 
@@ -728,7 +737,7 @@ function deleteSubject(id) {
   notifications.showInAppNotification(`המקצוע "${subject.name}" נמחק`, 'success');
 }
 
-// =============== פעולות על משימות - משודרג עם הישגים ===============
+// =============== פעולות על משימות ===============
 
 function addHomework() {
   const subject = document.getElementById('hw-subject').value;
@@ -779,9 +788,7 @@ function addHomework() {
       files: hwFiles,
       tags: [],
       notified: false,
-      todayNotified: false,
-      createdDate: new Date().toISOString().split('T')[0],
-      completionDate: null
+      todayNotified: false
     };
     
     homework.push(newHomework);
@@ -799,26 +806,12 @@ function addHomework() {
   }
 }
 
-// *** משודרג עם תמיכה בהישגים ***
-async function toggleComplete(id) {
+function toggleComplete(id) {
   const hw = homework.find(h => h.id === id);
   if (!hw) return;
   
   hw.completed = !hw.completed;
-  
-  if (hw.completed) {
-    hw.completionDate = new Date().toISOString().split('T')[0];
-    
-    // 🏆 עדכון הישגים
-    if (typeof achievementsManager !== 'undefined') {
-      await achievementsManager.updateStreak(true);
-      await achievementsManager.trackEarlyCompletion(hw.dueDate);
-      await achievementsManager.trackNightCompletion();
-      await achievementsManager.checkAchievements(homework, subjects, availableTags);
-    }
-  }
-  
-  await saveData();
+  saveData();
   render();
   
   if (hw.completed) {
@@ -913,6 +906,7 @@ async function exportToPDF() {
   try {
     notifications.showInAppNotification('מכין דוח PDF...', 'info');
     
+    // יצירת תוכן HTML למסמך
     const pdfContent = document.createElement('div');
     pdfContent.style.fontFamily = 'Arial, sans-serif';
     pdfContent.style.direction = 'rtl';
@@ -1034,6 +1028,7 @@ async function exportToPDF() {
       </div>
     `;
     
+    // הגדרות ייצוא ל-PDF
     const opt = {
       margin: [10, 10, 10, 10],
       filename: `homework-report-${new Date().toISOString().split('T')[0]}.pdf`,
@@ -1054,6 +1049,7 @@ async function exportToPDF() {
     
     console.log('📄 exportToPDF: Generating PDF...');
     
+    // יצירת ה-PDF
     await html2pdf().set(opt).from(pdfContent).save();
     
     notifications.showInAppNotification('📄 דוח PDF נוצר בהצלחה!', 'success');
@@ -1069,14 +1065,18 @@ async function exportToExcel() {
   console.log('📊 exportToExcel: Starting Excel export...');
   
   try {
-    let csvContent = '\uFEFF';
+    // יצירת תוכן CSV (Excel יכול לפתוח את זה)
+    let csvContent = '\uFEFF'; // BOM for UTF-8
     
+    // כותרת
     csvContent += `דוח שיעורי בית - ${new Date().toLocaleDateString('he-IL')}\n\n`;
     
+    // סטטיסטיקות
     csvContent += 'סטטיסטיקות\n';
     csvContent += 'סך הכל,הושלמו,ממתינים,דחופים\n';
     csvContent += `${homework.length},${homework.filter(h => h.completed).length},${homework.filter(h => !h.completed).length},${homework.filter(h => !h.completed && getDaysUntilDue(h.dueDate) <= 2).length}\n\n`;
     
+    // מקצועות
     csvContent += 'מקצועות\n';
     csvContent += 'שם המקצוע,צבע,מספר משימות\n';
     subjects.forEach(subject => {
@@ -1085,6 +1085,7 @@ async function exportToExcel() {
     });
     csvContent += '\n';
     
+    // משימות
     csvContent += 'כל המשימות\n';
     csvContent += 'כותרת,מקצוע,תיאור,תאריך הגשה,עדיפות,סטטוס,ימים עד הגשה,תגיות\n';
     
@@ -1107,6 +1108,7 @@ async function exportToExcel() {
       csvContent += `"${hw.title}","${subject ? subject.name : '-'}","${description}",${new Date(hw.dueDate).toLocaleDateString('he-IL')},${hw.priority},${status},${daysText},"${tags}"\n`;
     });
     
+    // יצירת Blob והורדה
     const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
     const url = URL.createObjectURL(blob);
     const link = document.createElement('a');
@@ -1200,6 +1202,7 @@ async function clearAllData() {
 function initializeEventListeners() {
   console.log('🎧 initializeEventListeners: Starting...');
   
+  // ארכיון
   const archiveToggle = document.getElementById('archive-toggle');
   if (archiveToggle) {
     archiveToggle.addEventListener('click', () => {
@@ -1208,6 +1211,7 @@ function initializeEventListeners() {
     });
   }
 
+  // הוספת מקצוע
   const showAddSubject = document.getElementById('show-add-subject');
   if (showAddSubject) {
     showAddSubject.addEventListener('click', () => {
@@ -1231,12 +1235,14 @@ function initializeEventListeners() {
   const addHomeworkBtn = document.getElementById('add-homework');
   if (addHomeworkBtn) addHomeworkBtn.addEventListener('click', addHomework);
 
+  // כפתורים בכותרת
   const toggleDarkModeBtn = document.getElementById('toggle-dark-mode');
   if (toggleDarkModeBtn) toggleDarkModeBtn.addEventListener('click', toggleDarkMode);
 
   const toggleViewModeBtn = document.getElementById('toggle-view-mode');
   if (toggleViewModeBtn) toggleViewModeBtn.addEventListener('click', toggleViewMode);
 
+  // הגדרות
   const openSettingsBtn = document.getElementById('open-settings');
   if (openSettingsBtn) openSettingsBtn.addEventListener('click', openSettings);
 
@@ -1250,9 +1256,11 @@ function initializeEventListeners() {
     });
   }
   
+  // מצב לילה
   const darkModeToggle = document.getElementById('dark-mode-toggle');
   if (darkModeToggle) darkModeToggle.addEventListener('change', toggleDarkMode);
   
+  // מצב תצוגה
   const viewModeToggle = document.getElementById('view-mode-toggle');
   if (viewModeToggle) {
     viewModeToggle.addEventListener('change', () => {
@@ -1264,6 +1272,7 @@ function initializeEventListeners() {
     });
   }
   
+  // שמירת הגדרות
   const enableNotifications = document.getElementById('enable-notifications');
   if (enableNotifications) enableNotifications.addEventListener('change', saveSettings);
 
@@ -1276,6 +1285,7 @@ function initializeEventListeners() {
   const autoBackup = document.getElementById('auto-backup');
   if (autoBackup) autoBackup.addEventListener('change', saveSettings);
 
+  // ייבוא/ייצוא
   const exportDataBtn = document.getElementById('export-data');
   if (exportDataBtn) exportDataBtn.addEventListener('click', exportData);
   
@@ -1297,66 +1307,15 @@ function initializeEventListeners() {
   console.log('✅ initializeEventListeners: Complete');
 }
 
-// =============== אתחול משודרג עם פיצ'רים חדשים ===============
+// =============== אתחול ===============
 
 window.addEventListener('DOMContentLoaded', async () => {
   console.log('🚀 APPLICATION STARTING');
-  console.log('📦 Version: 2.0 - Enhanced Edition');
-  
   try {
-    // טעינת נתונים בסיסיים
     await loadData();
     initializeEventListeners();
-    
-    // 🏆 אתחול מנהל הישגים
-    if (typeof achievementsManager !== 'undefined') {
-      console.log('🏆 Initializing achievements manager...');
-      await achievementsManager.loadProgress();
-      console.log('✅ Achievements manager loaded');
-    } else {
-      console.warn('⚠️ Achievements manager not found');
-    }
-    
-    // ⏱️ אתחול טיימר לימוד
-    if (typeof studyTimer !== 'undefined') {
-      console.log('⏱️ Initializing study timer...');
-      await studyTimer.loadSettings();
-      console.log('✅ Study timer loaded');
-    } else {
-      console.warn('⚠️ Study timer not found');
-    }
-    
-    // 🎨 אתחול התאמת צבעים
-    if (typeof themeCustomizer !== 'undefined') {
-      console.log('🎨 Initializing theme customizer...');
-      await themeCustomizer.loadTheme();
-      console.log('✅ Theme customizer loaded');
-    } else {
-      console.warn('⚠️ Theme customizer not found');
-    }
-    
-    // ⚡ אתחול קיצורי דרך
-    if (typeof quickActions !== 'undefined') {
-      console.log('⚡ Initializing quick actions...');
-      quickActions.initialize();
-      console.log('✅ Quick actions initialized');
-    } else {
-      console.warn('⚠️ Quick actions not found');
-    }
-    
     console.log('🎉 APPLICATION STARTED SUCCESSFULLY');
-    console.log('✨ All features loaded and ready to use!');
-    
-    // הצגת הודעת ברוכים הבאים
-    setTimeout(() => {
-      if (typeof notifications !== 'undefined') {
-        notifications.showInAppNotification('🎉 מערכת מודרנית טעונה בהצלחה!', 'success');
-      }
-    }, 500);
-    
   } catch (error) {
     console.error('❌ APPLICATION START FAILED:', error);
-    console.error('Error stack:', error.stack);
-    alert('שגיאה בטעינת המערכת. אנא רענן את הדף.');
   }
 });
