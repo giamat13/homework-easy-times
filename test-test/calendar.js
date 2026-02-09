@@ -3,6 +3,7 @@ class CalendarManager {
   constructor() {
     this.currentDate = new Date();
     this.selectedDate = null;
+    this.showArchive = false; // תיקון: הוספת מצב ארכיון
     console.log('📅 CalendarManager: Initialized');
   }
 
@@ -24,6 +25,19 @@ class CalendarManager {
     // קבלת משימות לחודש הנוכחי
     const monthHomework = this.getHomeworkForMonth(year, month);
     console.log('📅 renderCalendar: Homework for month:', monthHomework.length);
+    
+    // תיקון: סינון לפי מצב ארכיון
+    let displayHomework = monthHomework;
+    if (!this.showArchive) {
+      // הצג רק משימות פעילות (לא הושלמו או שעדיין בתוך המועד)
+      displayHomework = monthHomework.filter(hw => {
+        if (!hw.completed) return true;
+        const daysLeft = this.getDaysUntilDue(hw.dueDate);
+        return daysLeft >= 0;
+      });
+    }
+    
+    console.log('📅 renderCalendar: Display homework count:', displayHomework.length);
     
     // יצירת HTML של לוח השנה
     let html = `
@@ -69,7 +83,7 @@ class CalendarManager {
       
       const isToday = currentDate.getTime() === today.getTime();
       const isPast = currentDate < today;
-      const homeworkForDay = this.getHomeworkForDate(monthHomework, currentDate);
+      const homeworkForDay = this.getHomeworkForDate(displayHomework, currentDate);
       
       let dayClasses = 'calendar-day';
       if (isToday) dayClasses += ' today';
@@ -104,7 +118,37 @@ class CalendarManager {
       homeworkList.innerHTML = html;
     }
     
+    // תיקון: עדכון כפתור הארכיון
+    this.updateArchiveButton();
+    
     console.log('✅ renderCalendar: Calendar rendered');
+  }
+
+  // תיקון: פונקציה לעדכון כפתור הארכיון
+  updateArchiveButton() {
+    const archiveBtn = document.getElementById('archive-toggle');
+    if (!archiveBtn) return;
+    
+    // חישוב כמה משימות בארכיון
+    const archivedHomework = homework.filter(h => {
+      if (!h.completed) return false;
+      return this.getDaysUntilDue(h.dueDate) < 0;
+    });
+    
+    if (archivedHomework.length > 0) {
+      archiveBtn.classList.remove('hidden');
+      archiveBtn.textContent = this.showArchive ? 'הסתר ארכיון' : `ארכיון (${archivedHomework.length})`;
+      archiveBtn.onclick = () => this.toggleArchive();
+    } else {
+      archiveBtn.classList.add('hidden');
+    }
+  }
+
+  // תיקון: פונקציה להחלפת מצב ארכיון
+  toggleArchive() {
+    console.log('📅 toggleArchive: Toggling archive mode');
+    this.showArchive = !this.showArchive;
+    this.renderCalendar();
   }
 
   // קבלת משימות לחודש מסוים
@@ -229,6 +273,15 @@ class CalendarManager {
         modal.remove();
       }
     });
+  }
+
+  // פונקציה עזר לחישוב ימים עד תאריך
+  getDaysUntilDue(dueDate) {
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    const due = new Date(dueDate + 'T00:00:00');
+    const days = Math.round((due - today) / (1000 * 60 * 60 * 24));
+    return days;
   }
 }
 
