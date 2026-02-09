@@ -1,0 +1,16 @@
+התקנה - Homework Management System Enhanced v2.0
+
+חשוב: קבצים נוספים נדרשים מהמסמכים המקוריים.
+
+העתק מהמסמכים:
+- storage.js, notifications.js, calendar.js, charts.js
+- study-timer.js, analytics.js, utilities.js
+- app.js, integration.js
+- styles.css, calendar-styles.css  
+- index.html
+
+הפעלה:
+1. העתק את כל הקבצים לתיקייה אחת
+2. פתח index.html בדפדפן
+3. התחל להשתמש!
+
