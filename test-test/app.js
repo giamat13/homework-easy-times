@@ -1319,3 +1319,81 @@ window.addEventListener('DOMContentLoaded', async () => {
     console.error('❌ APPLICATION START FAILED:', error);
   }
 });
+
+// =============== שינויים נוספים - גיימיפיקציה ופעולות מהירות ===============
+
+// עדכון toggleComplete לבדיקת הישגים
+const originalToggleComplete = toggleComplete;
+window.toggleComplete = function(id) {
+  originalToggleComplete(id);
+  
+  // בדוק הישגים חדשים
+  if (typeof gamification !== 'undefined') {
+    setTimeout(() => gamification.checkAchievements(), 500);
+  }
+};
+
+// עדכון addHomework לבדיקת הישגים
+const originalAddHomework = addHomework;
+window.addHomework = function() {
+  originalAddHomework();
+  
+  // בדוק הישגים חדשים
+  if (typeof gamification !== 'undefined') {
+    setTimeout(() => gamification.checkAchievements(), 500);
+  }
+};
+
+// טעינת התקדמות הגיימיפיקציה בטעינה
+window.addEventListener('DOMContentLoaded', async () => {
+  if (typeof gamification !== 'undefined') {
+    await gamification.loadProgress();
+  }
+});
+
+// הוספת CSS למסך הטעינה
+const quickActionsCSS = `
+.quick-actions-toolbar {
+  display: flex;
+  gap: 0.75rem;
+  margin-top: 1.5rem;
+  flex-wrap: wrap;
+  justify-content: center;
+}
+.quick-action-btn {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.5rem 1rem;
+  background: var(--bg-secondary);
+  border: 2px solid var(--border-color);
+  border-radius: 0.75rem;
+  cursor: pointer;
+  transition: var(--transition);
+  font-weight: 600;
+  color: var(--text-primary);
+}
+.quick-action-btn:hover {
+  background: #3b82f6;
+  border-color: #3b82f6;
+  color: white;
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(59, 130, 246, 0.3);
+}
+.quick-action-btn svg {
+  flex-shrink: 0;
+}
+@media (max-width: 768px) {
+  .quick-actions-toolbar {
+    grid-template-columns: repeat(2, 1fr);
+  }
+  
+  .quick-action-btn span {
+    font-size: 0.875rem;
+  }
+}
+`;
+const style = document.createElement('style');
+style.textContent = quickActionsCSS;
+document.head.appendChild(style);
+console.log('✅ App updates loaded successfully');
