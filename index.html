@@ -3,28 +3,43 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>מערכת ניהול שיעורי בית</title>
+  <title>מערכת ניהול שיעורי בית - Enhanced Edition</title>
   <link rel="icon" href="icon.png" type="image/png">
+  
+  <!-- CSS Files -->
   <link rel="stylesheet" href="styles.css">
   <link rel="stylesheet" href="calendar-styles.css">
+  <link rel="stylesheet" href="enhanced-styles.css">
+  
+  <!-- External Libraries -->
   <script src="https://cdnjs.cloudflare.com/ajax/libs/lucide/0.263.1/umd/lucide.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
 </head>
 <body>
   <div class="container">
-    <!-- Header -->
+    <!-- Header with Enhanced Actions -->
     <div class="header">
       <div class="header-title">
         <svg width="32" height="32" style="color: #3b82f6;">
           <use href="#book-open"></use>
         </svg>
-        <h1>ניהול שיעורי בית</h1>
+        <h1>ניהול שיעורי בית <span style="font-size: 0.5em; color: #8b5cf6;">Enhanced</span></h1>
         <div class="header-actions">
-          <button class="settings-btn" id="toggle-dark-mode" title="מצב לילה/יום">
+          <button class="settings-btn" id="quick-search-btn" title="חיפוש מהיר (Ctrl+F)" onclick="smartSearch.openSearchPanel()">
+            <svg width="24" height="24"><use href="#search"></use></svg>
+          </button>
+          <button class="settings-btn" id="theme-selector-btn" title="ערכות נושא" onclick="themeCustomizer.openThemeSelector()">
+            <svg width="24" height="24"><use href="#palette"></use></svg>
+          </button>
+          <button class="settings-btn" id="toggle-dark-mode" title="מצב לילה/יום (Ctrl+D)">
             <svg width="24" height="24"><use href="#moon"></use></svg>
           </button>
           <button class="settings-btn" id="toggle-view-mode" title="החלף תצוגה">
             <svg width="24" height="24"><use href="#calendar"></use></svg>
+          </button>
+          <button class="settings-btn" id="quick-help-btn" title="עזרה (Shift+H)" onclick="quickActions.showHelpModal()">
+            <svg width="24" height="24"><use href="#help-circle"></use></svg>
           </button>
           <button class="settings-btn" id="open-settings" title="הגדרות">
             <svg width="24" height="24"><use href="#settings"></use></svg>
@@ -32,6 +47,7 @@
         </div>
       </div>
       
+      <!-- Stats with XP Bar -->
       <div class="stats">
         <div class="stat-card blue">
           <div class="stat-number blue" id="stat-total">0</div>
@@ -50,9 +66,24 @@
           <div class="stat-label">דחוף</div>
         </div>
       </div>
+      
+      <!-- Mini XP Progress -->
+      <div class="xp-progress-container" style="margin-top: 1rem;">
+        <div class="xp-progress-bar">
+          <div class="xp-progress-fill" id="header-xp-progress" style="width: 0%"></div>
+        </div>
+        <div class="xp-progress-text">
+          רמה <span id="header-level">1</span> • <span id="header-xp-text">0 / 100 XP</span>
+        </div>
+      </div>
     </div>
 
     <div class="grid">
+      <!-- Study Timer Panel -->
+      <div class="panel" id="timer-panel">
+        <!-- Will be rendered by study-timer.js -->
+      </div>
+
       <!-- Subjects Panel -->
       <div class="panel">
         <h2>מקצועות</h2>
@@ -135,7 +166,17 @@
         <div class="homework-list" id="homework-list"></div>
       </div>
 
-      <!-- Statistics Panel -->
+      <!-- Gamification Panel -->
+      <div class="panel" id="gamification-panel">
+        <!-- Will be rendered by gamification.js -->
+      </div>
+
+      <!-- Analytics Panel -->
+      <div class="panel statistics-panel" id="analytics-panel">
+        <!-- Will be rendered by analytics.js -->
+      </div>
+
+      <!-- Statistics Panel (Original Charts) -->
       <div class="panel statistics-panel">
         <h2>סטטיסטיקות</h2>
         <div class="charts-container">
@@ -150,7 +191,7 @@
     </div>
   </div>
 
-  <!-- Settings Modal -->
+  <!-- Settings Modal (Enhanced) -->
   <div class="modal hidden" id="settings-modal">
     <div class="modal-content">
       <div class="modal-header">
@@ -174,6 +215,12 @@
               <input type="checkbox" id="view-mode-toggle">
               תצוגת לוח שנה כברירת מחדל
             </label>
+          </div>
+          <div class="setting-item">
+            <button class="btn btn-secondary" onclick="themeCustomizer.openThemeSelector()">
+              <svg width="20" height="20"><use href="#palette"></use></svg>
+              בחר ערכת נושא
+            </button>
           </div>
         </div>
 
@@ -279,8 +326,9 @@
     </div>
   </div>
 
-  <!-- SVG Icons -->
+  <!-- SVG Icons (Extended) -->
   <svg style="display: none;">
+    <!-- Existing icons... -->
     <symbol id="book-open" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
       <path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"></path>
       <path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"></path>
@@ -308,6 +356,36 @@
       <line x1="18" y1="6" x2="6" y2="18"></line>
       <line x1="6" y1="6" x2="18" y2="18"></line>
     </symbol>
+    
+    <!-- New Icons -->
+    <symbol id="play" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+      <polygon points="5 3 19 12 5 21 5 3"></polygon>
+    </symbol>
+    <symbol id="pause" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+      <rect x="6" y="4" width="4" height="16"></rect>
+      <rect x="14" y="4" width="4" height="16"></rect>
+    </symbol>
+    <symbol id="square" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+      <rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect>
+    </symbol>
+    <symbol id="search" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+      <circle cx="11" cy="11" r="8"></circle>
+      <path d="m21 21-4.35-4.35"></path>
+    </symbol>
+    <symbol id="palette" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+      <circle cx="13.5" cy="6.5" r=".5"></circle>
+      <circle cx="17.5" cy="10.5" r=".5"></circle>
+      <circle cx="8.5" cy="7.5" r=".5"></circle>
+      <circle cx="6.5" cy="12.5" r=".5"></circle>
+      <path d="M12 2C6.5 2 2 6.5 2 12s4.5 10 10 10c.926 0 1.648-.746 1.648-1.688 0-.437-.18-.835-.437-1.125-.29-.289-.438-.652-.438-1.125a1.64 1.64 0 0 1 1.668-1.668h1.996c3.051 0 5.555-2.503 5.555-5.554C21.965 6.012 17.461 2 12 2z"></path>
+    </symbol>
+    <symbol id="help-circle" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+      <circle cx="12" cy="12" r="10"></circle>
+      <path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"></path>
+      <line x1="12" y1="17" x2="12.01" y2="17"></line>
+    </symbol>
+    
+    <!-- Continue with existing icons... -->
     <symbol id="download" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
       <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
       <polyline points="7 10 12 15 17 10"></polyline>
@@ -372,17 +450,26 @@
     </symbol>
   </svg>
 
+  <!-- JavaScript Files -->
   <script src="storage.js"></script>
   <script src="notifications.js"></script>
   <script src="calendar.js"></script>
   <script src="charts.js"></script>
+  <script src="study-timer.js"></script>
+  <script src="gamification.js"></script>
+  <script src="analytics.js"></script>
+  <script src="utilities.js"></script>
   <script src="app.js"></script>
+  <script src="integration.js"></script>
   
   <footer class="footer">
     <p>© 2025 giamat13 כל הזכויות שמורות.</p>
     <p>התוכן זמין תחת רישיון <a href="https://creativecommons.org/licenses/by-nc/4.0/deed.he" target="_blank" style="color: #3b82f6; text-decoration: none;">Creative Commons BY-NC 4.0</a></p>
     <p>(שימוש לא מסחרי עם מתן קרדיט בלבד)</p>
     <p style="margin-top: 10px; font-size: 0.9em; opacity: 0.8;">נוצר עם קלוד | Created with Claude</p>
+    <p style="margin-top: 5px; font-size: 0.85em; color: #8b5cf6; font-weight: 600;">
+      ✨ Enhanced Edition ✨
+    </p>
   </footer>
 </body>
 </html>
