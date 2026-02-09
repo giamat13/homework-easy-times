@@ -1,4 +1,4 @@
-// Enhanced Main Application Logic
+// Enhanced Main Application Logic - גרסה משודרגת עם פיצ'רים חדשים
 const colors = ['#3b82f6', '#ef4444', '#10b981', '#f59e0b', '#8b5cf6', '#ec4899'];
 let subjects = [];
 let homework = [];
@@ -9,7 +9,7 @@ let settings = {
   autoBackup: false,
   darkMode: false,
   recentColors: [],
-  viewMode: 'list' // תצוגת ברירת מחדל
+  viewMode: 'list'
 };
 let selectedColor = '#3b82f6';
 let showArchive = false;
@@ -50,60 +50,36 @@ async function loadData() {
     };
     console.log('✅ loadData: Settings loaded:', settings);
     
-    // החל מצב לילה אם נבחר
     if (settings.darkMode) {
       console.log('🌙 loadData: Applying dark mode...');
       document.body.classList.add('dark-mode');
-      
-      // עדכון האייקון של כפתור מצב הלילה
       const toggleBtn = document.getElementById('toggle-dark-mode');
       if (toggleBtn) {
         const svg = toggleBtn.querySelector('svg use');
-        if (svg) {
-          svg.setAttribute('href', '#sun');
-          console.log('🌙 loadData: Dark mode icon updated to sun');
-        }
+        if (svg) svg.setAttribute('href', '#sun');
       }
-      
-      console.log('✅ loadData: Dark mode applied');
     }
     
-    // החל תצוגה שמורה (רשימה או לוח שנה)
     if (settings.viewMode) {
-      console.log('📅 loadData: Applying saved view mode:', settings.viewMode);
       const toggleViewBtn = document.getElementById('toggle-view-mode');
       if (toggleViewBtn) {
         const svg = toggleViewBtn.querySelector('svg use');
-        if (svg) {
-          // עדכון האייקון לפי המצב השמור
-          svg.setAttribute('href', settings.viewMode === 'list' ? '#calendar' : '#list');
-          console.log('📅 loadData: View mode icon updated to', settings.viewMode === 'list' ? 'calendar' : 'list');
-        }
+        if (svg) svg.setAttribute('href', settings.viewMode === 'list' ? '#calendar' : '#list');
       }
     }
     
-    console.log('🎨 loadData: Starting render...');
-    
-    // נקה צבעים כפולים
     if (deduplicateColors()) {
       console.log('✅ loadData: Removed duplicate colors');
     }
     
     render();
-    console.log('✅ loadData: Render complete');
     
-    // התחל בדיקת התראות אם מופעל
     if (settings.enableNotifications && notifications.permission === 'granted') {
-      console.log('🔔 loadData: Starting periodic notification check...');
       await notifications.startPeriodicCheck(homework, settings);
-      console.log('✅ loadData: Notification check started');
     }
     
-    // בדיקת גיבוי אוטומטי
     if (settings.autoBackup) {
-      console.log('💾 loadData: Running auto backup...');
       await storage.autoBackup();
-      console.log('✅ loadData: Auto backup complete');
     }
     
     console.log('✅✅✅ loadData: הנתונים נטענו בהצלחה');
@@ -154,10 +130,8 @@ function downloadFile(filename, dataUrl) {
 
 function renderColorPicker() {
   const picker = document.getElementById('color-picker');
-  
   let html = '<div class="color-grid">';
   
-  // צבעים קבועים
   colors.forEach(color => {
     html += `
       <div class="color-option ${color === selectedColor ? 'selected' : ''}" 
@@ -166,7 +140,6 @@ function renderColorPicker() {
     `;
   });
   
-  // צבעים אחרונים
   if (settings.recentColors && settings.recentColors.length > 0) {
     html += '<div class="color-divider"></div>';
     settings.recentColors.slice(0, 6).forEach(color => {
@@ -179,8 +152,6 @@ function renderColorPicker() {
   }
   
   html += '</div>';
-  
-  // Custom color picker
   html += `
     <div class="custom-color-section">
       <input type="color" id="custom-color-input" value="${selectedColor}" 
@@ -219,56 +190,33 @@ function addToRecentColors(color) {
   saveData();
 }
 
-// פונקציה לניקוי צבעים כפולים
 function deduplicateColors() {
-  console.log('🎨 deduplicateColors: Starting color deduplication...');
-  
-  if (!settings.recentColors || settings.recentColors.length === 0) {
-    console.log('⏸️ deduplicateColors: No recent colors to deduplicate');
-    return false;
-  }
-  
+  if (!settings.recentColors || settings.recentColors.length === 0) return false;
   const originalLength = settings.recentColors.length;
-  console.log('🎨 deduplicateColors: Original colors:', settings.recentColors);
-  
-  // הסר צבעים שזהים לצבעי ברירת המחדל
   settings.recentColors = settings.recentColors.filter(color => !colors.includes(color));
-  
-  // הסר כפילויות
   settings.recentColors = [...new Set(settings.recentColors)];
-  
   const newLength = settings.recentColors.length;
-  console.log('🎨 deduplicateColors: Cleaned colors:', settings.recentColors);
-  console.log('🎨 deduplicateColors: Removed', originalLength - newLength, 'duplicate colors');
-  
   if (originalLength !== newLength) {
     saveData();
     return true;
   }
-  
   return false;
 }
 
 // =============== מצב לילה ===============
 
 function toggleDarkMode() {
-  console.log('🌙 toggleDarkMode: Toggling dark mode...');
   settings.darkMode = !settings.darkMode;
-  
   document.body.classList.toggle('dark-mode');
   
-  // עדכון האייקון של הכפתור
   const toggleBtn = document.getElementById('toggle-dark-mode');
   if (toggleBtn) {
     const svg = toggleBtn.querySelector('svg use');
-    if (svg) {
-      svg.setAttribute('href', settings.darkMode ? '#sun' : '#moon');
-    }
+    if (svg) svg.setAttribute('href', settings.darkMode ? '#sun' : '#moon');
   }
   
   saveData();
   
-  // עדכון צבעי הגרפים
   if (typeof updateChartColors === 'function') {
     setTimeout(() => updateChartColors(), 100);
   }
@@ -281,32 +229,22 @@ function toggleDarkMode() {
 function toggleViewMode() {
   settings.viewMode = settings.viewMode === 'list' ? 'calendar' : 'list';
   
-  // עדכון האייקון
   const toggleBtn = document.getElementById('toggle-view-mode');
   if (toggleBtn) {
     const svg = toggleBtn.querySelector('svg use');
-    if (svg) {
-      svg.setAttribute('href', settings.viewMode === 'list' ? '#calendar' : '#list');
-    }
+    if (svg) svg.setAttribute('href', settings.viewMode === 'list' ? '#calendar' : '#list');
   }
   
-  // שמירת ההגדרה
   saveData();
   
   const message = `תצוגת ${settings.viewMode === 'list' ? 'רשימה' : 'לוח שנה'}`;
   notifications.showInAppNotification(message, 'info');
   
-  // החלפת התצוגה בפועל
   if (settings.viewMode === 'calendar') {
-    console.log('📅 toggleViewMode: Switching to calendar view');
     if (typeof calendar !== 'undefined' && calendar.renderCalendar) {
       calendar.renderCalendar();
-    } else {
-      console.error('❌ toggleViewMode: Calendar manager not found');
-      notifications.showInAppNotification('שגיאה בטעינת לוח השנה', 'error');
     }
   } else {
-    console.log('📋 toggleViewMode: Switching to list view');
     renderHomework();
   }
 }
@@ -399,6 +337,64 @@ function toggleHomeworkTag(homeworkId, tag) {
   
   saveData();
   render();
+}
+
+// =============== NEW: רינדור הפיצ'רים החדשים ===============
+
+function renderNewFeatures() {
+  // Render Search Bar
+  const searchBarContainer = document.getElementById('search-bar-container');
+  if (searchBarContainer && typeof smartSearch !== 'undefined') {
+    searchBarContainer.innerHTML = smartSearch.renderSearchBar();
+  }
+  
+  // Render Study Timer
+  const timerContainer = document.getElementById('timer-panel-container');
+  if (timerContainer && typeof studyTimer !== 'undefined') {
+    if (!document.querySelector('.timer-panel')) {
+      const timerPanel = studyTimer.renderTimerUI();
+      timerContainer.appendChild(timerPanel);
+      studyTimer.updateStats();
+    }
+  }
+  
+  // Render Achievements Panel
+  const achievementsContainer = document.getElementById('achievements-panel-container');
+  if (achievementsContainer && typeof achievements !== 'undefined') {
+    achievementsContainer.innerHTML = achievements.renderAchievementsPanel();
+    achievements.updateDisplay();
+  }
+  
+  // Render Quick Actions Button
+  const quickActionsContainer = document.getElementById('quick-actions-container');
+  if (quickActionsContainer && typeof quickActions !== 'undefined') {
+    quickActionsContainer.innerHTML = quickActions.renderQuickActionsButton();
+  }
+}
+
+// =============== NEW: חישוב סטטיסטיקות להישגים ===============
+
+async function getAchievementStats() {
+  const completedTasks = homework.filter(h => h.completed).length;
+  const earlyCompletions = homework.filter(h => {
+    if (!h.completed) return false;
+    const daysLeft = getDaysUntilDue(h.dueDate);
+    return daysLeft > 0;
+  }).length;
+  
+  const timerStats = await storage.get('timer-stats') || { totalSessions: 0 };
+  const subjectsCreated = subjects.length;
+  const lateNightCompletions = 0;
+  const currentStreak = 0;
+  
+  return {
+    completedTasks,
+    earlyCompletions,
+    pomodoroSessions: timerStats.totalSessions,
+    subjectsCreated,
+    lateNightCompletions,
+    currentStreak
+  };
 }
 
 // =============== רינדור ===============
@@ -535,7 +531,6 @@ function renderTagSelector() {
 }
 
 function renderHomework() {
-  // אם במצב לוח שנה, השתמש ב-calendar manager
   if (settings.viewMode === 'calendar') {
     if (typeof calendar !== 'undefined' && calendar.renderCalendar) {
       calendar.renderCalendar();
@@ -543,7 +538,6 @@ function renderHomework() {
     }
   }
   
-  // אחרת, הצג רשימה רגילה
   const list = document.getElementById('homework-list');
   const archiveBtn = document.getElementById('archive-toggle');
 
@@ -691,6 +685,7 @@ function render() {
   renderFilters();
   renderTagSelector();
   updateStats();
+  renderNewFeatures(); // NEW: Render new features
 }
 
 // =============== פעולות על מקצועות ===============
@@ -737,7 +732,7 @@ function deleteSubject(id) {
   notifications.showInAppNotification(`המקצוע "${subject.name}" נמחק`, 'success');
 }
 
-// =============== פעולות על משימות ===============
+// =============== פעולות על משימות - UPDATED ===============
 
 function addHomework() {
   const subject = document.getElementById('hw-subject').value;
@@ -806,11 +801,26 @@ function addHomework() {
   }
 }
 
-function toggleComplete(id) {
+async function toggleComplete(id) {
   const hw = homework.find(h => h.id === id);
   if (!hw) return;
   
+  const wasCompleted = hw.completed;
   hw.completed = !hw.completed;
+  
+  // NEW: Add achievement points for completing task
+  if (!wasCompleted && hw.completed && typeof achievements !== 'undefined') {
+    await achievements.addPoints(5, `השלמת "${hw.title}"`);
+    
+    const daysLeft = getDaysUntilDue(hw.dueDate);
+    if (daysLeft > 0) {
+      await achievements.addPoints(5, 'השלמה מוקדמת');
+    }
+    
+    const stats = await getAchievementStats();
+    await achievements.checkAchievements(stats);
+  }
+  
   saveData();
   render();
   
@@ -906,7 +916,6 @@ async function exportToPDF() {
   try {
     notifications.showInAppNotification('מכין דוח PDF...', 'info');
     
-    // יצירת תוכן HTML למסמך
     const pdfContent = document.createElement('div');
     pdfContent.style.fontFamily = 'Arial, sans-serif';
     pdfContent.style.direction = 'rtl';
@@ -1028,7 +1037,6 @@ async function exportToPDF() {
       </div>
     `;
     
-    // הגדרות ייצוא ל-PDF
     const opt = {
       margin: [10, 10, 10, 10],
       filename: `homework-report-${new Date().toISOString().split('T')[0]}.pdf`,
@@ -1047,13 +1055,9 @@ async function exportToPDF() {
       pagebreak: { mode: ['avoid-all', 'css', 'legacy'] }
     };
     
-    console.log('📄 exportToPDF: Generating PDF...');
-    
-    // יצירת ה-PDF
     await html2pdf().set(opt).from(pdfContent).save();
     
     notifications.showInAppNotification('📄 דוח PDF נוצר בהצלחה!', 'success');
-    console.log('✅ exportToPDF: PDF export complete');
     
   } catch (error) {
     console.error('❌ exportToPDF: Error:', error);
@@ -1065,18 +1069,12 @@ async function exportToExcel() {
   console.log('📊 exportToExcel: Starting Excel export...');
   
   try {
-    // יצירת תוכן CSV (Excel יכול לפתוח את זה)
-    let csvContent = '\uFEFF'; // BOM for UTF-8
-    
-    // כותרת
+    let csvContent = '\uFEFF';
     csvContent += `דוח שיעורי בית - ${new Date().toLocaleDateString('he-IL')}\n\n`;
-    
-    // סטטיסטיקות
     csvContent += 'סטטיסטיקות\n';
     csvContent += 'סך הכל,הושלמו,ממתינים,דחופים\n';
     csvContent += `${homework.length},${homework.filter(h => h.completed).length},${homework.filter(h => !h.completed).length},${homework.filter(h => !h.completed && getDaysUntilDue(h.dueDate) <= 2).length}\n\n`;
     
-    // מקצועות
     csvContent += 'מקצועות\n';
     csvContent += 'שם המקצוע,צבע,מספר משימות\n';
     subjects.forEach(subject => {
@@ -1085,7 +1083,6 @@ async function exportToExcel() {
     });
     csvContent += '\n';
     
-    // משימות
     csvContent += 'כל המשימות\n';
     csvContent += 'כותרת,מקצוע,תיאור,תאריך הגשה,עדיפות,סטטוס,ימים עד הגשה,תגיות\n';
     
@@ -1108,7 +1105,6 @@ async function exportToExcel() {
       csvContent += `"${hw.title}","${subject ? subject.name : '-'}","${description}",${new Date(hw.dueDate).toLocaleDateString('he-IL')},${hw.priority},${status},${daysText},"${tags}"\n`;
     });
     
-    // יצירת Blob והורדה
     const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
     const url = URL.createObjectURL(blob);
     const link = document.createElement('a');
@@ -1120,7 +1116,6 @@ async function exportToExcel() {
     URL.revokeObjectURL(url);
     
     notifications.showInAppNotification('📊 קובץ CSV נוצר בהצלחה! (פתח ב-Excel)', 'success');
-    console.log('✅ exportToExcel: Excel export complete');
     
   } catch (error) {
     console.error('❌ exportToExcel: Error:', error);
@@ -1202,7 +1197,6 @@ async function clearAllData() {
 function initializeEventListeners() {
   console.log('🎧 initializeEventListeners: Starting...');
   
-  // ארכיון
   const archiveToggle = document.getElementById('archive-toggle');
   if (archiveToggle) {
     archiveToggle.addEventListener('click', () => {
@@ -1211,7 +1205,6 @@ function initializeEventListeners() {
     });
   }
 
-  // הוספת מקצוע
   const showAddSubject = document.getElementById('show-add-subject');
   if (showAddSubject) {
     showAddSubject.addEventListener('click', () => {
@@ -1235,14 +1228,12 @@ function initializeEventListeners() {
   const addHomeworkBtn = document.getElementById('add-homework');
   if (addHomeworkBtn) addHomeworkBtn.addEventListener('click', addHomework);
 
-  // כפתורים בכותרת
   const toggleDarkModeBtn = document.getElementById('toggle-dark-mode');
   if (toggleDarkModeBtn) toggleDarkModeBtn.addEventListener('click', toggleDarkMode);
 
   const toggleViewModeBtn = document.getElementById('toggle-view-mode');
   if (toggleViewModeBtn) toggleViewModeBtn.addEventListener('click', toggleViewMode);
 
-  // הגדרות
   const openSettingsBtn = document.getElementById('open-settings');
   if (openSettingsBtn) openSettingsBtn.addEventListener('click', openSettings);
 
@@ -1256,15 +1247,12 @@ function initializeEventListeners() {
     });
   }
   
-  // מצב לילה
   const darkModeToggle = document.getElementById('dark-mode-toggle');
   if (darkModeToggle) darkModeToggle.addEventListener('change', toggleDarkMode);
   
-  // מצב תצוגה
   const viewModeToggle = document.getElementById('view-mode-toggle');
   if (viewModeToggle) {
     viewModeToggle.addEventListener('change', () => {
-      console.log('📅 viewModeToggle: Toggle changed in settings');
       const newMode = viewModeToggle.checked ? 'calendar' : 'list';
       if (settings.viewMode !== newMode) {
         toggleViewMode();
@@ -1272,7 +1260,6 @@ function initializeEventListeners() {
     });
   }
   
-  // שמירת הגדרות
   const enableNotifications = document.getElementById('enable-notifications');
   if (enableNotifications) enableNotifications.addEventListener('change', saveSettings);
 
@@ -1285,7 +1272,6 @@ function initializeEventListeners() {
   const autoBackup = document.getElementById('auto-backup');
   if (autoBackup) autoBackup.addEventListener('change', saveSettings);
 
-  // ייבוא/ייצוא
   const exportDataBtn = document.getElementById('export-data');
   if (exportDataBtn) exportDataBtn.addEventListener('click', exportData);
   
@@ -1310,11 +1296,22 @@ function initializeEventListeners() {
 // =============== אתחול ===============
 
 window.addEventListener('DOMContentLoaded', async () => {
-  console.log('🚀 APPLICATION STARTING');
+  console.log('🚀 APPLICATION STARTING (WITH NEW FEATURES)');
   try {
     await loadData();
+    
+    // NEW: Initialize new features
+    if (typeof achievements !== 'undefined') {
+      await achievements.load();
+    }
+    
+    if (typeof quickActions !== 'undefined') {
+      quickActions.init();
+    }
+    
     initializeEventListeners();
-    console.log('🎉 APPLICATION STARTED SUCCESSFULLY');
+    
+    console.log('🎉 APPLICATION STARTED SUCCESSFULLY (WITH NEW FEATURES)');
   } catch (error) {
     console.error('❌ APPLICATION START FAILED:', error);
   }

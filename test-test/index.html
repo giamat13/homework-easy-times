@@ -3,12 +3,14 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>מערכת ניהול שיעורי בית</title>
+  <title>מערכת ניהול שיעורי בית - משודרגת</title>
   <link rel="icon" href="icon.png" type="image/png">
   <link rel="stylesheet" href="styles.css">
   <link rel="stylesheet" href="calendar-styles.css">
+  <link rel="stylesheet" href="features-styles.css">
   <script src="https://cdnjs.cloudflare.com/ajax/libs/lucide/0.263.1/umd/lucide.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
 </head>
 <body>
   <div class="container">
@@ -18,7 +20,7 @@
         <svg width="32" height="32" style="color: #3b82f6;">
           <use href="#book-open"></use>
         </svg>
-        <h1>ניהול שיעורי בית</h1>
+        <h1>ניהול שיעורי בית - משודרג</h1>
         <div class="header-actions">
           <button class="settings-btn" id="toggle-dark-mode" title="מצב לילה/יום">
             <svg width="24" height="24"><use href="#moon"></use></svg>
@@ -31,6 +33,9 @@
           </button>
         </div>
       </div>
+      
+      <!-- NEW: Search Bar -->
+      <div id="search-bar-container"></div>
       
       <div class="stats">
         <div class="stat-card blue">
@@ -53,6 +58,12 @@
     </div>
 
     <div class="grid">
+      <!-- NEW: Study Timer Panel -->
+      <div id="timer-panel-container"></div>
+      
+      <!-- NEW: Achievements Panel -->
+      <div id="achievements-panel-container"></div>
+
       <!-- Subjects Panel -->
       <div class="panel">
         <h2>מקצועות</h2>
@@ -279,6 +290,9 @@
     </div>
   </div>
 
+  <!-- NEW: Quick Actions Button -->
+  <div id="quick-actions-container"></div>
+
   <!-- SVG Icons -->
   <svg style="display: none;">
     <symbol id="book-open" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
@@ -376,6 +390,7 @@
   <script src="notifications.js"></script>
   <script src="calendar.js"></script>
   <script src="charts.js"></script>
+  <script src="features.js"></script>
   <script src="app.js"></script>
   
   <footer class="footer">
