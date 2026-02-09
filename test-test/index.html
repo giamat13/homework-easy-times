@@ -3,14 +3,12 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>מערכת ניהול שיעורי בית - Pro Edition</title>
+  <title>מערכת ניהול שיעורי בית</title>
   <link rel="icon" href="icon.png" type="image/png">
   <link rel="stylesheet" href="styles.css">
   <link rel="stylesheet" href="calendar-styles.css">
-  <link rel="stylesheet" href="advanced-styles.css">
   <script src="https://cdnjs.cloudflare.com/ajax/libs/lucide/0.263.1/umd/lucide.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
 </head>
 <body>
   <div class="container">
@@ -20,20 +18,8 @@
         <svg width="32" height="32" style="color: #3b82f6;">
           <use href="#book-open"></use>
         </svg>
-        <h1>ניהול שיעורי בית Pro</h1>
+        <h1>ניהול שיעורי בית</h1>
         <div class="header-actions">
-          <button class="settings-btn" id="pomodoro-quick-btn" onclick="pomodoro.openPomodoroPanel()" title="טיימר פומודורו">
-            <svg width="24" height="24"><use href="#clock"></use></svg>
-          </button>
-          <button class="settings-btn" id="search-quick-btn" onclick="searchManager.openSearchPanel()" title="חיפוש חכם">
-            <svg width="24" height="24"><use href="#search"></use></svg>
-          </button>
-          <button class="settings-btn" id="analytics-quick-btn" onclick="analytics.openDashboard()" title="אנליטיקה">
-            <svg width="24" height="24"><use href="#bar-chart"></use></svg>
-          </button>
-          <button class="settings-btn" id="achievements-quick-btn" onclick="gamification.openAchievementsPanel()" title="הישגים">
-            <svg width="24" height="24"><use href="#trophy"></use></svg>
-          </button>
           <button class="settings-btn" id="toggle-dark-mode" title="מצב לילה/יום">
             <svg width="24" height="24"><use href="#moon"></use></svg>
           </button>
@@ -63,26 +49,6 @@
           <div class="stat-number red" id="stat-urgent">0</div>
           <div class="stat-label">דחוף</div>
         </div>
-      </div>
-
-      <!-- Quick Actions Toolbar -->
-      <div class="quick-actions-toolbar">
-        <button class="quick-action-btn" onclick="shortcuts.quickAddHomework()">
-          <svg width="20" height="20"><use href="#plus"></use></svg>
-          <span>הוסף מהר (Ctrl+N)</span>
-        </button>
-        <button class="quick-action-btn" onclick="shortcuts.openCommandPalette()">
-          <svg width="20" height="20"><use href="#command"></use></svg>
-          <span>פלטת פקודות (Ctrl+K)</span>
-        </button>
-        <button class="quick-action-btn" onclick="themeManager.openThemeCustomizer()">
-          <svg width="20" height="20"><use href="#palette"></use></svg>
-          <span>עיצוב</span>
-        </button>
-        <button class="quick-action-btn" onclick="shortcuts.showShortcutsHelp()">
-          <svg width="20" height="20"><use href="#keyboard"></use></svg>
-          <span>קיצורי דרך</span>
-        </button>
       </div>
     </div>
 
@@ -370,48 +336,6 @@
       <line x1="4.22" y1="19.78" x2="5.64" y2="18.36"></line>
       <line x1="18.36" y1="5.64" x2="19.78" y2="4.22"></line>
     </symbol>
-    <symbol id="clock" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-      <circle cx="12" cy="12" r="10"></circle>
-      <polyline points="12 6 12 12 16 14"></polyline>
-    </symbol>
-    <symbol id="search" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-      <circle cx="11" cy="11" r="8"></circle>
-      <path d="m21 21-4.35-4.35"></path>
-    </symbol>
-    <symbol id="bar-chart" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-      <line x1="12" y1="20" x2="12" y2="10"></line>
-      <line x1="18" y1="20" x2="18" y2="4"></line>
-      <line x1="6" y1="20" x2="6" y2="16"></line>
-    </symbol>
-    <symbol id="trophy" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-      <path d="M6 9H4.5a2.5 2.5 0 0 1 0-5H6"></path>
-      <path d="M18 9h1.5a2.5 2.5 0 0 0 0-5H18"></path>
-      <path d="M4 22h16"></path>
-      <path d="M10 14.66V17c0 .55-.47.98-.97 1.21C7.85 18.75 7 20.24 7 22"></path>
-      <path d="M14 14.66V17c0 .55.47.98.97 1.21C16.15 18.75 17 20.24 17 22"></path>
-      <path d="M18 2H6v7a6 6 0 0 0 12 0V2Z"></path>
-    </symbol>
-    <symbol id="command" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-      <path d="M18 3a3 3 0 0 0-3 3v12a3 3 0 0 0 3 3 3 3 0 0 0 3-3 3 3 0 0 0-3-3H6a3 3 0 0 0-3 3 3 3 0 0 0 3 3 3 3 0 0 0 3-3V6a3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3h12a3 3 0 0 0 3-3 3 3 0 0 0-3-3z"></path>
-    </symbol>
-    <symbol id="palette" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-      <circle cx="13.5" cy="6.5" r=".5"></circle>
-      <circle cx="17.5" cy="10.5" r=".5"></circle>
-      <circle cx="8.5" cy="7.5" r=".5"></circle>
-      <circle cx="6.5" cy="12.5" r=".5"></circle>
-      <path d="M12 2C6.5 2 2 6.5 2 12s4.5 10 10 10c.926 0 1.648-.746 1.648-1.688 0-.437-.18-.835-.437-1.125-.29-.289-.438-.652-.438-1.125a1.64 1.64 0 0 1 1.668-1.668h1.996c3.051 0 5.555-2.503 5.555-5.554C21.965 6.012 17.461 2 12 2z"></path>
-    </symbol>
-    <symbol id="keyboard" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-      <rect x="2" y="4" width="20" height="16" rx="2"></rect>
-      <path d="M6 8h.01"></path>
-      <path d="M10 8h.01"></path>
-      <path d="M14 8h.01"></path>
-      <path d="M18 8h.01"></path>
-      <path d="M8 12h.01"></path>
-      <path d="M12 12h.01"></path>
-      <path d="M16 12h.01"></path>
-      <path d="M7 16h10"></path>
-    </symbol>
     <symbol id="github" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
       <path d="M9 19c-5 1.5-5-2.5-7-3m14 6v-3.87a3.37 3.37 0 0 0-.94-2.61c3.14-.35 6.44-1.54 6.44-7A5.44 5.44 0 0 0 20 4.77 5.07 5.07 0 0 0 19.91 1S18.73.65 16 2.48a13.38 13.38 0 0 0-7 0C6.27.65 5.09 1 5.09 1A5.07 5.07 0 0 0 5 4.77a5.44 5.44 0 0 0-1.5 3.78c0 5.42 3.3 6.61 6.44 7A3.37 3.37 0 0 0 9 18.13V22"></path>
     </symbol>
@@ -452,12 +376,6 @@
   <script src="notifications.js"></script>
   <script src="calendar.js"></script>
   <script src="charts.js"></script>
-  <script src="analytics.js"></script>
-  <script src="gamification.js"></script>
-  <script src="pomodoro.js"></script>
-  <script src="theme.js"></script>
-  <script src="search.js"></script>
-  <script src="shortcuts.js"></script>
   <script src="app.js"></script>
   
   <footer class="footer">
