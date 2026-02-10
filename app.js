@@ -300,7 +300,7 @@ function toggleViewMode() {
   if (settings.viewMode === 'calendar') {
     console.log('📅 toggleViewMode: Switching to calendar view');
     if (typeof calendar !== 'undefined' && calendar.renderCalendar) {
-      calendar.renderCalendar();
+      calendar.renderCalendar(showArchive);
     } else {
       console.error('❌ toggleViewMode: Calendar manager not found');
       notifications.showInAppNotification('שגיאה בטעינת לוח השנה', 'error');
@@ -535,17 +535,30 @@ function renderTagSelector() {
 }
 
 function renderHomework() {
-  // אם במצב לוח שנה, השתמש ב-calendar manager
+  const list = document.getElementById('homework-list');
+  const archiveBtn = document.getElementById('archive-toggle');
+
+  // ⭐ תיקון: אם במצב לוח שנה, העבר את showArchive לקלנדר
   if (settings.viewMode === 'calendar') {
     if (typeof calendar !== 'undefined' && calendar.renderCalendar) {
-      calendar.renderCalendar();
+      calendar.renderCalendar(showArchive);
+      
+      // עדכון כפתור ארכיון גם בתצוגת לוח שנה
+      const archivedHomework = homework.filter(h => {
+        if (!h.completed) return false;
+        return getDaysUntilDue(h.dueDate) < 0;
+      });
+
+      if (archivedHomework.length > 0) {
+        archiveBtn.classList.remove('hidden');
+        archiveBtn.textContent = showArchive ? 'הסתר ארכיון' : `ארכיון (${archivedHomework.length})`;
+      } else {
+        archiveBtn.classList.add('hidden');
+      }
+      
       return;
     }
   }
-  
-  // אחרת, הצג רשימה רגילה
-  const list = document.getElementById('homework-list');
-  const archiveBtn = document.getElementById('archive-toggle');
 
   const activeHomework = homework.filter(h => {
     if (!h.completed) return true;
