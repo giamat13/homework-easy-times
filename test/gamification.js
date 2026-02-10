@@ -1,5 +1,5 @@
 // Gamification & Achievements Manager - מערכת משחוק והישגים
-// ⭐ מערכת דינמית - תומכת בהסרת XP והישגים
+// ⭐ מערכת דינמית - תומכת בהסרת XP והישגים + יום מושלם חכם
 class GamificationManager {
   constructor() {
     this.userStats = {
@@ -11,7 +11,8 @@ class GamificationManager {
       lastActivityDate: null,
       totalTasksCompleted: 0,
       totalStudyTime: 0,
-      perfectDays: 0
+      perfectDays: 0,
+      perfectDayToday: null // ⭐ מעקב אחרי יום מושלם של היום
     };
 
     this.achievements = [];
@@ -346,7 +347,7 @@ class GamificationManager {
     }
   }
 
-  // ⭐ פונקציה חדשה - הסרת XP
+  // ⭐ פונקציה - הסרת XP
   removeXP(amount, reason = '') {
     console.log(`⏪ removeXP: Removing ${amount} XP - ${reason}`);
     
@@ -379,7 +380,7 @@ class GamificationManager {
     }
   }
 
-  // ⭐ פונקציה חדשה - ירידה ברמה
+  // ⭐ פונקציה - ירידה ברמה
   levelDown() {
     if (this.userStats.level <= 1) {
       this.userStats.level = 1;
@@ -442,7 +443,9 @@ class GamificationManager {
     setTimeout(() => {
       animation.style.animation = 'fadeOut 0.5s ease-out';
       setTimeout(() => {
-        document.body.removeChild(animation);
+        if (document.body.contains(animation)) {
+          document.body.removeChild(animation);
+        }
       }, 500);
     }, 3000);
   }
@@ -472,7 +475,7 @@ class GamificationManager {
     }
   }
 
-  // ⭐ פונקציה חדשה - בדיקה מחדש של הישגים (עשויה לבטל הישגים)
+  // ⭐ פונקציה - בדיקה מחדש של הישגים (עשויה לבטל הישגים)
   recheckAchievements() {
     console.log('🔄 recheckAchievements: Rechecking all achievements...');
     
@@ -625,25 +628,6 @@ class GamificationManager {
 
     this.checkAchievements();
     this.updateUI();
-  }
-
-  onPerfectDay() {
-    console.log('✨ onPerfectDay: Perfect day achieved!');
-    
-    // בדיקה אם יום מושלם כבר נספר היום
-    const today = new Date().toDateString();
-    const lastPerfectDay = this.userStats.lastPerfectDay;
-    
-    if (lastPerfectDay === today) {
-      console.log('⏸️ onPerfectDay: Already counted today');
-      return;
-    }
-    
-    this.userStats.perfectDays++;
-    this.userStats.lastPerfectDay = today;
-    this.addXP(50, 'יום מושלם');
-    this.checkAchievements();
-    this.saveStats();
   }
 
   onStudyTimeAdded(minutes) {
