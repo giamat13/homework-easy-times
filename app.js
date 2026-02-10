@@ -538,28 +538,19 @@ function renderHomework() {
   const list = document.getElementById('homework-list');
   const archiveBtn = document.getElementById('archive-toggle');
 
-  // ⭐ תיקון: אם במצב לוח שנה, העבר את showArchive לקלנדר
+  // ⭐ בתצוגת לוח שנה - הסתר את כפתור הארכיון (הכל מוצג תמיד)
   if (settings.viewMode === 'calendar') {
     if (typeof calendar !== 'undefined' && calendar.renderCalendar) {
-      calendar.renderCalendar(showArchive);
+      calendar.renderCalendar();
       
-      // עדכון כפתור ארכיון גם בתצוגת לוח שנה
-      const archivedHomework = homework.filter(h => {
-        if (!h.completed) return false;
-        return getDaysUntilDue(h.dueDate) < 0;
-      });
-
-      if (archivedHomework.length > 0) {
-        archiveBtn.classList.remove('hidden');
-        archiveBtn.textContent = showArchive ? 'הסתר ארכיון' : `ארכיון (${archivedHomework.length})`;
-      } else {
-        archiveBtn.classList.add('hidden');
-      }
+      // הסתר את כפתור הארכיון בלוח שנה
+      archiveBtn.classList.add('hidden');
       
       return;
     }
   }
 
+  // בתצוגת רשימה - הצג את כפתור הארכיון כרגיל
   const activeHomework = homework.filter(h => {
     if (!h.completed) return true;
     return getDaysUntilDue(h.dueDate) >= 0;

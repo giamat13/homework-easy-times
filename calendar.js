@@ -6,9 +6,9 @@ class CalendarManager {
     console.log('📅 CalendarManager: Initialized');
   }
 
-  // יצירת תצוגת לוח השנה - ⭐ עם תמיכה בארכיון
+  // יצירת תצוגת לוח השנה - תמיד מציג את כל המשימות
   renderCalendar(showArchive = false) {
-    console.log('📅 renderCalendar: Rendering calendar for', this.currentDate, 'showArchive:', showArchive);
+    console.log('📅 renderCalendar: Rendering calendar for', this.currentDate);
     
     const year = this.currentDate.getFullYear();
     const month = this.currentDate.getMonth();
@@ -21,9 +21,9 @@ class CalendarManager {
     
     console.log('📅 renderCalendar: Month info:', { year, month, daysInMonth, startingDayOfWeek });
     
-    // ⭐ קבלת משימות לחודש הנוכחי - מסונן לפי ארכיון
-    const monthHomework = this.getHomeworkForMonth(year, month, showArchive);
-    console.log('📅 renderCalendar: Homework for month (showArchive=' + showArchive + '):', monthHomework.length);
+    // קבלת כל המשימות לחודש (ללא סינון ארכיון)
+    const monthHomework = this.getHomeworkForMonth(year, month);
+    console.log('📅 renderCalendar: Homework for month:', monthHomework.length);
     
     // יצירת HTML של לוח השנה
     let html = `
@@ -107,29 +107,15 @@ class CalendarManager {
     console.log('✅ renderCalendar: Calendar rendered');
   }
 
-  // ⭐ קבלת משימות לחודש מסוים - עם תמיכה בארכיון
+  // קבלת משימות לחודש מסוים - בלוח שנה תמיד מציג הכל
   getHomeworkForMonth(year, month, showArchive = false) {
     const monthStart = new Date(year, month, 1);
     const monthEnd = new Date(year, month + 1, 0);
     
+    // ⭐ בלוח שנה - תמיד הצג את כל המשימות של החודש
     return homework.filter(hw => {
       const dueDate = new Date(hw.dueDate + 'T00:00:00');
-      const inMonth = dueDate >= monthStart && dueDate <= monthEnd;
-      
-      if (!inMonth) return false;
-      
-      // ⭐ סינון לפי מצב ארכיון
-      const today = new Date();
-      today.setHours(0, 0, 0, 0);
-      const isArchived = hw.completed && dueDate < today;
-      
-      if (showArchive) {
-        // במצב ארכיון - הצג רק משימות מושלמות שעברו
-        return isArchived;
-      } else {
-        // במצב רגיל - הצג משימות לא מושלמות או מושלמות שעדיין לא עברו
-        return !isArchived;
-      }
+      return dueDate >= monthStart && dueDate <= monthEnd;
     });
   }
 
@@ -152,27 +138,21 @@ class CalendarManager {
   nextMonth() {
     console.log('📅 nextMonth: Moving to next month');
     this.currentDate.setMonth(this.currentDate.getMonth() + 1);
-    // ⭐ שמירת מצב ארכיון
-    const showArchive = typeof window.showArchive !== 'undefined' ? window.showArchive : false;
-    this.renderCalendar(showArchive);
+    this.renderCalendar();
   }
 
   // מעבר לחודש הקודם
   previousMonth() {
     console.log('📅 previousMonth: Moving to previous month');
     this.currentDate.setMonth(this.currentDate.getMonth() - 1);
-    // ⭐ שמירת מצב ארכיון
-    const showArchive = typeof window.showArchive !== 'undefined' ? window.showArchive : false;
-    this.renderCalendar(showArchive);
+    this.renderCalendar();
   }
 
   // חזרה להיום
   goToToday() {
     console.log('📅 goToToday: Going back to today');
     this.currentDate = new Date();
-    // ⭐ שמירת מצב ארכיון
-    const showArchive = typeof window.showArchive !== 'undefined' ? window.showArchive : false;
-    this.renderCalendar(showArchive);
+    this.renderCalendar();
   }
 
   // בחירת תאריך
