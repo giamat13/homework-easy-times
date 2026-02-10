@@ -1,6 +1,7 @@
 // Integration Layer - חיבור בין הפיצ'רים החדשים לקוד המקורי
 // ================================================================
 // ⭐ מערכת XP דינמית - XP והישגים חוזרים כשמבטלים משימות
+// ⭐ יום מושלם דינמי - מתווסף ונמחק בזמן אמת!
 
 console.log('🔗 Integration: Starting integration layer...');
 
@@ -38,8 +39,8 @@ if (typeof toggleComplete === 'function') {
         gamification.onTaskCompleted(isEarly, tasksToday);
       }
       
-      // בדיקת יום מושלם
-      checkPerfectDay();
+      // ⭐ בדיקת יום מושלם
+      checkPerfectDayStatus();
       
       // שמירת הנתונים
       saveData();
@@ -70,8 +71,8 @@ if (typeof toggleComplete === 'function') {
       
       hw.completedAt = null;
       
-      // בדיקת יום מושלם שוב
-      checkPerfectDay();
+      // ⭐ בדיקת יום מושלם שוב
+      checkPerfectDayStatus();
       
       saveData();
       
@@ -83,32 +84,34 @@ if (typeof toggleComplete === 'function') {
   console.log('✅ Integration: toggleComplete enhanced with dynamic XP');
 }
 
-// ⭐ פונקציה לבדיקת יום מושלם
-function checkPerfectDay() {
-  console.log('✨ checkPerfectDay: Checking for perfect day...');
+// ⭐⭐⭐ הפונקציה המרכזית - בדיקת מצב יום מושלם
+function checkPerfectDayStatus() {
+  console.log('✨ checkPerfectDayStatus: Checking perfect day...');
   
   const today = new Date().toISOString().split('T')[0];
   const todayHomework = homework.filter(h => h.dueDate === today);
   
-  console.log(`✨ checkPerfectDay: Found ${todayHomework.length} tasks for today`);
+  console.log(`✨ checkPerfectDayStatus: Found ${todayHomework.length} tasks for today`);
   
   if (todayHomework.length === 0) {
-    console.log('⏸️ checkPerfectDay: No tasks for today');
+    console.log('⏸️ checkPerfectDayStatus: No tasks for today - calling checkPerfectDay(false)');
+    if (typeof gamification !== 'undefined') {
+      gamification.checkPerfectDay(false);
+    }
     return;
   }
   
   const allCompleted = todayHomework.every(h => h.completed);
   const completedCount = todayHomework.filter(h => h.completed).length;
   
-  console.log(`✨ checkPerfectDay: ${completedCount}/${todayHomework.length} completed. Perfect: ${allCompleted}`);
+  console.log(`✨ checkPerfectDayStatus: ${completedCount}/${todayHomework.length} completed. Perfect: ${allCompleted}`);
   
-  if (allCompleted && typeof gamification !== 'undefined') {
-    console.log('🎉 checkPerfectDay: Perfect day achieved!');
-    gamification.onPerfectDay();
+  if (typeof gamification !== 'undefined') {
+    gamification.checkPerfectDay(allCompleted);
   }
 }
 
-// הרחבת addHomework להוסיף timestamp
+// הרחבת addHomework להוסיף timestamp ובדיקת יום מושלם
 if (typeof addHomework === 'function') {
   const originalAddHomework = addHomework;
   window.addHomework = function() {
@@ -125,14 +128,14 @@ if (typeof addHomework === 'function') {
       saveData();
       console.log('🔗 Integration: Added timestamps to new homework');
       
-      // בדיקת יום מושלם (אולי ביטלה יום מושלם קיים)
-      checkPerfectDay();
+      // ⭐ בדיקת יום מושלם (אולי ביטלה יום מושלם קיים)
+      checkPerfectDayStatus();
     }
   };
   console.log('✅ Integration: addHomework enhanced');
 }
 
-// הרחבת deleteHomework לעדכן אינדקס חיפוש
+// הרחבת deleteHomework לעדכן אינדקס חיפוש ובדיקת יום מושלם
 if (typeof deleteHomework === 'function') {
   const originalDeleteHomework = deleteHomework;
   window.deleteHomework = function(id) {
@@ -143,8 +146,8 @@ if (typeof deleteHomework === 'function') {
       smartSearch.buildSearchIndex();
     }
     
-    // בדיקת יום מושלם (אולי השלמת יום מושלם על ידי מחיקה)
-    checkPerfectDay();
+    // ⭐ בדיקת יום מושלם (אולי השלמת יום מושלם על ידי מחיקה)
+    checkPerfectDayStatus();
     
     console.log('🔗 Integration: Search index updated after deletion');
   };
@@ -232,11 +235,13 @@ setTimeout(() => {
 
 console.log('✅ Integration: All features integrated successfully!');
 console.log('🔄 Integration: Dynamic XP system - XP is reversed when tasks are uncompleted');
+console.log('✨ Integration: Dynamic Perfect Day - Awarded and removed in real-time!');
 console.log('🎉 Enhanced Homework System is ready to use!');
 console.log('');
 console.log('📚 Available features:');
 console.log('  ⏰ Study Timer & Pomodoro');
 console.log('  🏆 Achievements & Gamification (Dynamic XP!)');
+console.log('  ✨ Perfect Day System (Dynamic!)');
 console.log('  📊 Advanced Analytics');
 console.log('  🎨 Theme Customizer');
 console.log('  ⚡ Quick Actions (Ctrl+H for help)');
@@ -245,3 +250,4 @@ console.log('');
 console.log('💡 Tip: Press Shift+H to see all keyboard shortcuts!');
 console.log('');
 console.log('🔄 XP System: Completing/uncompleting tasks will add/remove XP dynamically');
+console.log('✨ Perfect Day: Complete all tasks for today to get +50 XP!');
