@@ -8,7 +8,7 @@ console.log('🔗 Integration: Starting integration layer...');
 // הרחבת toggleComplete להוסיף גמיפיקציה
 if (typeof toggleComplete === 'function') {
   const originalToggleComplete = toggleComplete;
-  window.toggleComplete = async function(id) {
+  window.toggleComplete = function(id) {
     const hw = homework.find(h => h.id === id);
     const wasCompleted = hw ? hw.completed : false;
     
@@ -17,9 +17,6 @@ if (typeof toggleComplete === 'function') {
     // אם המשימה הושלמה עכשיו
     if (hw && !wasCompleted && hw.completed) {
       console.log('🔗 Integration: Task completed, triggering gamification...');
-      
-      // הוספת timestamp
-      hw.completedAt = new Date().toISOString();
       
       // בדיקה אם זה מוקדם
       const daysLeft = getDaysUntilDue(hw.dueDate);
@@ -36,26 +33,15 @@ if (typeof toggleComplete === 'function') {
       // הפעלת גמיפיקציה
       if (typeof gamification !== 'undefined') {
         gamification.onTaskCompleted(isEarly, tasksToday);
-        
-        // בדיקת יום מושלם
-        await gamification.onPerfectDay();
       }
       
-      saveData();
-    } 
-    // תיקון באג: אם המשימה בוטלה
-    else if (hw && wasCompleted && !hw.completed) {
-      console.log('🔗 Integration: Task uncompleted, removing XP...');
+      // בדיקת יום מושלם
+      const todayHomework = homework.filter(h => h.dueDate === new Date().toISOString().split('T')[0]);
+      const allCompleted = todayHomework.every(h => h.completed);
       
-      // הסרת timestamp
-      hw.completedAt = null;
-      
-      // הפעלת גמיפיקציה
-      if (typeof gamification !== 'undefined') {
-        gamification.onTaskUncompleted();
+      if (allCompleted && todayHomework.length > 0 && typeof gamification !== 'undefined') {
+        gamification.onPerfectDay();
       }
-      
-      saveData();
     }
   };
   console.log('✅ Integration: toggleComplete enhanced');
@@ -64,7 +50,7 @@ if (typeof toggleComplete === 'function') {
 // הרחבת addHomework להוסיף timestamp
 if (typeof addHomework === 'function') {
   const originalAddHomework = addHomework;
-  window.addHomework = async function() {
+  window.addHomework = function() {
     const beforeLength = homework.length;
     
     originalAddHomework();
@@ -74,15 +60,6 @@ if (typeof addHomework === 'function') {
       const newHomework = homework[homework.length - 1];
       newHomework.createdAt = new Date().toISOString();
       newHomework.completedAt = null;
-      
-      // איפוס בדיקת יום מושלם כי נוספה משימה חדשה
-      if (typeof gamification !== 'undefined') {
-        const today = new Date().toDateString();
-        if (gamification.userStats.lastPerfectDayCheck === today) {
-          gamification.userStats.lastPerfectDayCheck = null;
-          gamification.saveStats();
-        }
-      }
       
       saveData();
       console.log('🔗 Integration: Added timestamps to new homework');
@@ -94,23 +71,13 @@ if (typeof addHomework === 'function') {
 // הרחבת deleteHomework לעדכן אינדקס חיפוש
 if (typeof deleteHomework === 'function') {
   const originalDeleteHomework = deleteHomework;
-  window.deleteHomework = async function(id) {
+  window.deleteHomework = function(id) {
     originalDeleteHomework(id);
     
     // עדכון אינדקס חיפוש
     if (typeof smartSearch !== 'undefined') {
       smartSearch.buildSearchIndex();
     }
-    
-    // איפוס בדיקת יום מושלם כי נמחקה משימה
-    if (typeof gamification !== 'undefined') {
-      const today = new Date().toDateString();
-      if (gamification.userStats.lastPerfectDayCheck === today) {
-        gamification.userStats.lastPerfectDayCheck = null;
-        gamification.saveStats();
-      }
-    }
-    
     console.log('🔗 Integration: Search index updated after deletion');
   };
   console.log('✅ Integration: deleteHomework enhanced');
@@ -166,11 +133,13 @@ function updateHeaderXP() {
 
 // חיבור אירועי טיימר לגמיפיקציה
 if (typeof studyTimer !== 'undefined') {
+  // שמירה על הפונקציה המקורית
   const originalOnTimerComplete = studyTimer.onTimerComplete.bind(studyTimer);
   
   studyTimer.onTimerComplete = function() {
     originalOnTimerComplete();
     
+    // הוספת זמן לימוד לגמיפיקציה
     if (this.currentMode === 'pomodoro' && typeof gamification !== 'undefined') {
       gamification.onStudyTimeAdded(this.settings.pomodoroDuration);
     }
@@ -198,7 +167,7 @@ console.log('🎉 Enhanced Homework System is ready to use!');
 console.log('');
 console.log('📚 Available features:');
 console.log('  ⏰ Study Timer & Pomodoro');
-console.log('  🏆 Achievements & Gamification (with repeatable achievements!)');
+console.log('  🏆 Achievements & Gamification');
 console.log('  📊 Advanced Analytics');
 console.log('  🎨 Theme Customizer');
 console.log('  ⚡ Quick Actions (Ctrl+H for help)');

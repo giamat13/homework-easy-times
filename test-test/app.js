@@ -251,6 +251,33 @@ function deduplicateColors() {
 
 // =============== מצב לילה ===============
 
+function toggleDarkMode() {
+  console.log('🌙 toggleDarkMode: Toggling dark mode...');
+  settings.darkMode = !settings.darkMode;
+  
+  document.body.classList.toggle('dark-mode');
+  
+  // עדכון האייקון של הכפתור
+  const toggleBtn = document.getElementById('toggle-dark-mode');
+  if (toggleBtn) {
+    const svg = toggleBtn.querySelector('svg use');
+    if (svg) {
+      svg.setAttribute('href', settings.darkMode ? '#sun' : '#moon');
+    }
+  }
+  
+  saveData();
+  
+  // עדכון צבעי הגרפים
+  if (typeof updateChartColors === 'function') {
+    setTimeout(() => updateChartColors(), 100);
+  }
+  
+  const icon = settings.darkMode ? '🌙' : '☀️';
+  const message = `מצב ${settings.darkMode ? 'לילה' : 'יום'} הופעל ${icon}`;
+  notifications.showInAppNotification(message, 'success');
+}
+
 function toggleViewMode() {
   settings.viewMode = settings.viewMode === 'list' ? 'calendar' : 'list';
   
@@ -273,8 +300,6 @@ function toggleViewMode() {
   if (settings.viewMode === 'calendar') {
     console.log('📅 toggleViewMode: Switching to calendar view');
     if (typeof calendar !== 'undefined' && calendar.renderCalendar) {
-      // איפוס מצב הארכיון בעת מעבר ללוח שנה
-      calendar.showArchive = false;
       calendar.renderCalendar();
     } else {
       console.error('❌ toggleViewMode: Calendar manager not found');
@@ -282,8 +307,6 @@ function toggleViewMode() {
     }
   } else {
     console.log('📋 toggleViewMode: Switching to list view');
-    // איפוס מצב הארכיון בעת מעבר לרשימה
-    showArchive = false;
     renderHomework();
   }
 }
