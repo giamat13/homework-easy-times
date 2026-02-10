@@ -98,7 +98,7 @@
       "icon": "⏰",
       "xp": 20,
       "category": "study",
-      "maxUnlocks": 1,
+      "maxUnlocks": infinity,
       "condition": {
         "type": "totalStudyTime",
         "value": 60
