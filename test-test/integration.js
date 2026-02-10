@@ -1,11 +1,12 @@
 // Integration Layer - חיבור בין הפיצ'רים החדשים לקוד המקורי
 // ================================================================
+// ⭐ FIX: תיקון באג XP אינסופי - משימות מקבלות XP רק פעם אחת
 
 console.log('🔗 Integration: Starting integration layer...');
 
 // ==================== הרחבת פונקציות קיימות ====================
 
-// הרחבת toggleComplete להוסיף גמיפיקציה
+// הרחבת toggleComplete להוסיף גמיפיקציה + FIX לבאג XP
 if (typeof toggleComplete === 'function') {
   const originalToggleComplete = toggleComplete;
   window.toggleComplete = function(id) {
@@ -14,37 +15,59 @@ if (typeof toggleComplete === 'function') {
     
     originalToggleComplete(id);
     
-    // אם המשימה הושלמה עכשיו
+    // אם המשימה הושלמה עכשיו (ולא הייתה מושלמת קודם)
     if (hw && !wasCompleted && hw.completed) {
-      console.log('🔗 Integration: Task completed, triggering gamification...');
+      console.log('🔗 Integration: Task completed, checking XP eligibility...');
       
-      // בדיקה אם זה מוקדם
-      const daysLeft = getDaysUntilDue(hw.dueDate);
-      const isEarly = daysLeft > 0;
-      
-      // ספירת משימות היום
-      const today = new Date().toDateString();
-      const tasksToday = homework.filter(h => {
-        if (!h.completedAt) return false;
-        const completedDate = new Date(h.completedAt).toDateString();
-        return completedDate === today;
-      }).length;
-      
-      // הפעלת גמיפיקציה
-      if (typeof gamification !== 'undefined') {
-        gamification.onTaskCompleted(isEarly, tasksToday);
+      // ⭐ FIX: בדיקה אם המשימה כבר קיבלה XP בעבר
+      if (!hw.xpAwarded) {
+        console.log('✅ Integration: First time completing - awarding XP');
+        hw.xpAwarded = true;
+        hw.completedAt = new Date().toISOString();
+        
+        // בדיקה אם זה מוקדם
+        const daysLeft = getDaysUntilDue(hw.dueDate);
+        const isEarly = daysLeft > 0;
+        
+        // ספירת משימות היום
+        const today = new Date().toDateString();
+        const tasksToday = homework.filter(h => {
+          if (!h.completedAt) return false;
+          const completedDate = new Date(h.completedAt).toDateString();
+          return completedDate === today;
+        }).length;
+        
+        // הפעלת גמיפיקציה
+        if (typeof gamification !== 'undefined') {
+          gamification.onTaskCompleted(isEarly, tasksToday);
+        }
+        
+        // בדיקת יום מושלם
+        const todayHomework = homework.filter(h => h.dueDate === new Date().toISOString().split('T')[0]);
+        const allCompleted = todayHomework.every(h => h.completed);
+        
+        if (allCompleted && todayHomework.length > 0 && typeof gamification !== 'undefined') {
+          gamification.onPerfectDay();
+        }
+        
+        // שמירת הנתונים
+        saveData();
+      } else {
+        console.log('⚠️ Integration: Task already awarded XP - skipping to prevent exploit');
+        if (notifications && notifications.showInAppNotification) {
+          notifications.showInAppNotification('המשימה כבר קיבלה XP בעבר', 'info');
+        }
       }
-      
-      // בדיקת יום מושלם
-      const todayHomework = homework.filter(h => h.dueDate === new Date().toISOString().split('T')[0]);
-      const allCompleted = todayHomework.every(h => h.completed);
-      
-      if (allCompleted && todayHomework.length > 0 && typeof gamification !== 'undefined') {
-        gamification.onPerfectDay();
+    } 
+    // אם המשימה בוטלה (הייתה מושלמת ועכשיו לא)
+    else if (hw && wasCompleted && !hw.completed) {
+      console.log('⚠️ Integration: Task uncompleted - XP remains (cannot be reversed)');
+      if (notifications && notifications.showInAppNotification) {
+        notifications.showInAppNotification('⚠️ המשימה בוטלה. שים לב: ה-XP כבר נזקף ולא ניתן להחזרה', 'info');
       }
     }
   };
-  console.log('✅ Integration: toggleComplete enhanced');
+  console.log('✅ Integration: toggleComplete enhanced with XP fix');
 }
 
 // הרחבת addHomework להוסיף timestamp
@@ -60,6 +83,7 @@ if (typeof addHomework === 'function') {
       const newHomework = homework[homework.length - 1];
       newHomework.createdAt = new Date().toISOString();
       newHomework.completedAt = null;
+      newHomework.xpAwarded = false; // ⭐ FIX: אתחול דגל XP
       
       saveData();
       console.log('🔗 Integration: Added timestamps to new homework');
@@ -148,6 +172,34 @@ if (typeof studyTimer !== 'undefined') {
   console.log('✅ Integration: Timer connected to gamification');
 }
 
+// ⭐ FIX: פונקציית תיקון למשימות ישנות שלא היה להן את דגל xpAwarded
+function fixOldHomeworkData() {
+  console.log('🔧 fixOldHomeworkData: Checking for old homework without xpAwarded flag...');
+  
+  if (typeof homework === 'undefined' || !homework.length) {
+    console.log('⏸️ fixOldHomeworkData: No homework data to fix');
+    return;
+  }
+  
+  let fixedCount = 0;
+  homework.forEach(hw => {
+    if (typeof hw.xpAwarded === 'undefined') {
+      // אם המשימה מושלמת, נניח שכבר קיבלה XP
+      hw.xpAwarded = hw.completed || false;
+      fixedCount++;
+    }
+  });
+  
+  if (fixedCount > 0) {
+    console.log(`✅ fixOldHomeworkData: Fixed ${fixedCount} homework items`);
+    if (typeof saveData === 'function') {
+      saveData();
+    }
+  } else {
+    console.log('✅ fixOldHomeworkData: All homework data is up to date');
+  }
+}
+
 // ==================== Event Listeners חדשים ====================
 
 // עדכון כל דקה של XP בכותרת
@@ -155,22 +207,26 @@ setInterval(() => {
   updateHeaderXP();
 }, 60000);
 
-// עדכון מיידי
+// עדכון מיידי + תיקון נתונים ישנים
 setTimeout(() => {
   updateHeaderXP();
+  fixOldHomeworkData();
 }, 1000);
 
 // ==================== הודעות לקונסול ====================
 
 console.log('✅ Integration: All features integrated successfully!');
+console.log('🔧 Integration: XP exploit bug FIXED - tasks can only award XP once');
 console.log('🎉 Enhanced Homework System is ready to use!');
 console.log('');
 console.log('📚 Available features:');
 console.log('  ⏰ Study Timer & Pomodoro');
-console.log('  🏆 Achievements & Gamification');
+console.log('  🏆 Achievements & Gamification (XP exploit fixed!)');
 console.log('  📊 Advanced Analytics');
 console.log('  🎨 Theme Customizer');
 console.log('  ⚡ Quick Actions (Ctrl+H for help)');
 console.log('  🔍 Smart Search (Ctrl+F)');
 console.log('');
 console.log('💡 Tip: Press Shift+H to see all keyboard shortcuts!');
+console.log('');
+console.log('🛡️ Security: XP can only be awarded once per task');
