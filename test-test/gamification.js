@@ -1,4 +1,5 @@
 // Gamification & Achievements Manager - מערכת משחוק והישגים
+// ⭐ מערכת דינמית - תומכת בהסרת XP והישגים
 class GamificationManager {
   constructor() {
     this.userStats = {
@@ -340,7 +341,63 @@ class GamificationManager {
     this.updateUI();
 
     // הודעה
-    notifications.showInAppNotification(`+${amount} XP ${reason ? '- ' + reason : ''}`, 'success');
+    if (notifications && notifications.showInAppNotification) {
+      notifications.showInAppNotification(`+${amount} XP ${reason ? '- ' + reason : ''}`, 'success');
+    }
+  }
+
+  // ⭐ פונקציה חדשה - הסרת XP
+  removeXP(amount, reason = '') {
+    console.log(`⏪ removeXP: Removing ${amount} XP - ${reason}`);
+    
+    this.userStats.xp -= amount;
+    this.userStats.totalXP -= amount;
+
+    // וידוא שלא נרד מתחת ל-0
+    if (this.userStats.xp < 0) {
+      // אם ה-XP נעשה שלילי, צריך לרדת ברמה
+      while (this.userStats.xp < 0 && this.userStats.level > 1) {
+        this.levelDown();
+      }
+      
+      // וידוא שלא נרד מתחת ל-0 גם אחרי ירידה ברמה
+      if (this.userStats.xp < 0) {
+        this.userStats.xp = 0;
+      }
+    }
+
+    if (this.userStats.totalXP < 0) {
+      this.userStats.totalXP = 0;
+    }
+
+    this.saveStats();
+    this.updateUI();
+
+    // הודעה
+    if (notifications && notifications.showInAppNotification) {
+      notifications.showInAppNotification(`-${amount} XP ${reason ? '- ' + reason : ''}`, 'info');
+    }
+  }
+
+  // ⭐ פונקציה חדשה - ירידה ברמה
+  levelDown() {
+    if (this.userStats.level <= 1) {
+      this.userStats.level = 1;
+      this.userStats.xp = 0;
+      return;
+    }
+
+    this.userStats.level--;
+    const xpForCurrentLevel = this.getXPForLevel(this.userStats.level + 1);
+    this.userStats.xp += xpForCurrentLevel;
+    
+    console.log('⬇️ levelDown: Level decreased to', this.userStats.level);
+
+    if (notifications && notifications.showInAppNotification) {
+      notifications.showInAppNotification(`רמה ${this.userStats.level} 📉`, 'info');
+    }
+
+    this.saveStats();
   }
 
   getXPForLevel(level) {
@@ -359,10 +416,12 @@ class GamificationManager {
 
     // פרס
     const reward = this.userStats.level * 10;
-    notifications.showInAppNotification(
-      `🎉 עלית לרמה ${this.userStats.level}! 🎊`,
-      'success'
-    );
+    if (notifications && notifications.showInAppNotification) {
+      notifications.showInAppNotification(
+        `🎉 עלית לרמה ${this.userStats.level}! 🎊`,
+        'success'
+      );
+    }
 
     this.saveStats();
   }
@@ -410,6 +469,47 @@ class GamificationManager {
 
     if (newAchievements > 0) {
       console.log(`✅ checkAchievements: Unlocked ${newAchievements} new achievements`);
+    }
+  }
+
+  // ⭐ פונקציה חדשה - בדיקה מחדש של הישגים (עשויה לבטל הישגים)
+  recheckAchievements() {
+    console.log('🔄 recheckAchievements: Rechecking all achievements...');
+    
+    const achievementsToRemove = [];
+    
+    // עבור על כל ההישגים שנפתחו
+    for (const unlockedAchievement of this.unlockedAchievements) {
+      const achievement = this.achievements.find(a => a.id === unlockedAchievement.id);
+      
+      if (!achievement) continue;
+      
+      // בדיקה אם התנאי עדיין מתקיים
+      if (!achievement.condition(this.userStats)) {
+        console.log(`⏪ recheckAchievements: Achievement "${achievement.name}" no longer valid`);
+        achievementsToRemove.push(unlockedAchievement.id);
+        
+        // החזרת XP
+        this.removeXP(achievement.xp, `ביטול הישג: ${achievement.name}`);
+      }
+    }
+    
+    // הסרת הישגים שלא תקפים יותר
+    if (achievementsToRemove.length > 0) {
+      this.unlockedAchievements = this.unlockedAchievements.filter(
+        a => !achievementsToRemove.includes(a.id)
+      );
+      
+      console.log(`✅ recheckAchievements: Removed ${achievementsToRemove.length} achievements`);
+      
+      if (notifications && notifications.showInAppNotification) {
+        notifications.showInAppNotification(
+          `⏪ ${achievementsToRemove.length} הישגים בוטלו`,
+          'info'
+        );
+      }
+      
+      this.saveStats();
     }
   }
 
@@ -461,32 +561,36 @@ class GamificationManager {
   }
 
   playAchievementSound() {
-    const audioContext = new (window.AudioContext || window.webkitAudioContext)();
-    
-    // מלודיה של הישג
-    const notes = [
-      { freq: 523.25, time: 0 },    // C5
-      { freq: 659.25, time: 0.15 },  // E5
-      { freq: 783.99, time: 0.3 },   // G5
-      { freq: 1046.50, time: 0.45 }  // C6
-    ];
+    try {
+      const audioContext = new (window.AudioContext || window.webkitAudioContext)();
+      
+      // מלודיה של הישג
+      const notes = [
+        { freq: 523.25, time: 0 },    // C5
+        { freq: 659.25, time: 0.15 },  // E5
+        { freq: 783.99, time: 0.3 },   // G5
+        { freq: 1046.50, time: 0.45 }  // C6
+      ];
 
-    notes.forEach(note => {
-      setTimeout(() => {
-        const oscillator = audioContext.createOscillator();
-        const gainNode = audioContext.createGain();
+      notes.forEach(note => {
+        setTimeout(() => {
+          const oscillator = audioContext.createOscillator();
+          const gainNode = audioContext.createGain();
 
-        oscillator.connect(gainNode);
-        gainNode.connect(audioContext.destination);
+          oscillator.connect(gainNode);
+          gainNode.connect(audioContext.destination);
 
-        oscillator.frequency.setValueAtTime(note.freq, audioContext.currentTime);
-        gainNode.gain.setValueAtTime(0.3, audioContext.currentTime);
-        gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.5);
+          oscillator.frequency.setValueAtTime(note.freq, audioContext.currentTime);
+          gainNode.gain.setValueAtTime(0.3, audioContext.currentTime);
+          gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.5);
 
-        oscillator.start(audioContext.currentTime);
-        oscillator.stop(audioContext.currentTime + 0.5);
-      }, note.time * 1000);
-    });
+          oscillator.start(audioContext.currentTime);
+          oscillator.stop(audioContext.currentTime + 0.5);
+        }, note.time * 1000);
+      });
+    } catch (error) {
+      console.error('❌ playAchievementSound: Error playing sound:', error);
+    }
   }
 
   // ==================== אירועים ====================
@@ -526,9 +630,20 @@ class GamificationManager {
   onPerfectDay() {
     console.log('✨ onPerfectDay: Perfect day achieved!');
     
+    // בדיקה אם יום מושלם כבר נספר היום
+    const today = new Date().toDateString();
+    const lastPerfectDay = this.userStats.lastPerfectDay;
+    
+    if (lastPerfectDay === today) {
+      console.log('⏸️ onPerfectDay: Already counted today');
+      return;
+    }
+    
     this.userStats.perfectDays++;
+    this.userStats.lastPerfectDay = today;
     this.addXP(50, 'יום מושלם');
     this.checkAchievements();
+    this.saveStats();
   }
 
   onStudyTimeAdded(minutes) {
