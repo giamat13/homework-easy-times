@@ -6,8 +6,8 @@ class CalendarManager {
     console.log('📅 CalendarManager: Initialized');
   }
 
-  // יצירת תצוגת לוח השנה
-  renderCalendar() {
+  // יצירת תצוגת לוח השנה - תמיד מציג את כל המשימות
+  renderCalendar(showArchive = false) {
     console.log('📅 renderCalendar: Rendering calendar for', this.currentDate);
     
     const year = this.currentDate.getFullYear();
@@ -21,7 +21,7 @@ class CalendarManager {
     
     console.log('📅 renderCalendar: Month info:', { year, month, daysInMonth, startingDayOfWeek });
     
-    // קבלת משימות לחודש הנוכחי
+    // קבלת כל המשימות לחודש (ללא סינון ארכיון)
     const monthHomework = this.getHomeworkForMonth(year, month);
     console.log('📅 renderCalendar: Homework for month:', monthHomework.length);
     
@@ -107,11 +107,12 @@ class CalendarManager {
     console.log('✅ renderCalendar: Calendar rendered');
   }
 
-  // קבלת משימות לחודש מסוים
-  getHomeworkForMonth(year, month) {
+  // קבלת משימות לחודש מסוים - בלוח שנה תמיד מציג הכל
+  getHomeworkForMonth(year, month, showArchive = false) {
     const monthStart = new Date(year, month, 1);
     const monthEnd = new Date(year, month + 1, 0);
     
+    // ⭐ בלוח שנה - תמיד הצג את כל המשימות של החודש
     return homework.filter(hw => {
       const dueDate = new Date(hw.dueDate + 'T00:00:00');
       return dueDate >= monthStart && dueDate <= monthEnd;

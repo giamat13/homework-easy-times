@@ -300,7 +300,7 @@ function toggleViewMode() {
   if (settings.viewMode === 'calendar') {
     console.log('📅 toggleViewMode: Switching to calendar view');
     if (typeof calendar !== 'undefined' && calendar.renderCalendar) {
-      calendar.renderCalendar();
+      calendar.renderCalendar(showArchive);
     } else {
       console.error('❌ toggleViewMode: Calendar manager not found');
       notifications.showInAppNotification('שגיאה בטעינת לוח השנה', 'error');
@@ -535,18 +535,22 @@ function renderTagSelector() {
 }
 
 function renderHomework() {
-  // אם במצב לוח שנה, השתמש ב-calendar manager
-  if (settings.viewMode === 'calendar') {
-    if (typeof calendar !== 'undefined' && calendar.renderCalendar) {
-      calendar.renderCalendar();
-      return;
-    }
-  }
-  
-  // אחרת, הצג רשימה רגילה
   const list = document.getElementById('homework-list');
   const archiveBtn = document.getElementById('archive-toggle');
 
+  // ⭐ בתצוגת לוח שנה - הסתר את כפתור הארכיון (הכל מוצג תמיד)
+  if (settings.viewMode === 'calendar') {
+    if (typeof calendar !== 'undefined' && calendar.renderCalendar) {
+      calendar.renderCalendar();
+      
+      // הסתר את כפתור הארכיון בלוח שנה
+      archiveBtn.classList.add('hidden');
+      
+      return;
+    }
+  }
+
+  // בתצוגת רשימה - הצג את כפתור הארכיון כרגיל
   const activeHomework = homework.filter(h => {
     if (!h.completed) return true;
     return getDaysUntilDue(h.dueDate) >= 0;
