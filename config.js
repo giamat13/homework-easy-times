@@ -2,7 +2,7 @@
 // Google Analytics Configuration
 // ========================================
 // החלף את ה-ID למטה עם ה-Measurement ID שלך מ-Google Analytics
-const GA_MEASUREMENT_ID = 'G-XXXXXXXXXX'; // 👈 החלף כאן!
+const GA_MEASUREMENT_ID = 'G-3P7J53MD27'; // 👈 החלף כאן!
 
 // Export for use in other scripts
 if (typeof window !== 'undefined') {
