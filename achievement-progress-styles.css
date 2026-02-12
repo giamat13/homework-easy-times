@@ -4,12 +4,12 @@
 /* Achievement Card with Progress */
 .achievement-card {
   position: relative;
-  padding-bottom: 3rem; /* Make room for progress bar */
+  padding-bottom: 4.5rem; /* Make room for progress bar + XP badge + spacing */
 }
 
 .achievement-progress {
   position: absolute;
-  bottom: 2.5rem;
+  bottom: 3rem; /* More space from bottom */
   left: 0.5rem;
   right: 0.5rem;
 }
@@ -135,7 +135,7 @@ body.dark-mode .achievement-progress-text {
 /* Responsive adjustments */
 @media (max-width: 768px) {
   .achievement-card {
-    padding-bottom: 2.5rem;
+    padding-bottom: 3.5rem; /* More padding for mobile */
   }
   
   .achievement-progress {
@@ -195,7 +195,7 @@ body.dark-mode .achievement-progress-text {
 /* XP Badge positioning adjustment */
 .achievement-card .achievement-xp {
   position: absolute;
-  bottom: 0.5rem;
+  bottom: 0.75rem; /* Slightly higher */
   left: 50%;
   transform: translateX(-50%);
 }
