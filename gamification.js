@@ -1,5 +1,5 @@
 // Enhanced Gamification & Achievements Manager - מערכת משחוק והישגים משופרת
-// ⭐ כולל מדי התקדמות להישגים כמותיים + מעקב אחר צבעים ותגיות
+// ⭐ כולל מדי התקדמות להישגים כמותיים
 // ================================================================================
 
 class GamificationManager {
@@ -14,16 +14,14 @@ class GamificationManager {
       totalTasksCompleted: 0,
       totalStudyTime: 0,
       perfectDays: 0,
-      perfectDayToday: null,
-      uniqueColors: 0,  // ⭐ חדש - מספר צבעים ייחודיים
-      totalTags: 0      // ⭐ חדש - מספר תגיות
+      perfectDayToday: null
     };
 
     this.achievements = [];
     this.unlockedAchievements = [];
     
     this.initializeAchievements();
-    console.log('🏆 GamificationManager: Initialized with progress tracking + creative stats');
+    console.log('🏆 GamificationManager: Initialized with progress tracking');
   }
 
   // ==================== אתחול ====================
@@ -278,32 +276,6 @@ class GamificationManager {
         quantifiable: true
       },
 
-      // 🎨 יצירתיות - כמותיים ⭐ מעודכן!
-      {
-        id: 'color-master',
-        name: 'אמן הצבעים',
-        description: 'השתמש ב-10 צבעים שונים למקצועות',
-        icon: '🎨',
-        condition: (stats) => stats.uniqueColors >= 10,
-        target: 10,
-        getProgress: (stats) => stats.uniqueColors,
-        xp: 50,
-        category: 'creative',
-        quantifiable: true
-      },
-      {
-        id: 'organizer',
-        name: 'מאורגן מקצועי',
-        description: 'צור 5 תגיות שונות',
-        icon: '🏷️',
-        condition: (stats) => stats.totalTags >= 5,
-        target: 5,
-        getProgress: (stats) => stats.totalTags,
-        xp: 30,
-        category: 'creative',
-        quantifiable: true
-      },
-
       // 🏃 מהירות - לא כמותיים
       {
         id: 'early-bird',
@@ -336,6 +308,28 @@ class GamificationManager {
         quantifiable: false
       },
 
+      // 🎨 יצירתיות - לא כמותיים
+      {
+        id: 'color-master',
+        name: 'אמן הצבעים',
+        description: 'השתמש ב-10 צבעים שונים למקצועות',
+        icon: '🎨',
+        condition: () => false,
+        xp: 50,
+        category: 'creative',
+        quantifiable: false
+      },
+      {
+        id: 'organizer',
+        name: 'מאורגן מקצועי',
+        description: 'צור 5 תגיות שונות',
+        icon: '🏷️',
+        condition: () => false,
+        xp: 30,
+        category: 'creative',
+        quantifiable: false
+      },
+
       // 🌟 מיוחדים - לא כמותיים
       {
         id: 'comeback',
@@ -359,11 +353,11 @@ class GamificationManager {
       }
     ];
 
-    console.log('🏆 initializeAchievements: Loaded', this.achievements.length, 'achievements (with color & tag tracking)');
+    console.log('🏆 initializeAchievements: Loaded', this.achievements.length, 'achievements (with progress tracking)');
   }
 
   // ==================== טעינה ושמירה ====================
-  
+
   async loadStats() {
     console.log('📥 loadStats: Loading user stats...');
     try {
@@ -379,34 +373,9 @@ class GamificationManager {
         console.log('✅ loadStats: Achievements loaded:', this.unlockedAchievements.length);
       }
 
-      // ⭐ עדכון סטטיסטיקות צבעים ותגיות
-      await this.updateCreativeStats();
-
       this.updateStreak();
     } catch (error) {
       console.error('❌ loadStats: Error loading stats:', error);
-    }
-  }
-
-  // ⭐ פונקציה חדשה - עדכון סטטיסטיקות יצירתיות
-  async updateCreativeStats() {
-    console.log('🎨 updateCreativeStats: Updating creative stats...');
-    
-    try {
-      // ספירת צבעים ייחודיים
-      const subjects = await storage.get('homework-subjects') || [];
-      const uniqueColors = new Set(subjects.map(s => s.color)).size;
-      this.userStats.uniqueColors = uniqueColors;
-      console.log('🎨 updateCreativeStats: Unique colors:', uniqueColors);
-
-      // ספירת תגיות
-      const tags = await storage.get('homework-tags') || [];
-      this.userStats.totalTags = tags.length;
-      console.log('🏷️ updateCreativeStats: Total tags:', tags.length);
-
-      await this.saveStats();
-    } catch (error) {
-      console.error('❌ updateCreativeStats: Error:', error);
     }
   }
 
@@ -780,15 +749,6 @@ class GamificationManager {
     this.checkAchievements();
   }
 
-  // ⭐ פונקציה חדשה - עדכון אחרי שינוי במקצועות/תגיות
-  async onSubjectsOrTagsChanged() {
-    console.log('🎨 onSubjectsOrTagsChanged: Subjects or tags changed, updating stats...');
-    
-    await this.updateCreativeStats();
-    this.checkAchievements();
-    this.updateUI();
-  }
-
   // ==================== ממשק משתמש ====================
 
   updateUI() {
@@ -833,8 +793,8 @@ class GamificationManager {
       streaks: { name: 'רצפים', icon: '🔥' },
       study: { name: 'לימוד', icon: '📚' },
       perfect: { name: 'ימים מושלמים', icon: '✨' },
-      creative: { name: 'יצירתיות', icon: '🎨' },
-      special: { name: 'מיוחדים', icon: '🌟' }
+      special: { name: 'מיוחדים', icon: '🌟' },
+      creative: { name: 'יצירתיות', icon: '🎨' }
     };
 
     let achievementsHTML = '';
@@ -904,16 +864,6 @@ class GamificationManager {
           <div class="stat-value">${this.unlockedAchievements.length}</div>
           <div class="stat-label">הישגים</div>
         </div>
-        <div class="gamification-stat">
-          <div class="stat-icon">🎨</div>
-          <div class="stat-value">${this.userStats.uniqueColors}/10</div>
-          <div class="stat-label">צבעים</div>
-        </div>
-        <div class="gamification-stat">
-          <div class="stat-icon">🏷️</div>
-          <div class="stat-value">${this.userStats.totalTags}/5</div>
-          <div class="stat-label">תגיות</div>
-        </div>
       </div>
 
       <div class="xp-progress-container">
@@ -930,7 +880,7 @@ class GamificationManager {
       </div>
     `;
 
-    console.log('✅ renderGamificationPanel: Panel rendered with progress tracking + creative stats');
+    console.log('✅ renderGamificationPanel: Panel rendered with progress tracking');
   }
 }
 
@@ -950,5 +900,5 @@ window.addEventListener('DOMContentLoaded', async () => {
   }
   
   gamification.updateUI();
-  console.log('✅ gamification.js: Initialized with creative achievement tracking');
+  console.log('✅ gamification.js: Initialized with progress tracking');
 });

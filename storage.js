@@ -88,55 +88,20 @@ class StorageManager {
     }
   }
 
-  // ⭐ מחיקת כל הנתונים - FIXED VERSION
+  // מחיקת כל הנתונים
   async clearAll() {
-    console.log('🗑️ StorageManager.clearAll: Clearing ALL data including gamification...');
+    console.log('🗑️ StorageManager.clearAll: Clearing all data...');
     try {
-      // ⭐ רשימה מלאה של כל המפתחות במערכת
-      const keys = [
-        // נתוני משימות ומקצועות
-        'homework-subjects', 
-        'homework-list', 
-        'homework-settings', 
-        'homework-last-backup', 
-        'homework-tags',
-        
-        // ⭐ נתוני גמיפיקציה והישגים
-        'gamification-stats',           
-        'gamification-achievements',    
-        
-        // ⭐ נתוני טיימר
-        'study-timer-settings',         
-        'study-sessions-today',         
-        
-        // ⭐ נתוני ממשק
-        'theme-settings',               
-        'quick-actions-settings'        
-      ];
-      
-      console.log('🗑️ StorageManager.clearAll: Keys to delete:', keys.length, 'keys');
-      console.log('🗑️ StorageManager.clearAll: Full list:', keys);
-      
-      let deletedCount = 0;
-      let errorCount = 0;
+      const keys = ['homework-subjects', 'homework-list', 'homework-settings', 'homework-last-backup', 'homework-tags'];
+      console.log('🗑️ StorageManager.clearAll: Keys to delete:', keys);
       
       for (const key of keys) {
-        try {
-          console.log(`🗑️ StorageManager.clearAll: Deleting "${key}"...`);
-          await this.delete(key);
-          deletedCount++;
-          console.log(`✅ StorageManager.clearAll: "${key}" deleted (${deletedCount}/${keys.length})`);
-        } catch (error) {
-          errorCount++;
-          console.error(`❌ StorageManager.clearAll: Failed to delete "${key}":`, error);
-        }
+        console.log(`🗑️ StorageManager.clearAll: Deleting "${key}"...`);
+        await this.delete(key);
       }
       
-      console.log('✅✅✅ StorageManager.clearAll: Completed!');
-      console.log(`📊 Summary: ${deletedCount} deleted, ${errorCount} errors`);
-      console.log('🎉 All data cleared: homework, subjects, tags, XP, achievements, timer, theme');
-      
-      return errorCount === 0;
+      console.log('✅ StorageManager.clearAll: All data cleared successfully');
+      return true;
     } catch (error) {
       console.error('❌ StorageManager.clearAll: Error clearing data:', error);
       console.error('❌ StorageManager.clearAll: Error stack:', error.stack);
