@@ -10,6 +10,7 @@
   <link rel="stylesheet" href="styles.css">
   <link rel="stylesheet" href="calendar-styles.css">
   <link rel="stylesheet" href="enhanced-styles.css">
+  <link rel="stylesheet" href="statistics-styles.css">
   
   <!-- External Libraries -->
   <script src="https://cdnjs.cloudflare.com/ajax/libs/lucide/0.263.1/umd/lucide.min.js"></script>
@@ -171,22 +172,9 @@
         <!-- Will be rendered by gamification.js -->
       </div>
 
-      <!-- Analytics Panel -->
-      <div class="panel statistics-panel" id="analytics-panel">
-        <!-- Will be rendered by analytics.js -->
-      </div>
-
-      <!-- Statistics Panel (Original Charts) -->
-      <div class="panel statistics-panel">
-        <h2>סטטיסטיקות</h2>
-        <div class="charts-container">
-          <div class="chart-wrapper">
-            <canvas id="completion-chart"></canvas>
-          </div>
-          <div class="chart-wrapper">
-            <canvas id="subject-chart"></canvas>
-          </div>
-        </div>
+      <!-- UNIFIED Statistics & Analytics Panel -->
+      <div class="panel statistics-panel" id="statistics-panel">
+        <!-- Will be rendered by statistics.js (unified) -->
       </div>
     </div>
   </div>
@@ -328,7 +316,6 @@
 
   <!-- SVG Icons (Extended) -->
   <svg style="display: none;">
-    <!-- Existing icons... -->
     <symbol id="book-open" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
       <path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"></path>
       <path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"></path>
@@ -356,8 +343,6 @@
       <line x1="18" y1="6" x2="6" y2="18"></line>
       <line x1="6" y1="6" x2="18" y2="18"></line>
     </symbol>
-    
-    <!-- New Icons -->
     <symbol id="play" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
       <polygon points="5 3 19 12 5 21 5 3"></polygon>
     </symbol>
@@ -384,8 +369,6 @@
       <path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"></path>
       <line x1="12" y1="17" x2="12.01" y2="17"></line>
     </symbol>
-    
-    <!-- Continue with existing icons... -->
     <symbol id="download" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
       <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
       <polyline points="7 10 12 15 17 10"></polyline>
@@ -454,10 +437,9 @@
   <script src="storage.js"></script>
   <script src="notifications.js"></script>
   <script src="calendar.js"></script>
-  <script src="charts.js"></script>
+  <script src="statistics.js"></script>
   <script src="study-timer.js"></script>
   <script src="gamification.js"></script>
-  <script src="analytics.js"></script>
   <script src="utilities.js"></script>
   <script src="app.js"></script>
   <script src="integration.js"></script>
@@ -468,7 +450,7 @@
     <p>(שימוש לא מסחרי עם מתן קרדיט בלבד)</p>
     <p style="margin-top: 10px; font-size: 0.9em; opacity: 0.8;">נוצר עם קלוד | Created with Claude</p>
     <p style="margin-top: 5px; font-size: 0.85em; color: #8b5cf6; font-weight: 600;">
-      ✨ Enhanced Edition ✨
+      ✨ Enhanced Edition with Unified Statistics ✨
     </p>
   </footer>
 </body>
