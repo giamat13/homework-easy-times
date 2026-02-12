@@ -1,4 +1,4 @@
-// Calendar View Manager - מנהל תצוגת לוח שנה (גרסה מתוקנת)
+// Calendar View Manager - מנהל תצוגת לוח שנה
 class CalendarManager {
   constructor() {
     this.currentDate = new Date();
@@ -6,8 +6,8 @@ class CalendarManager {
     console.log('📅 CalendarManager: Initialized');
   }
 
-  // יצירת תצוגת לוח השנה
-  renderCalendar() {
+  // יצירת תצוגת לוח השנה - תמיד מציג את כל המשימות
+  renderCalendar(showArchive = false) {
     console.log('📅 renderCalendar: Rendering calendar for', this.currentDate);
     
     const year = this.currentDate.getFullYear();
@@ -21,34 +21,8 @@ class CalendarManager {
     
     console.log('📅 renderCalendar: Month info:', { year, month, daysInMonth, startingDayOfWeek });
     
-    // קבלת משימות לחודש הנוכחי
-    let monthHomework = this.getHomeworkForMonth(year, month);
-    
-    // סינון לפי מצב ארכיון (תמיכה בארכיון!)
-    const activeHomework = monthHomework.filter(h => {
-      if (!h.completed) return true;
-      return getDaysUntilDue(h.dueDate) >= 0;
-    });
-
-    const archivedHomework = monthHomework.filter(h => {
-      if (!h.completed) return false;
-      return getDaysUntilDue(h.dueDate) < 0;
-    });
-
-    // עדכון כפתור ארכיון
-    const archiveBtn = document.getElementById('archive-toggle');
-    if (archiveBtn) {
-      if (archivedHomework.length > 0) {
-        archiveBtn.classList.remove('hidden');
-        archiveBtn.textContent = showArchive ? 'הסתר ארכיון' : `ארכיון (${archivedHomework.length})`;
-      } else {
-        archiveBtn.classList.add('hidden');
-      }
-    }
-
-    // בחירת משימות להצגה
-    monthHomework = showArchive ? archivedHomework : activeHomework;
-    
+    // קבלת כל המשימות לחודש (ללא סינון ארכיון)
+    const monthHomework = this.getHomeworkForMonth(year, month);
     console.log('📅 renderCalendar: Homework for month:', monthHomework.length);
     
     // יצירת HTML של לוח השנה
@@ -133,11 +107,12 @@ class CalendarManager {
     console.log('✅ renderCalendar: Calendar rendered');
   }
 
-  // קבלת משימות לחודש מסוים
-  getHomeworkForMonth(year, month) {
+  // קבלת משימות לחודש מסוים - בלוח שנה תמיד מציג הכל
+  getHomeworkForMonth(year, month, showArchive = false) {
     const monthStart = new Date(year, month, 1);
     const monthEnd = new Date(year, month + 1, 0);
     
+    // ⭐ בלוח שנה - תמיד הצג את כל המשימות של החודש
     return homework.filter(hw => {
       const dueDate = new Date(hw.dueDate + 'T00:00:00');
       return dueDate >= monthStart && dueDate <= monthEnd;
@@ -193,23 +168,13 @@ class CalendarManager {
   // הצגת משימות ליום מסוים
   showDayHomework(date) {
     const dateStr = date.toISOString().split('T')[0];
-    
-    // קבלת כל המשימות ליום (כולל ארכיון אם מופעל)
-    let dayHomework = homework.filter(hw => hw.dueDate === dateStr);
-    
-    // סינון לפי מצב ארכיון
-    if (!showArchive) {
-      dayHomework = dayHomework.filter(h => {
-        if (!h.completed) return true;
-        return getDaysUntilDue(h.dueDate) >= 0;
-      });
-    }
+    const dayHomework = homework.filter(hw => hw.dueDate === dateStr);
     
     console.log('📅 showDayHomework: Homework for', dateStr, ':', dayHomework.length);
     
     if (dayHomework.length === 0) {
       notifications.showInAppNotification(
-        `אין משימות ${showArchive ? 'בארכיון ' : ''}ליום ${date.toLocaleDateString('he-IL')}`,
+        `אין משימות ליום ${date.toLocaleDateString('he-IL')}`,
         'info'
       );
       return;
@@ -221,7 +186,7 @@ class CalendarManager {
     modal.innerHTML = `
       <div class="modal-content" style="max-width: 500px;">
         <div class="modal-header">
-          <h2>משימות ${showArchive ? '(ארכיון) ' : ''}ל-${date.toLocaleDateString('he-IL', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })}</h2>
+          <h2>משימות ל-${date.toLocaleDateString('he-IL', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })}</h2>
           <button class="close-modal-btn" onclick="this.closest('.modal').remove()">
             <svg width="24" height="24"><use href="#x"></use></svg>
           </button>

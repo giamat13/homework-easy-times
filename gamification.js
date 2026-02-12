@@ -1,4 +1,7 @@
-// Gamification & Achievements Manager - מערכת משחוק והישגים (גרסה מתוקנת)
+// Enhanced Gamification & Achievements Manager - מערכת משחוק והישגים משופרת
+// ⭐ כולל מדי התקדמות להישגים כמותיים + מעקב אחר צבעים ותגיות
+// ================================================================================
+
 class GamificationManager {
   constructor() {
     this.userStats = {
@@ -11,266 +14,356 @@ class GamificationManager {
       totalTasksCompleted: 0,
       totalStudyTime: 0,
       perfectDays: 0,
-      perfectDayDate: null // תאריך של יום מושלם אחרון
+      perfectDayToday: null,
+      uniqueColors: 0,  // ⭐ חדש - מספר צבעים ייחודיים
+      totalTags: 0      // ⭐ חדש - מספר תגיות
     };
 
     this.achievements = [];
-    this.unlockedAchievements = []; // פורמט: {id, unlockedAt, timesUnlocked}
+    this.unlockedAchievements = [];
     
     this.initializeAchievements();
-    console.log('🏆 GamificationManager: Initialized');
+    console.log('🏆 GamificationManager: Initialized with progress tracking + creative stats');
   }
 
   // ==================== אתחול ====================
 
-  async initializeAchievements() {
-    console.log('🏆 initializeAchievements: Loading achievements from JSON...');
-    
-    try {
-      // ניסיון לטעון מ-JSON
-      const response = await fetch('achievements.json');
-      if (response.ok) {
-        const data = await response.json();
-        this.achievements = data.achievements;
-        console.log('✅ initializeAchievements: Loaded from JSON:', this.achievements.length, 'achievements');
-        return;
-      }
-    } catch (error) {
-      console.warn('⚠️ initializeAchievements: Could not load JSON, using fallback');
-    }
-    
-    // Fallback - הגדרה ידנית
+  initializeAchievements() {
     this.achievements = [
-      // 🎯 משימות
+      // 🎯 משימות - כמותיים
       {
         id: 'first-task',
         name: 'צעד ראשון',
         description: 'השלם את המשימה הראשונה שלך',
         icon: '🎯',
+        condition: (stats) => stats.totalTasksCompleted >= 1,
+        target: 1,
+        getProgress: (stats) => stats.totalTasksCompleted,
         xp: 10,
         category: 'tasks',
-        maxUnlocks: 1,
-        condition: { type: 'totalTasksCompleted', value: 1 }
+        quantifiable: true
       },
       {
         id: 'task-master-10',
         name: 'מתחיל מבטיח',
         description: 'השלם 10 משימות',
         icon: '⭐',
+        condition: (stats) => stats.totalTasksCompleted >= 10,
+        target: 10,
+        getProgress: (stats) => stats.totalTasksCompleted,
         xp: 50,
         category: 'tasks',
-        maxUnlocks: 1,
-        condition: { type: 'totalTasksCompleted', value: 10 }
+        quantifiable: true
+      },
+      {
+        id: 'task-master-25',
+        name: 'עובד קשה',
+        description: 'השלם 25 משימות',
+        icon: '🌟',
+        condition: (stats) => stats.totalTasksCompleted >= 25,
+        target: 25,
+        getProgress: (stats) => stats.totalTasksCompleted,
+        xp: 100,
+        category: 'tasks',
+        quantifiable: true
       },
       {
         id: 'task-master-50',
         name: 'מומחה משימות',
         description: 'השלם 50 משימות',
-        icon: '🌟',
+        icon: '🌠',
+        condition: (stats) => stats.totalTasksCompleted >= 50,
+        target: 50,
+        getProgress: (stats) => stats.totalTasksCompleted,
         xp: 200,
         category: 'tasks',
-        maxUnlocks: 1,
-        condition: { type: 'totalTasksCompleted', value: 50 }
+        quantifiable: true
       },
       {
         id: 'task-master-100',
         name: 'אלוף המשימות',
         description: 'השלם 100 משימות',
         icon: '🏅',
+        condition: (stats) => stats.totalTasksCompleted >= 100,
+        target: 100,
+        getProgress: (stats) => stats.totalTasksCompleted,
         xp: 500,
         category: 'tasks',
-        maxUnlocks: 1,
-        condition: { type: 'totalTasksCompleted', value: 100 }
+        quantifiable: true
+      },
+      {
+        id: 'task-master-250',
+        name: 'אגדת המשימות',
+        description: 'השלם 250 משימות',
+        icon: '👑',
+        condition: (stats) => stats.totalTasksCompleted >= 250,
+        target: 250,
+        getProgress: (stats) => stats.totalTasksCompleted,
+        xp: 1000,
+        category: 'tasks',
+        quantifiable: true
       },
 
-      // 🔥 רצפים (Streaks) - ניתנים להשגה מרובה
+      // 🔥 רצפים (Streaks) - כמותיים
       {
         id: 'streak-3',
         name: 'מתחמם',
         description: 'השלם משימות 3 ימים ברצף',
         icon: '🔥',
+        condition: (stats) => stats.streak >= 3,
+        target: 3,
+        getProgress: (stats) => stats.streak,
         xp: 30,
         category: 'streaks',
-        maxUnlocks: 'infinity',
-        condition: { type: 'streak', value: 3 }
+        quantifiable: true
       },
       {
         id: 'streak-7',
         name: 'שבוע מושלם',
         description: 'השלם משימות 7 ימים ברצף',
         icon: '🔥🔥',
+        condition: (stats) => stats.streak >= 7,
+        target: 7,
+        getProgress: (stats) => stats.streak,
         xp: 100,
         category: 'streaks',
-        maxUnlocks: 'infinity',
-        condition: { type: 'streak', value: 7 }
+        quantifiable: true
+      },
+      {
+        id: 'streak-14',
+        name: 'שבועיים של מחויבות',
+        description: 'השלם משימות 14 ימים ברצף',
+        icon: '🔥🔥',
+        condition: (stats) => stats.streak >= 14,
+        target: 14,
+        getProgress: (stats) => stats.streak,
+        xp: 250,
+        category: 'streaks',
+        quantifiable: true
       },
       {
         id: 'streak-30',
         name: 'חודש של מצוינות',
         description: 'השלם משימות 30 ימים ברצף',
         icon: '🔥🔥🔥',
+        condition: (stats) => stats.streak >= 30,
+        target: 30,
+        getProgress: (stats) => stats.streak,
         xp: 500,
         category: 'streaks',
-        maxUnlocks: 'infinity',
-        condition: { type: 'streak', value: 30 }
+        quantifiable: true
+      },
+      {
+        id: 'streak-100',
+        name: 'מאסטר רצף',
+        description: 'השלם משימות 100 ימים ברצף',
+        icon: '🔥🔥🔥🔥',
+        condition: (stats) => stats.streak >= 100,
+        target: 100,
+        getProgress: (stats) => stats.streak,
+        xp: 2000,
+        category: 'streaks',
+        quantifiable: true
       },
 
-      // ⏰ זמן לימוד
+      // ⏰ זמן לימוד - כמותיים
       {
         id: 'study-1h',
         name: 'שעה ראשונה',
         description: 'למד שעה אחת',
         icon: '⏰',
+        condition: (stats) => stats.totalStudyTime >= 60,
+        target: 60,
+        getProgress: (stats) => stats.totalStudyTime,
         xp: 20,
         category: 'study',
-        maxUnlocks: 1,
-        condition: { type: 'totalStudyTime', value: 60 }
+        quantifiable: true
+      },
+      {
+        id: 'study-5h',
+        name: 'לומד מתמיד',
+        description: 'למד 5 שעות',
+        icon: '📖',
+        condition: (stats) => stats.totalStudyTime >= 300,
+        target: 300,
+        getProgress: (stats) => stats.totalStudyTime,
+        xp: 50,
+        category: 'study',
+        quantifiable: true
       },
       {
         id: 'study-10h',
         name: 'סטודנט מסור',
         description: 'למד 10 שעות',
         icon: '📚',
+        condition: (stats) => stats.totalStudyTime >= 600,
+        target: 600,
+        getProgress: (stats) => stats.totalStudyTime,
         xp: 100,
         category: 'study',
-        maxUnlocks: 1,
-        condition: { type: 'totalStudyTime', value: 600 }
+        quantifiable: true
+      },
+      {
+        id: 'study-25h',
+        name: 'חובב ידע',
+        description: 'למד 25 שעות',
+        icon: '📚',
+        condition: (stats) => stats.totalStudyTime >= 1500,
+        target: 1500,
+        getProgress: (stats) => stats.totalStudyTime,
+        xp: 200,
+        category: 'study',
+        quantifiable: true
       },
       {
         id: 'study-50h',
         name: 'מלומד',
         description: 'למד 50 שעות',
         icon: '🎓',
+        condition: (stats) => stats.totalStudyTime >= 3000,
+        target: 3000,
+        getProgress: (stats) => stats.totalStudyTime,
         xp: 300,
         category: 'study',
-        maxUnlocks: 1,
-        condition: { type: 'totalStudyTime', value: 3000 }
+        quantifiable: true
       },
       {
         id: 'study-100h',
         name: 'חכם על',
         description: 'למד 100 שעות',
         icon: '🧠',
+        condition: (stats) => stats.totalStudyTime >= 6000,
+        target: 6000,
+        getProgress: (stats) => stats.totalStudyTime,
         xp: 1000,
         category: 'study',
-        maxUnlocks: 1,
-        condition: { type: 'totalStudyTime', value: 6000 }
+        quantifiable: true
       },
 
-      // 🎯 ימים מושלמים - ניתן להשגה מרובה
+      // 🎯 ימים מושלמים - כמותיים
       {
         id: 'perfect-day-1',
         name: 'יום מושלם',
         description: 'השלם את כל המשימות של היום',
         icon: '✨',
+        condition: (stats) => stats.perfectDays >= 1,
+        target: 1,
+        getProgress: (stats) => stats.perfectDays,
         xp: 50,
         category: 'perfect',
-        maxUnlocks: 'infinity',
-        condition: { type: 'perfectDays', value: 1 }
+        quantifiable: true
       },
       {
         id: 'perfect-day-7',
         name: 'שבוע מצטיין',
         description: '7 ימים מושלמים',
         icon: '⭐✨',
+        condition: (stats) => stats.perfectDays >= 7,
+        target: 7,
+        getProgress: (stats) => stats.perfectDays,
         xp: 200,
         category: 'perfect',
-        maxUnlocks: 1,
-        condition: { type: 'perfectDays', value: 7 }
+        quantifiable: true
       },
       {
         id: 'perfect-day-30',
         name: 'חודש של שלמות',
         description: '30 ימים מושלמים',
         icon: '🌟✨',
+        condition: (stats) => stats.perfectDays >= 30,
+        target: 30,
+        getProgress: (stats) => stats.perfectDays,
         xp: 1000,
         category: 'perfect',
-        maxUnlocks: 1,
-        condition: { type: 'perfectDays', value: 30 }
+        quantifiable: true
       },
 
-      // 🏃 מיוחדים - ניתנים להשגה מרובה
-      {
-        id: 'early-bird',
-        name: 'ציפור מוקדמת',
-        description: 'השלם משימה לפני השעה 8:00',
-        icon: '🌅',
-        xp: 25,
-        category: 'special',
-        maxUnlocks: 'infinity',
-        condition: { type: 'special', check: 'earlyBird' }
-      },
-      {
-        id: 'night-owl',
-        name: 'ינשוף לילה',
-        description: 'השלם משימה אחרי 22:00',
-        icon: '🦉',
-        xp: 25,
-        category: 'special',
-        maxUnlocks: 'infinity',
-        condition: { type: 'special', check: 'nightOwl' }
-      },
-      {
-        id: 'speed-demon',
-        name: 'שד המהירות',
-        description: 'השלם 5 משימות ביום אחד',
-        icon: '⚡',
-        xp: 75,
-        category: 'special',
-        maxUnlocks: 'infinity',
-        condition: { type: 'special', check: 'speedDemon' }
-      },
-
-      // 🎨 יצירתיות
+      // 🎨 יצירתיות - כמותיים ⭐ מעודכן!
       {
         id: 'color-master',
         name: 'אמן הצבעים',
         description: 'השתמש ב-10 צבעים שונים למקצועות',
         icon: '🎨',
+        condition: (stats) => stats.uniqueColors >= 10,
+        target: 10,
+        getProgress: (stats) => stats.uniqueColors,
         xp: 50,
         category: 'creative',
-        maxUnlocks: 1,
-        condition: { type: 'special', check: 'colorMaster' }
+        quantifiable: true
       },
       {
         id: 'organizer',
         name: 'מאורגן מקצועי',
         description: 'צור 5 תגיות שונות',
         icon: '🏷️',
+        condition: (stats) => stats.totalTags >= 5,
+        target: 5,
+        getProgress: (stats) => stats.totalTags,
         xp: 30,
         category: 'creative',
-        maxUnlocks: 1,
-        condition: { type: 'special', check: 'organizer' }
+        quantifiable: true
       },
 
-      // 🌟 מיוחדים נוספים
+      // 🏃 מהירות - לא כמותיים
+      {
+        id: 'early-bird',
+        name: 'ציפור מוקדמת',
+        description: 'השלם משימה לפני השעה 8:00',
+        icon: '🌅',
+        condition: () => false,
+        xp: 25,
+        category: 'special',
+        quantifiable: false
+      },
+      {
+        id: 'night-owl',
+        name: 'ינשוף לילה',
+        description: 'השלם משימה אחרי 22:00',
+        icon: '🦉',
+        condition: () => false,
+        xp: 25,
+        category: 'special',
+        quantifiable: false
+      },
+      {
+        id: 'speed-demon',
+        name: 'שד המהירות',
+        description: 'השלם 5 משימות ביום אחד',
+        icon: '⚡',
+        condition: () => false,
+        xp: 75,
+        category: 'special',
+        quantifiable: false
+      },
+
+      // 🌟 מיוחדים - לא כמותיים
       {
         id: 'comeback',
         name: 'חזרה מנצחת',
         description: 'חזור למערכת אחרי הפסקה של שבוע',
         icon: '💪',
+        condition: () => false,
         xp: 100,
         category: 'special',
-        maxUnlocks: 'infinity',
-        condition: { type: 'special', check: 'comeback' }
+        quantifiable: false
       },
       {
         id: 'zero-hero',
         name: 'גיבור האפס',
         description: 'השלם את כל המשימות הממתינות',
         icon: '🎊',
+        condition: () => false,
         xp: 150,
         category: 'special',
-        maxUnlocks: 'infinity',
-        condition: { type: 'special', check: 'zeroHero' }
+        quantifiable: false
       }
     ];
 
-    console.log('✅ initializeAchievements: Loaded', this.achievements.length, 'achievements');
+    console.log('🏆 initializeAchievements: Loaded', this.achievements.length, 'achievements (with color & tag tracking)');
   }
 
   // ==================== טעינה ושמירה ====================
-
+  
   async loadStats() {
     console.log('📥 loadStats: Loading user stats...');
     try {
@@ -286,9 +379,34 @@ class GamificationManager {
         console.log('✅ loadStats: Achievements loaded:', this.unlockedAchievements.length);
       }
 
+      // ⭐ עדכון סטטיסטיקות צבעים ותגיות
+      await this.updateCreativeStats();
+
       this.updateStreak();
     } catch (error) {
       console.error('❌ loadStats: Error loading stats:', error);
+    }
+  }
+
+  // ⭐ פונקציה חדשה - עדכון סטטיסטיקות יצירתיות
+  async updateCreativeStats() {
+    console.log('🎨 updateCreativeStats: Updating creative stats...');
+    
+    try {
+      // ספירת צבעים ייחודיים
+      const subjects = await storage.get('homework-subjects') || [];
+      const uniqueColors = new Set(subjects.map(s => s.color)).size;
+      this.userStats.uniqueColors = uniqueColors;
+      console.log('🎨 updateCreativeStats: Unique colors:', uniqueColors);
+
+      // ספירת תגיות
+      const tags = await storage.get('homework-tags') || [];
+      this.userStats.totalTags = tags.length;
+      console.log('🏷️ updateCreativeStats: Total tags:', tags.length);
+
+      await this.saveStats();
+    } catch (error) {
+      console.error('❌ updateCreativeStats: Error:', error);
     }
   }
 
@@ -320,10 +438,8 @@ class GamificationManager {
     const yesterdayStr = yesterday.toDateString();
 
     if (lastDate === yesterdayStr) {
-      // המשך הרצף
       console.log('🔥 updateStreak: Streak continues');
     } else if (lastDate !== today) {
-      // הרצף נשבר
       console.log('💔 updateStreak: Streak broken');
       this.userStats.streak = 0;
     }
@@ -340,11 +456,9 @@ class GamificationManager {
       const yesterdayStr = yesterday.toDateString();
 
       if (lastDate === yesterdayStr) {
-        // המשך רצף
         this.userStats.streak++;
         console.log('🔥 recordActivity: Streak increased to', this.userStats.streak);
       } else {
-        // התחלת רצף חדש
         this.userStats.streak = 1;
         console.log('🔥 recordActivity: New streak started');
       }
@@ -367,7 +481,6 @@ class GamificationManager {
     this.userStats.xp += amount;
     this.userStats.totalXP += amount;
 
-    // בדיקת עלייה ברמה
     const xpForNextLevel = this.getXPForLevel(this.userStats.level + 1);
     
     if (this.userStats.xp >= xpForNextLevel) {
@@ -377,24 +490,60 @@ class GamificationManager {
     this.saveStats();
     this.updateUI();
 
-    // הודעה
-    notifications.showInAppNotification(`+${amount} XP ${reason ? '- ' + reason : ''}`, 'success');
+    if (notifications && notifications.showInAppNotification) {
+      notifications.showInAppNotification(`+${amount} XP ${reason ? '- ' + reason : ''}`, 'success');
+    }
   }
 
   removeXP(amount, reason = '') {
-    console.log(`⬇️ removeXP: Removing ${amount} XP - ${reason}`);
+    console.log(`⏪ removeXP: Removing ${amount} XP - ${reason}`);
     
-    this.userStats.xp = Math.max(0, this.userStats.xp - amount);
-    this.userStats.totalXP = Math.max(0, this.userStats.totalXP - amount);
+    this.userStats.xp -= amount;
+    this.userStats.totalXP -= amount;
+
+    if (this.userStats.xp < 0) {
+      while (this.userStats.xp < 0 && this.userStats.level > 1) {
+        this.levelDown();
+      }
+      
+      if (this.userStats.xp < 0) {
+        this.userStats.xp = 0;
+      }
+    }
+
+    if (this.userStats.totalXP < 0) {
+      this.userStats.totalXP = 0;
+    }
 
     this.saveStats();
     this.updateUI();
 
-    notifications.showInAppNotification(`-${amount} XP ${reason ? '- ' + reason : ''}`, 'error');
+    if (notifications && notifications.showInAppNotification) {
+      notifications.showInAppNotification(`-${amount} XP ${reason ? '- ' + reason : ''}`, 'info');
+    }
+  }
+
+  levelDown() {
+    if (this.userStats.level <= 1) {
+      this.userStats.level = 1;
+      this.userStats.xp = 0;
+      return;
+    }
+
+    this.userStats.level--;
+    const xpForCurrentLevel = this.getXPForLevel(this.userStats.level + 1);
+    this.userStats.xp += xpForCurrentLevel;
+    
+    console.log('⬇️ levelDown: Level decreased to', this.userStats.level);
+
+    if (notifications && notifications.showInAppNotification) {
+      notifications.showInAppNotification(`רמה ${this.userStats.level} 📉`, 'info');
+    }
+
+    this.saveStats();
   }
 
   getXPForLevel(level) {
-    // נוסחה: 100 * level^1.5
     return Math.floor(100 * Math.pow(level, 1.5));
   }
 
@@ -404,15 +553,14 @@ class GamificationManager {
     
     console.log('🎉 levelUp: Level up to', this.userStats.level);
 
-    // אפקט ויזואלי
     this.showLevelUpAnimation();
 
-    // פרס
-    const reward = this.userStats.level * 10;
-    notifications.showInAppNotification(
-      `🎉 עלית לרמה ${this.userStats.level}! 🎊`,
-      'success'
-    );
+    if (notifications && notifications.showInAppNotification) {
+      notifications.showInAppNotification(
+        `🎉 עלית לרמה ${this.userStats.level}! 🎊`,
+        'success'
+      );
+    }
 
     this.saveStats();
   }
@@ -433,7 +581,9 @@ class GamificationManager {
     setTimeout(() => {
       animation.style.animation = 'fadeOut 0.5s ease-out';
       setTimeout(() => {
-        document.body.removeChild(animation);
+        if (document.body.contains(animation)) {
+          document.body.removeChild(animation);
+        }
       }, 500);
     }, 3000);
   }
@@ -446,17 +596,11 @@ class GamificationManager {
     let newAchievements = 0;
     
     for (const achievement of this.achievements) {
-      // בדיקה כמה פעמים כבר נפתח
-      const unlockedEntry = this.unlockedAchievements.find(a => a.id === achievement.id);
-      const timesUnlocked = unlockedEntry ? unlockedEntry.timesUnlocked : 0;
-      
-      // בדיקה אם ניתן עוד לפתוח
-      if (achievement.maxUnlocks !== 'infinity' && timesUnlocked >= achievement.maxUnlocks) {
-        continue; // כבר הושג המקסימום
+      if (this.unlockedAchievements.find(a => a.id === achievement.id)) {
+        continue;
       }
 
-      // בדיקת תנאי
-      if (this.checkAchievementCondition(achievement)) {
+      if (achievement.condition(this.userStats)) {
         this.unlockAchievement(achievement);
         newAchievements++;
       }
@@ -467,57 +611,52 @@ class GamificationManager {
     }
   }
 
-  checkAchievementCondition(achievement) {
-    const condition = achievement.condition;
+  recheckAchievements() {
+    console.log('🔄 recheckAchievements: Rechecking all achievements...');
     
-    if (condition.type === 'totalTasksCompleted') {
-      return this.userStats.totalTasksCompleted >= condition.value;
+    const achievementsToRemove = [];
+    
+    for (const unlockedAchievement of this.unlockedAchievements) {
+      const achievement = this.achievements.find(a => a.id === unlockedAchievement.id);
+      
+      if (!achievement) continue;
+      
+      if (!achievement.condition(this.userStats)) {
+        console.log(`⏪ recheckAchievements: Achievement "${achievement.name}" no longer valid`);
+        achievementsToRemove.push(unlockedAchievement.id);
+        
+        this.removeXP(achievement.xp, `ביטול הישג: ${achievement.name}`);
+      }
     }
     
-    if (condition.type === 'streak') {
-      return this.userStats.streak >= condition.value;
+    if (achievementsToRemove.length > 0) {
+      this.unlockedAchievements = this.unlockedAchievements.filter(
+        a => !achievementsToRemove.includes(a.id)
+      );
+      
+      console.log(`✅ recheckAchievements: Removed ${achievementsToRemove.length} achievements`);
+      
+      if (notifications && notifications.showInAppNotification) {
+        notifications.showInAppNotification(
+          `⏪ ${achievementsToRemove.length} הישגים בוטלו`,
+          'info'
+        );
+      }
+      
+      this.saveStats();
     }
-    
-    if (condition.type === 'totalStudyTime') {
-      return this.userStats.totalStudyTime >= condition.value;
-    }
-    
-    if (condition.type === 'perfectDays') {
-      return this.userStats.perfectDays >= condition.value;
-    }
-    
-    if (condition.type === 'special') {
-      // הישגים מיוחדים נבדקים במקומות ספציפיים
-      return false;
-    }
-    
-    return false;
   }
 
   unlockAchievement(achievement) {
     console.log('🎊 unlockAchievement: Unlocking', achievement.name);
     
-    // בדיקה אם כבר קיים
-    const existingEntry = this.unlockedAchievements.find(a => a.id === achievement.id);
-    
-    if (existingEntry) {
-      // עדכון ספירה
-      existingEntry.timesUnlocked++;
-      existingEntry.lastUnlockedAt = new Date().toISOString();
-    } else {
-      // יצירת רשומה חדשה
-      this.unlockedAchievements.push({
-        id: achievement.id,
-        firstUnlockedAt: new Date().toISOString(),
-        lastUnlockedAt: new Date().toISOString(),
-        timesUnlocked: 1
-      });
-    }
+    this.unlockedAchievements.push({
+      ...achievement,
+      unlockedAt: new Date().toISOString()
+    });
 
-    // הוספת XP
     this.addXP(achievement.xp, achievement.name);
 
-    // הודעה
     this.showAchievementNotification(achievement);
 
     this.saveStats();
@@ -540,7 +679,6 @@ class GamificationManager {
     
     document.body.appendChild(notification);
     
-    // צליל
     this.playAchievementSound();
     
     setTimeout(() => {
@@ -554,32 +692,53 @@ class GamificationManager {
   }
 
   playAchievementSound() {
-    const audioContext = new (window.AudioContext || window.webkitAudioContext)();
-    
-    // מלודיה של הישג
-    const notes = [
-      { freq: 523.25, time: 0 },    // C5
-      { freq: 659.25, time: 0.15 },  // E5
-      { freq: 783.99, time: 0.3 },   // G5
-      { freq: 1046.50, time: 0.45 }  // C6
-    ];
+    try {
+      const audioContext = new (window.AudioContext || window.webkitAudioContext)();
+      
+      const notes = [
+        { freq: 523.25, time: 0 },
+        { freq: 659.25, time: 0.15 },
+        { freq: 783.99, time: 0.3 },
+        { freq: 1046.50, time: 0.45 }
+      ];
 
-    notes.forEach(note => {
-      setTimeout(() => {
-        const oscillator = audioContext.createOscillator();
-        const gainNode = audioContext.createGain();
+      notes.forEach(note => {
+        setTimeout(() => {
+          const oscillator = audioContext.createOscillator();
+          const gainNode = audioContext.createGain();
 
-        oscillator.connect(gainNode);
-        gainNode.connect(audioContext.destination);
+          oscillator.connect(gainNode);
+          gainNode.connect(audioContext.destination);
 
-        oscillator.frequency.setValueAtTime(note.freq, audioContext.currentTime);
-        gainNode.gain.setValueAtTime(0.3, audioContext.currentTime);
-        gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.5);
+          oscillator.frequency.setValueAtTime(note.freq, audioContext.currentTime);
+          gainNode.gain.setValueAtTime(0.3, audioContext.currentTime);
+          gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.5);
 
-        oscillator.start(audioContext.currentTime);
-        oscillator.stop(audioContext.currentTime + 0.5);
-      }, note.time * 1000);
-    });
+          oscillator.start(audioContext.currentTime);
+          oscillator.stop(audioContext.currentTime + 0.5);
+        }, note.time * 1000);
+      });
+    } catch (error) {
+      console.error('❌ playAchievementSound: Error playing sound:', error);
+    }
+  }
+
+  // ==================== פונקציות עזר להישגים כמותיים ====================
+
+  getAchievementProgress(achievement) {
+    if (!achievement.quantifiable || !achievement.getProgress) {
+      return null;
+    }
+
+    const current = achievement.getProgress(this.userStats);
+    const target = achievement.target;
+    const percentage = Math.min(100, Math.round((current / target) * 100));
+
+    return {
+      current,
+      target,
+      percentage
+    };
   }
 
   // ==================== אירועים ====================
@@ -590,82 +749,27 @@ class GamificationManager {
     this.userStats.totalTasksCompleted++;
     this.recordActivity();
     
-    // XP בסיסי
     this.addXP(10, 'השלמת משימה');
 
-    // בונוס למשימה מוקדמת
     if (isEarly) {
       this.addXP(5, 'בונוס מהירות');
     }
 
-    // בדיקת הישגים מיוחדים
     const hour = new Date().getHours();
-    
-    // ציפור מוקדמת
-    if (hour < 8) {
-      const earlyBird = this.achievements.find(a => a.id === 'early-bird');
-      if (earlyBird) {
-        this.unlockAchievement(earlyBird);
-      }
+    if (hour < 8 && !this.unlockedAchievements.find(a => a.id === 'early-bird')) {
+      this.unlockAchievement(this.achievements.find(a => a.id === 'early-bird'));
     }
     
-    // ינשוף לילה
-    if (hour >= 22) {
-      const nightOwl = this.achievements.find(a => a.id === 'night-owl');
-      if (nightOwl) {
-        this.unlockAchievement(nightOwl);
-      }
+    if (hour >= 22 && !this.unlockedAchievements.find(a => a.id === 'night-owl')) {
+      this.unlockAchievement(this.achievements.find(a => a.id === 'night-owl'));
     }
 
-    // שד המהירות
-    if (tasksToday >= 5) {
-      const speedDemon = this.achievements.find(a => a.id === 'speed-demon');
-      if (speedDemon) {
-        this.unlockAchievement(speedDemon);
-      }
+    if (tasksToday >= 5 && !this.unlockedAchievements.find(a => a.id === 'speed-demon')) {
+      this.unlockAchievement(this.achievements.find(a => a.id === 'speed-demon'));
     }
 
     this.checkAchievements();
     this.updateUI();
-  }
-
-  onTaskDeleted() {
-    console.log('🗑️ onTaskDeleted: Task deleted');
-    
-    // הורדת ספירה
-    if (this.userStats.totalTasksCompleted > 0) {
-      this.userStats.totalTasksCompleted--;
-    }
-    
-    // הורדת XP
-    this.removeXP(10, 'ביטול משימה');
-    
-    this.saveStats();
-    this.updateUI();
-  }
-
-  onPerfectDay() {
-    console.log('✨ onPerfectDay: Perfect day achieved!');
-    
-    const today = new Date().toDateString();
-    
-    // בדיקה אם כבר קיבלנו היום
-    if (this.userStats.perfectDayDate === today) {
-      console.log('⏸️ onPerfectDay: Already awarded today');
-      return;
-    }
-    
-    this.userStats.perfectDays++;
-    this.userStats.perfectDayDate = today;
-    
-    // פתיחת הישג יום מושלם
-    const perfectDay = this.achievements.find(a => a.id === 'perfect-day-1');
-    if (perfectDay) {
-      this.unlockAchievement(perfectDay);
-    }
-    
-    this.checkAchievements();
-    this.saveStats();
   }
 
   onStudyTimeAdded(minutes) {
@@ -676,10 +780,18 @@ class GamificationManager {
     this.checkAchievements();
   }
 
+  // ⭐ פונקציה חדשה - עדכון אחרי שינוי במקצועות/תגיות
+  async onSubjectsOrTagsChanged() {
+    console.log('🎨 onSubjectsOrTagsChanged: Subjects or tags changed, updating stats...');
+    
+    await this.updateCreativeStats();
+    this.checkAchievements();
+    this.updateUI();
+  }
+
   // ==================== ממשק משתמש ====================
 
   updateUI() {
-    // עדכון רמה ו-XP
     const levelEl = document.getElementById('user-level');
     if (levelEl) {
       levelEl.textContent = this.userStats.level;
@@ -691,7 +803,6 @@ class GamificationManager {
       xpEl.textContent = `${this.userStats.xp} / ${xpForNext}`;
     }
 
-    // פרוגרס בר
     const progressBar = document.getElementById('xp-progress');
     if (progressBar) {
       const xpForNext = this.getXPForLevel(this.userStats.level + 1);
@@ -699,37 +810,14 @@ class GamificationManager {
       progressBar.style.width = `${progress}%`;
     }
 
-    // רצף
     const streakEl = document.getElementById('user-streak');
     if (streakEl) {
       streakEl.textContent = this.userStats.streak;
     }
   }
 
-  getAchievementProgress(achievement) {
-    const condition = achievement.condition;
-    let current = 0;
-    let target = 0;
-    
-    if (condition.type === 'totalTasksCompleted') {
-      current = this.userStats.totalTasksCompleted;
-      target = condition.value;
-    } else if (condition.type === 'streak') {
-      current = this.userStats.streak;
-      target = condition.value;
-    } else if (condition.type === 'totalStudyTime') {
-      current = this.userStats.totalStudyTime;
-      target = condition.value;
-    } else if (condition.type === 'perfectDays') {
-      current = this.userStats.perfectDays;
-      target = condition.value;
-    }
-    
-    return { current, target };
-  }
-
   renderGamificationPanel() {
-    console.log('🎨 renderGamificationPanel: Rendering panel...');
+    console.log('🎨 renderGamificationPanel: Rendering panel with progress bars...');
     
     const panel = document.getElementById('gamification-panel');
     if (!panel) {
@@ -745,8 +833,8 @@ class GamificationManager {
       streaks: { name: 'רצפים', icon: '🔥' },
       study: { name: 'לימוד', icon: '📚' },
       perfect: { name: 'ימים מושלמים', icon: '✨' },
-      special: { name: 'מיוחדים', icon: '🌟' },
-      creative: { name: 'יצירתיות', icon: '🎨' }
+      creative: { name: 'יצירתיות', icon: '🎨' },
+      special: { name: 'מיוחדים', icon: '🌟' }
     };
 
     let achievementsHTML = '';
@@ -754,47 +842,36 @@ class GamificationManager {
     Object.keys(categories).forEach(catKey => {
       const cat = categories[catKey];
       const catAchievements = this.achievements.filter(a => a.category === catKey);
-      
-      // ספירת הישגים שנפתחו לפחות פעם אחת
-      const unlocked = catAchievements.filter(a => {
-        const entry = this.unlockedAchievements.find(u => u.id === a.id);
-        return entry && entry.timesUnlocked > 0;
-      }).length;
+      const unlocked = catAchievements.filter(a => 
+        this.unlockedAchievements.find(u => u.id === a.id)
+      ).length;
 
       achievementsHTML += `
         <div class="achievement-category">
           <h4>${cat.icon} ${cat.name} (${unlocked}/${catAchievements.length})</h4>
           <div class="achievements-grid">
             ${catAchievements.map(achievement => {
-              const unlockedEntry = this.unlockedAchievements.find(a => a.id === achievement.id);
-              const isUnlocked = unlockedEntry && unlockedEntry.timesUnlocked > 0;
-              const timesUnlocked = unlockedEntry ? unlockedEntry.timesUnlocked : 0;
+              const isUnlocked = this.unlockedAchievements.find(a => a.id === achievement.id);
               const progress = this.getAchievementProgress(achievement);
               
-              let progressText = '';
-              if (!isUnlocked && progress.target > 0) {
-                const percentage = Math.min(100, (progress.current / progress.target) * 100).toFixed(0);
-                progressText = `<div class="achievement-progress">${progress.current}/${progress.target} (${percentage}%)</div>`;
-              }
-              
-              let unlockInfo = '';
-              if (isUnlocked) {
-                if (achievement.maxUnlocks === 'infinity') {
-                  unlockInfo = `<div class="achievement-times">×${timesUnlocked}</div>`;
-                } else if (achievement.maxUnlocks > 1) {
-                  unlockInfo = `<div class="achievement-times">${timesUnlocked}/${achievement.maxUnlocks}</div>`;
-                }
-              }
-              
               return `
-                <div class="achievement-card ${isUnlocked ? 'unlocked' : 'locked'}">
+                <div class="achievement-card ${isUnlocked ? 'unlocked' : 'locked'}" 
+                     ${progress ? `title="${progress.current}/${progress.target} (${progress.percentage}%)"` : ''}>
                   <div class="achievement-icon">${achievement.icon}</div>
                   <div class="achievement-name">${achievement.name}</div>
                   <div class="achievement-desc">${achievement.description}</div>
-                  ${progressText}
+                  
+                  ${progress ? `
+                    <div class="achievement-progress">
+                      <div class="achievement-progress-bar">
+                        <div class="achievement-progress-fill" style="width: ${progress.percentage}%"></div>
+                      </div>
+                      <div class="achievement-progress-text">${progress.current}/${progress.target} (${progress.percentage}%)</div>
+                    </div>
+                  ` : ''}
+                  
                   <div class="achievement-xp">${achievement.xp} XP</div>
                   ${isUnlocked ? '<div class="achievement-unlocked">✓</div>' : ''}
-                  ${unlockInfo}
                 </div>
               `;
             }).join('')}
@@ -824,8 +901,18 @@ class GamificationManager {
         </div>
         <div class="gamification-stat">
           <div class="stat-icon">🏅</div>
-          <div class="stat-value">${this.unlockedAchievements.filter(a => a.timesUnlocked > 0).length}</div>
+          <div class="stat-value">${this.unlockedAchievements.length}</div>
           <div class="stat-label">הישגים</div>
+        </div>
+        <div class="gamification-stat">
+          <div class="stat-icon">🎨</div>
+          <div class="stat-value">${this.userStats.uniqueColors}/10</div>
+          <div class="stat-label">צבעים</div>
+        </div>
+        <div class="gamification-stat">
+          <div class="stat-icon">🏷️</div>
+          <div class="stat-value">${this.userStats.totalTags}/5</div>
+          <div class="stat-label">תגיות</div>
         </div>
       </div>
 
@@ -843,7 +930,7 @@ class GamificationManager {
       </div>
     `;
 
-    console.log('✅ renderGamificationPanel: Panel rendered');
+    console.log('✅ renderGamificationPanel: Panel rendered with progress tracking + creative stats');
   }
 }
 
@@ -855,7 +942,6 @@ console.log('✅ Global gamification manager created');
 // אתחול
 window.addEventListener('DOMContentLoaded', async () => {
   console.log('🏆 gamification.js: Initializing...');
-  await gamification.initializeAchievements();
   await gamification.loadStats();
   
   const panel = document.getElementById('gamification-panel');
@@ -864,5 +950,5 @@ window.addEventListener('DOMContentLoaded', async () => {
   }
   
   gamification.updateUI();
-  console.log('✅ gamification.js: Initialized');
+  console.log('✅ gamification.js: Initialized with creative achievement tracking');
 });

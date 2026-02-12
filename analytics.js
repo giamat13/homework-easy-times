@@ -1,646 +1,698 @@
-// Advanced Analytics Dashboard - דשבורד אנליטיקה מתקדם
+// Advanced Analytics Dashboard - דשבורד אנליטיקה מתקדם 
 class AnalyticsManager {
   constructor() {
     this.charts = {};
+    this.analyticsData = {
+      daily: [],
+      weekly: [],
+      monthly: [],
+      subjects: {},
+      productivity: [],
+      completionRates: []
+    };
+    
     console.log('📊 AnalyticsManager: Initialized');
   }
 
-  // חישוב אנליטיקה מתקדמת
-  calculateAdvancedAnalytics(homework, subjects) {
-    console.log('📊 AnalyticsManager: Calculating advanced analytics...');
+  // ==================== איסוף נתונים ====================
 
-    const analytics = {
-      // נתונים בסיסיים
-      totalTasks: homework.length,
-      completedTasks: homework.filter(h => h.completed).length,
-      pendingTasks: homework.filter(h => !h.completed).length,
-      overdueTasks: homework.filter(h => !h.completed && getDaysUntilDue(h.dueDate) < 0).length,
-      urgentTasks: homework.filter(h => !h.completed && getDaysUntilDue(h.dueDate) <= 2 && getDaysUntilDue(h.dueDate) >= 0).length,
-
-      // מגמות זמן
-      weeklyTrend: this.calculateWeeklyTrend(homework),
-      monthlyTrend: this.calculateMonthlyTrend(homework),
-      completionByDay: this.calculateCompletionByDay(homework),
-
-      // נתוני מקצועות
-      subjectDistribution: this.calculateSubjectDistribution(homework, subjects),
-      subjectCompletion: this.calculateSubjectCompletion(homework, subjects),
+  async collectData() {
+    console.log('📊 collectData: Collecting analytics data...');
+    
+    try {
+      // טעינת נתונים
+      const homework = await storage.get('homework-list') || [];
+      const subjects = await storage.get('homework-subjects') || [];
+      const sessions = await storage.get('study-sessions-today') || { sessions: [] };
       
-      // יעילות
-      averageCompletionTime: this.calculateAverageCompletionTime(homework),
-      completionRate: homework.length > 0 ? (homework.filter(h => h.completed).length / homework.length) * 100 : 0,
-      onTimeRate: this.calculateOnTimeRate(homework),
+      console.log('📊 collectData: Data loaded', {
+        homework: homework.length,
+        subjects: subjects.length,
+        sessions: sessions.sessions.length
+      });
 
-      // דחיפות
-      urgencyDistribution: this.calculateUrgencyDistribution(homework),
+      // ניתוח יומי
+      this.analyzeDailyData(homework);
       
-      // תגיות
-      popularTags: this.calculatePopularTags(homework),
-
-      // תחזיות
-      predictions: this.calculatePredictions(homework)
-    };
-
-    console.log('✅ AnalyticsManager: Analytics calculated:', analytics);
-    return analytics;
+      // ניתוח שבועי
+      this.analyzeWeeklyData(homework);
+      
+      // ניתוח חודשי
+      this.analyzeMonthlyData(homework);
+      
+      // ניתוח לפי מקצועות
+      this.analyzeSubjectData(homework, subjects);
+      
+      // ניתוח פרודוקטיביות
+      this.analyzeProductivity(homework, sessions.sessions);
+      
+      // ניתוח שיעור השלמה
+      this.analyzeCompletionRates(homework);
+      
+      console.log('✅ collectData: Data collection complete');
+    } catch (error) {
+      console.error('❌ collectData: Error collecting data:', error);
+    }
   }
 
-  // מגמה שבועית
-  calculateWeeklyTrend(homework) {
-    const last7Days = [];
+  analyzeDailyData(homework) {
+    console.log('📅 analyzeDailyData: Analyzing daily data...');
+    
+    const last30Days = [];
     const today = new Date();
     
-    for (let i = 6; i >= 0; i--) {
+    for (let i = 29; i >= 0; i--) {
       const date = new Date(today);
       date.setDate(date.getDate() - i);
+      date.setHours(0, 0, 0, 0);
       const dateStr = date.toISOString().split('T')[0];
       
-      const completed = homework.filter(h => {
-        if (!h.completed) return false;
-        const completionDate = h.completionDate || h.dueDate;
-        return completionDate === dateStr;
-      }).length;
-
-      const added = homework.filter(h => {
-        const addedDate = h.addedDate || h.dueDate;
-        return addedDate === dateStr;
-      }).length;
-
-      last7Days.push({
+      const dayHomework = homework.filter(hw => hw.dueDate === dateStr);
+      const completed = dayHomework.filter(hw => hw.completed).length;
+      const pending = dayHomework.length - completed;
+      
+      last30Days.push({
         date: dateStr,
-        dayName: date.toLocaleDateString('he-IL', { weekday: 'short' }),
+        total: dayHomework.length,
         completed,
-        added
+        pending,
+        completionRate: dayHomework.length > 0 ? (completed / dayHomework.length * 100) : 0
       });
     }
-
-    return last7Days;
-  }
-
-  // מגמה חודשית
-  calculateMonthlyTrend(homework) {
-    const monthlyData = {};
     
-    homework.forEach(h => {
-      const dueDate = new Date(h.dueDate);
-      const monthKey = `${dueDate.getFullYear()}-${String(dueDate.getMonth() + 1).padStart(2, '0')}`;
-      
-      if (!monthlyData[monthKey]) {
-        monthlyData[monthKey] = {
-          total: 0,
-          completed: 0,
-          overdue: 0
-        };
-      }
-      
-      monthlyData[monthKey].total++;
-      if (h.completed) monthlyData[monthKey].completed++;
-      if (!h.completed && getDaysUntilDue(h.dueDate) < 0) monthlyData[monthKey].overdue++;
-    });
-
-    return Object.entries(monthlyData)
-      .sort(([a], [b]) => a.localeCompare(b))
-      .slice(-6) // 6 חודשים אחרונים
-      .map(([month, data]) => ({
-        month: new Date(month + '-01').toLocaleDateString('he-IL', { month: 'short', year: 'numeric' }),
-        ...data,
-        completionRate: data.total > 0 ? (data.completed / data.total) * 100 : 0
-      }));
+    this.analyticsData.daily = last30Days;
+    console.log('✅ analyzeDailyData: Analysis complete');
   }
 
-  // השלמות לפי יום בשבוע
-  calculateCompletionByDay(homework) {
-    const dayStats = {
-      0: { name: 'ראשון', completed: 0, total: 0 },
-      1: { name: 'שני', completed: 0, total: 0 },
-      2: { name: 'שלישי', completed: 0, total: 0 },
-      3: { name: 'רביעי', completed: 0, total: 0 },
-      4: { name: 'חמישי', completed: 0, total: 0 },
-      5: { name: 'שישי', completed: 0, total: 0 },
-      6: { name: 'שבת', completed: 0, total: 0 }
-    };
+  analyzeWeeklyData(homework) {
+    console.log('📅 analyzeWeeklyData: Analyzing weekly data...');
+    
+    const last12Weeks = [];
+    const today = new Date();
+    
+    for (let i = 11; i >= 0; i--) {
+      const weekStart = new Date(today);
+      weekStart.setDate(weekStart.getDate() - (i * 7) - weekStart.getDay());
+      weekStart.setHours(0, 0, 0, 0);
+      
+      const weekEnd = new Date(weekStart);
+      weekEnd.setDate(weekEnd.getDate() + 6);
+      weekEnd.setHours(23, 59, 59, 999);
+      
+      const weekHomework = homework.filter(hw => {
+        const dueDate = new Date(hw.dueDate + 'T00:00:00');
+        return dueDate >= weekStart && dueDate <= weekEnd;
+      });
+      
+      const completed = weekHomework.filter(hw => hw.completed).length;
+      
+      last12Weeks.push({
+        weekStart: weekStart.toISOString().split('T')[0],
+        weekEnd: weekEnd.toISOString().split('T')[0],
+        total: weekHomework.length,
+        completed,
+        pending: weekHomework.length - completed,
+        completionRate: weekHomework.length > 0 ? (completed / weekHomework.length * 100) : 0
+      });
+    }
+    
+    this.analyticsData.weekly = last12Weeks;
+    console.log('✅ analyzeWeeklyData: Analysis complete');
+  }
 
-    homework.forEach(h => {
-      const dueDay = new Date(h.dueDate).getDay();
-      dayStats[dueDay].total++;
-      if (h.completed) dayStats[dueDay].completed++;
+  analyzeMonthlyData(homework) {
+    console.log('📅 analyzeMonthlyData: Analyzing monthly data...');
+    
+    const last12Months = [];
+    const today = new Date();
+    
+    for (let i = 11; i >= 0; i--) {
+      const monthDate = new Date(today.getFullYear(), today.getMonth() - i, 1);
+      const monthStart = new Date(monthDate.getFullYear(), monthDate.getMonth(), 1);
+      const monthEnd = new Date(monthDate.getFullYear(), monthDate.getMonth() + 1, 0);
+      
+      const monthHomework = homework.filter(hw => {
+        const dueDate = new Date(hw.dueDate + 'T00:00:00');
+        return dueDate >= monthStart && dueDate <= monthEnd;
+      });
+      
+      const completed = monthHomework.filter(hw => hw.completed).length;
+      
+      last12Months.push({
+        month: monthStart.toLocaleDateString('he-IL', { month: 'long', year: 'numeric' }),
+        total: monthHomework.length,
+        completed,
+        pending: monthHomework.length - completed,
+        completionRate: monthHomework.length > 0 ? (completed / monthHomework.length * 100) : 0
+      });
+    }
+    
+    this.analyticsData.monthly = last12Months;
+    console.log('✅ analyzeMonthlyData: Analysis complete');
+  }
+
+  analyzeSubjectData(homework, subjects) {
+    console.log('📚 analyzeSubjectData: Analyzing subject data...');
+    
+    const subjectStats = {};
+    
+    subjects.forEach(subject => {
+      const subjectHomework = homework.filter(hw => hw.subject == subject.id);
+      const completed = subjectHomework.filter(hw => hw.completed).length;
+      const overdue = subjectHomework.filter(hw => 
+        !hw.completed && new Date(hw.dueDate + 'T00:00:00') < new Date()
+      ).length;
+      
+      subjectStats[subject.id] = {
+        name: subject.name,
+        color: subject.color,
+        total: subjectHomework.length,
+        completed,
+        pending: subjectHomework.length - completed,
+        overdue,
+        completionRate: subjectHomework.length > 0 ? (completed / subjectHomework.length * 100) : 0,
+        avgTimeToComplete: this.calculateAvgTimeToComplete(subjectHomework)
+      };
     });
+    
+    this.analyticsData.subjects = subjectStats;
+    console.log('✅ analyzeSubjectData: Analysis complete');
+  }
 
-    return Object.values(dayStats).map(day => ({
-      ...day,
-      completionRate: day.total > 0 ? (day.completed / day.total) * 100 : 0
+  analyzeProductivity(homework, sessions) {
+    console.log('⏰ analyzeProductivity: Analyzing productivity...');
+    
+    const productivityData = [];
+    const hoursOfDay = Array(24).fill(0).map((_, i) => ({ hour: i, tasks: 0, studyTime: 0 }));
+    
+    // ניתוח לפי שעות ביום
+    homework.forEach(hw => {
+      if (hw.completed && hw.completedAt) {
+        const hour = new Date(hw.completedAt).getHours();
+        hoursOfDay[hour].tasks++;
+      }
+    });
+    
+    sessions.forEach(session => {
+      if (session.timestamp) {
+        const hour = new Date(session.timestamp).getHours();
+        hoursOfDay[hour].studyTime += session.duration || 0;
+      }
+    });
+    
+    this.analyticsData.productivity = hoursOfDay;
+    console.log('✅ analyzeProductivity: Analysis complete');
+  }
+
+  analyzeCompletionRates(homework) {
+    console.log('📈 analyzeCompletionRates: Analyzing completion rates...');
+    
+    const priorities = {
+      low: { total: 0, completed: 0 },
+      medium: { total: 0, completed: 0 },
+      high: { total: 0, completed: 0 }
+    };
+    
+    homework.forEach(hw => {
+      const priority = hw.priority || 'medium';
+      priorities[priority].total++;
+      if (hw.completed) {
+        priorities[priority].completed++;
+      }
+    });
+    
+    this.analyticsData.completionRates = Object.keys(priorities).map(p => ({
+      priority: p,
+      total: priorities[p].total,
+      completed: priorities[p].completed,
+      rate: priorities[p].total > 0 ? (priorities[p].completed / priorities[p].total * 100) : 0
     }));
+    
+    console.log('✅ analyzeCompletionRates: Analysis complete');
   }
 
-  // חלוקת מקצועות
-  calculateSubjectDistribution(homework, subjects) {
-    const distribution = {};
+  calculateAvgTimeToComplete(tasks) {
+    if (tasks.length === 0) return 0;
     
-    subjects.forEach(s => {
-      const subjectTasks = homework.filter(h => h.subject == s.id);
-      if (subjectTasks.length > 0) {
-        distribution[s.id] = {
-          name: s.name,
-          color: s.color,
-          count: subjectTasks.length,
-          percentage: (subjectTasks.length / homework.length) * 100
-        };
+    let totalTime = 0;
+    let count = 0;
+    
+    tasks.forEach(task => {
+      if (task.completed && task.createdAt && task.completedAt) {
+        const created = new Date(task.createdAt);
+        const completed = new Date(task.completedAt);
+        const days = Math.floor((completed - created) / (1000 * 60 * 60 * 24));
+        totalTime += days;
+        count++;
+      }
+    });
+    
+    return count > 0 ? Math.round(totalTime / count) : 0;
+  }
+
+  // ==================== גרפים ====================
+
+  createDailyChart() {
+    console.log('📊 createDailyChart: Creating daily chart...');
+    
+    const canvas = document.getElementById('analytics-daily-chart');
+    if (!canvas) {
+      console.warn('⚠️ createDailyChart: Canvas not found');
+      return;
+    }
+
+    if (this.charts.daily) {
+      this.charts.daily.destroy();
+    }
+
+    const labels = this.analyticsData.daily.map(d => 
+      new Date(d.date).toLocaleDateString('he-IL', { day: 'numeric', month: 'short' })
+    );
+    const completed = this.analyticsData.daily.map(d => d.completed);
+    const pending = this.analyticsData.daily.map(d => d.pending);
+
+    this.charts.daily = new Chart(canvas, {
+      type: 'line',
+      data: {
+        labels,
+        datasets: [
+          {
+            label: 'הושלמו',
+            data: completed,
+            borderColor: '#10b981',
+            backgroundColor: 'rgba(16, 185, 129, 0.1)',
+            tension: 0.4,
+            fill: true
+          },
+          {
+            label: 'ממתינים',
+            data: pending,
+            borderColor: '#f59e0b',
+            backgroundColor: 'rgba(245, 158, 11, 0.1)',
+            tension: 0.4,
+            fill: true
+          }
+        ]
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: true,
+        plugins: {
+          legend: {
+            position: 'bottom',
+            labels: {
+              color: getComputedStyle(document.body).getPropertyValue('--text-primary')
+            }
+          },
+          title: {
+            display: true,
+            text: 'פעילות ב-30 הימים האחרונים',
+            color: getComputedStyle(document.body).getPropertyValue('--text-primary'),
+            font: { size: 16, weight: 'bold' }
+          }
+        },
+        scales: {
+          y: {
+            beginAtZero: true,
+            ticks: {
+              stepSize: 1,
+              color: getComputedStyle(document.body).getPropertyValue('--text-secondary')
+            },
+            grid: {
+              color: getComputedStyle(document.body).getPropertyValue('--border-color')
+            }
+          },
+          x: {
+            ticks: {
+              color: getComputedStyle(document.body).getPropertyValue('--text-secondary')
+            },
+            grid: {
+              display: false
+            }
+          }
+        }
       }
     });
 
-    return Object.values(distribution)
-      .sort((a, b) => b.count - a.count);
+    console.log('✅ createDailyChart: Chart created');
   }
 
-  // השלמה לפי מקצוע
-  calculateSubjectCompletion(homework, subjects) {
-    const completion = {};
+  createSubjectChart() {
+    console.log('📊 createSubjectChart: Creating subject chart...');
     
-    subjects.forEach(s => {
-      const subjectTasks = homework.filter(h => h.subject == s.id);
-      const completed = subjectTasks.filter(h => h.completed).length;
+    const canvas = document.getElementById('analytics-subject-chart');
+    if (!canvas) {
+      console.warn('⚠️ createSubjectChart: Canvas not found');
+      return;
+    }
+
+    if (this.charts.subject) {
+      this.charts.subject.destroy();
+    }
+
+    const subjects = Object.values(this.analyticsData.subjects);
+    const labels = subjects.map(s => s.name);
+    const data = subjects.map(s => s.total);
+    const colors = subjects.map(s => s.color);
+
+    this.charts.subject = new Chart(canvas, {
+      type: 'doughnut',
+      data: {
+        labels,
+        datasets: [{
+          data,
+          backgroundColor: colors,
+          borderWidth: 2,
+          borderColor: '#ffffff'
+        }]
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: true,
+        plugins: {
+          legend: {
+            position: 'bottom',
+            labels: {
+              color: getComputedStyle(document.body).getPropertyValue('--text-primary')
+            }
+          },
+          title: {
+            display: true,
+            text: 'התפלגות משימות לפי מקצועות',
+            color: getComputedStyle(document.body).getPropertyValue('--text-primary'),
+            font: { size: 16, weight: 'bold' }
+          }
+        }
+      }
+    });
+
+    console.log('✅ createSubjectChart: Chart created');
+  }
+
+  createProductivityChart() {
+    console.log('📊 createProductivityChart: Creating productivity chart...');
+    
+    const canvas = document.getElementById('analytics-productivity-chart');
+    if (!canvas) {
+      console.warn('⚠️ createProductivityChart: Canvas not found');
+      return;
+    }
+
+    if (this.charts.productivity) {
+      this.charts.productivity.destroy();
+    }
+
+    const labels = this.analyticsData.productivity.map(h => `${h.hour}:00`);
+    const tasks = this.analyticsData.productivity.map(h => h.tasks);
+
+    this.charts.productivity = new Chart(canvas, {
+      type: 'bar',
+      data: {
+        labels,
+        datasets: [{
+          label: 'משימות שהושלמו',
+          data: tasks,
+          backgroundColor: '#3b82f6',
+          borderColor: '#2563eb',
+          borderWidth: 2
+        }]
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: true,
+        plugins: {
+          legend: {
+            display: false
+          },
+          title: {
+            display: true,
+            text: 'פרודוקטיביות לפי שעות ביום',
+            color: getComputedStyle(document.body).getPropertyValue('--text-primary'),
+            font: { size: 16, weight: 'bold' }
+          }
+        },
+        scales: {
+          y: {
+            beginAtZero: true,
+            ticks: {
+              stepSize: 1,
+              color: getComputedStyle(document.body).getPropertyValue('--text-secondary')
+            },
+            grid: {
+              color: getComputedStyle(document.body).getPropertyValue('--border-color')
+            }
+          },
+          x: {
+            ticks: {
+              color: getComputedStyle(document.body).getPropertyValue('--text-secondary')
+            },
+            grid: {
+              display: false
+            }
+          }
+        }
+      }
+    });
+
+    console.log('✅ createProductivityChart: Chart created');
+  }
+
+  createCompletionRateChart() {
+    console.log('📊 createCompletionRateChart: Creating completion rate chart...');
+    
+    const canvas = document.getElementById('analytics-completion-chart');
+    if (!canvas) {
+      console.warn('⚠️ createCompletionRateChart: Canvas not found');
+      return;
+    }
+
+    if (this.charts.completion) {
+      this.charts.completion.destroy();
+    }
+
+    const labels = this.analyticsData.completionRates.map(r => {
+      const names = { low: 'נמוכה', medium: 'בינונית', high: 'גבוהה' };
+      return names[r.priority];
+    });
+    const rates = this.analyticsData.completionRates.map(r => r.rate);
+
+    this.charts.completion = new Chart(canvas, {
+      type: 'bar',
+      data: {
+        labels,
+        datasets: [{
+          label: 'שיעור השלמה (%)',
+          data: rates,
+          backgroundColor: ['#10b981', '#f59e0b', '#ef4444'],
+          borderColor: ['#059669', '#d97706', '#dc2626'],
+          borderWidth: 2
+        }]
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: true,
+        plugins: {
+          legend: {
+            display: false
+          },
+          title: {
+            display: true,
+            text: 'שיעור השלמה לפי עדיפות',
+            color: getComputedStyle(document.body).getPropertyValue('--text-primary'),
+            font: { size: 16, weight: 'bold' }
+          }
+        },
+        scales: {
+          y: {
+            beginAtZero: true,
+            max: 100,
+            ticks: {
+              callback: value => value + '%',
+              color: getComputedStyle(document.body).getPropertyValue('--text-secondary')
+            },
+            grid: {
+              color: getComputedStyle(document.body).getPropertyValue('--border-color')
+            }
+          },
+          x: {
+            ticks: {
+              color: getComputedStyle(document.body).getPropertyValue('--text-secondary')
+            },
+            grid: {
+              display: false
+            }
+          }
+        }
+      }
+    });
+
+    console.log('✅ createCompletionRateChart: Chart created');
+  }
+
+  // ==================== רינדור ====================
+
+  async renderAnalyticsDashboard() {
+    console.log('🎨 renderAnalyticsDashboard: Rendering dashboard...');
+    
+    const panel = document.getElementById('analytics-panel');
+    if (!panel) {
+      console.warn('⚠️ renderAnalyticsDashboard: Panel not found');
+      return;
+    }
+
+    await this.collectData();
+
+    // סטטיסטיקות מרכזיות
+    const totalTasks = await this.getTotalTasks();
+    const completionRate = await this.getOverallCompletionRate();
+    const avgTimeToComplete = await this.getAvgTimeToComplete();
+    const mostProductiveHour = this.getMostProductiveHour();
+
+    panel.innerHTML = `
+      <h2>📊 דשבורד אנליטיקה מתקדם</h2>
       
-      if (subjectTasks.length > 0) {
-        completion[s.id] = {
-          name: s.name,
-          color: s.color,
-          total: subjectTasks.length,
-          completed,
-          completionRate: (completed / subjectTasks.length) * 100
-        };
-      }
-    });
-
-    return Object.values(completion)
-      .sort((a, b) => b.completionRate - a.completionRate);
-  }
-
-  // זמן השלמה ממוצע
-  calculateAverageCompletionTime(homework) {
-    const completedTasks = homework.filter(h => h.completed && h.completionDate);
-    
-    if (completedTasks.length === 0) return 0;
-
-    const totalDays = completedTasks.reduce((sum, h) => {
-      const created = new Date(h.createdDate || h.dueDate);
-      const completed = new Date(h.completionDate);
-      const days = Math.floor((completed - created) / (1000 * 60 * 60 * 24));
-      return sum + Math.max(0, days);
-    }, 0);
-
-    return totalDays / completedTasks.length;
-  }
-
-  // אחוז ביצוע בזמן
-  calculateOnTimeRate(homework) {
-    const completedTasks = homework.filter(h => h.completed);
-    if (completedTasks.length === 0) return 100;
-
-    const onTime = completedTasks.filter(h => {
-      const completionDate = new Date(h.completionDate || h.dueDate);
-      const dueDate = new Date(h.dueDate);
-      return completionDate <= dueDate;
-    }).length;
-
-    return (onTime / completedTasks.length) * 100;
-  }
-
-  // חלוקת דחיפות
-  calculateUrgencyDistribution(homework) {
-    const pending = homework.filter(h => !h.completed);
-    
-    return {
-      safe: pending.filter(h => getDaysUntilDue(h.dueDate) > 7).length,
-      approaching: pending.filter(h => {
-        const days = getDaysUntilDue(h.dueDate);
-        return days >= 3 && days <= 7;
-      }).length,
-      urgent: pending.filter(h => {
-        const days = getDaysUntilDue(h.dueDate);
-        return days >= 0 && days <= 2;
-      }).length,
-      overdue: pending.filter(h => getDaysUntilDue(h.dueDate) < 0).length
-    };
-  }
-
-  // תגיות פופולריות
-  calculatePopularTags(homework) {
-    const tagCounts = {};
-    
-    homework.forEach(h => {
-      if (h.tags) {
-        h.tags.forEach(tag => {
-          tagCounts[tag] = (tagCounts[tag] || 0) + 1;
-        });
-      }
-    });
-
-    return Object.entries(tagCounts)
-      .map(([tag, count]) => ({ tag, count }))
-      .sort((a, b) => b.count - a.count)
-      .slice(0, 10);
-  }
-
-  // תחזיות
-  calculatePredictions(homework) {
-    const pending = homework.filter(h => !h.completed);
-    const last30Days = homework.filter(h => {
-      const dueDate = new Date(h.dueDate);
-      const thirtyDaysAgo = new Date();
-      thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
-      return dueDate >= thirtyDaysAgo;
-    });
-
-    const avgTasksPerWeek = (last30Days.length / 30) * 7;
-    const completionRate = this.calculateOnTimeRate(homework);
-
-    return {
-      estimatedTasksNextWeek: Math.round(avgTasksPerWeek),
-      estimatedCompletionRate: completionRate,
-      riskLevel: pending.filter(h => getDaysUntilDue(h.dueDate) <= 2).length > 5 ? 'high' : 
-                 pending.filter(h => getDaysUntilDue(h.dueDate) <= 7).length > 3 ? 'medium' : 'low'
-    };
-  }
-
-  // רינדור דשבורד אנליטיקה
-  renderAnalyticsDashboard(homework, subjects) {
-    console.log('🎨 AnalyticsManager: Rendering analytics dashboard...');
-    
-    const analytics = this.calculateAdvancedAnalytics(homework, subjects);
-
-    let html = `
-      <div class="analytics-dashboard">
-        <h2>📊 דשבורד אנליטיקה מתקדם</h2>
-
-        <!-- תחזיות -->
-        <div class="analytics-section predictions">
-          <h3>🔮 תחזיות</h3>
-          <div class="prediction-cards">
-            <div class="prediction-card">
-              <div class="prediction-icon">📈</div>
-              <div class="prediction-value">${analytics.predictions.estimatedTasksNextWeek}</div>
-              <div class="prediction-label">משימות צפויות בשבוע הבא</div>
-            </div>
-            <div class="prediction-card">
-              <div class="prediction-icon">✅</div>
-              <div class="prediction-value">${Math.round(analytics.predictions.estimatedCompletionRate)}%</div>
-              <div class="prediction-label">אחוז השלמה צפוי</div>
-            </div>
-            <div class="prediction-card risk-${analytics.predictions.riskLevel}">
-              <div class="prediction-icon">${analytics.predictions.riskLevel === 'high' ? '🔴' : analytics.predictions.riskLevel === 'medium' ? '🟡' : '🟢'}</div>
-              <div class="prediction-value">${analytics.predictions.riskLevel === 'high' ? 'גבוה' : analytics.predictions.riskLevel === 'medium' ? 'בינוני' : 'נמוך'}</div>
-              <div class="prediction-label">רמת סיכון</div>
-            </div>
-          </div>
+      <div class="analytics-summary">
+        <div class="analytics-summary-card">
+          <div class="summary-icon">📝</div>
+          <div class="summary-value">${totalTasks}</div>
+          <div class="summary-label">סה"כ משימות</div>
         </div>
-
-        <!-- יעילות -->
-        <div class="analytics-section efficiency">
-          <h3>⚡ יעילות</h3>
-          <div class="efficiency-metrics">
-            <div class="metric-item">
-              <div class="metric-label">אחוז השלמה כללי</div>
-              <div class="metric-bar">
-                <div class="metric-fill" style="width: ${analytics.completionRate}%; background: #10b981;"></div>
-              </div>
-              <div class="metric-value">${Math.round(analytics.completionRate)}%</div>
-            </div>
-            <div class="metric-item">
-              <div class="metric-label">אחוז ביצוע בזמן</div>
-              <div class="metric-bar">
-                <div class="metric-fill" style="width: ${analytics.onTimeRate}%; background: #3b82f6;"></div>
-              </div>
-              <div class="metric-value">${Math.round(analytics.onTimeRate)}%</div>
-            </div>
-            <div class="metric-item">
-              <div class="metric-label">זמן השלמה ממוצע</div>
-              <div class="metric-value-large">${analytics.averageCompletionTime.toFixed(1)} ימים</div>
-            </div>
-          </div>
+        <div class="analytics-summary-card">
+          <div class="summary-icon">✅</div>
+          <div class="summary-value">${completionRate}%</div>
+          <div class="summary-label">שיעור השלמה</div>
         </div>
-
-        <!-- גרפים -->
-        <div class="analytics-charts">
-          <div class="chart-container">
-            <h3>📈 מגמה שבועית</h3>
-            <canvas id="weekly-trend-chart"></canvas>
-          </div>
-          <div class="chart-container">
-            <h3>📊 השלמה לפי יום בשבוע</h3>
-            <canvas id="day-completion-chart"></canvas>
-          </div>
-          <div class="chart-container">
-            <h3>🎯 חלוקת דחיפות</h3>
-            <canvas id="urgency-distribution-chart"></canvas>
-          </div>
-          <div class="chart-container">
-            <h3>📚 השלמה לפי מקצוע</h3>
-            <canvas id="subject-completion-chart"></canvas>
-          </div>
+        <div class="analytics-summary-card">
+          <div class="summary-icon">⏱️</div>
+          <div class="summary-value">${avgTimeToComplete}</div>
+          <div class="summary-label">ממוצע ימים להשלמה</div>
         </div>
+        <div class="analytics-summary-card">
+          <div class="summary-icon">🌟</div>
+          <div class="summary-value">${mostProductiveHour}:00</div>
+          <div class="summary-label">שעה הכי פרודוקטיבית</div>
+        </div>
+      </div>
 
-        <!-- תגיות פופולריות -->
-        ${analytics.popularTags.length > 0 ? `
-          <div class="analytics-section tags">
-            <h3>🏷️ תגיות פופולריות</h3>
-            <div class="popular-tags">
-              ${analytics.popularTags.map(tag => `
-                <div class="popular-tag">
-                  <span class="tag-name">${tag.tag}</span>
-                  <span class="tag-count">${tag.count}</span>
-                </div>
-              `).join('')}
-            </div>
-          </div>
-        ` : ''}
+      <div class="analytics-charts-grid">
+        <div class="analytics-chart-wrapper">
+          <canvas id="analytics-daily-chart"></canvas>
+        </div>
+        <div class="analytics-chart-wrapper">
+          <canvas id="analytics-subject-chart"></canvas>
+        </div>
+        <div class="analytics-chart-wrapper">
+          <canvas id="analytics-productivity-chart"></canvas>
+        </div>
+        <div class="analytics-chart-wrapper">
+          <canvas id="analytics-completion-chart"></canvas>
+        </div>
+      </div>
 
-        <!-- מגמה חודשית -->
-        ${analytics.monthlyTrend.length > 0 ? `
-          <div class="analytics-section monthly">
-            <h3>📅 מגמה חודשית</h3>
-            <div class="monthly-table">
-              <table>
-                <thead>
-                  <tr>
-                    <th>חודש</th>
-                    <th>סה"כ</th>
-                    <th>הושלמו</th>
-                    <th>באיחור</th>
-                    <th>אחוז השלמה</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  ${analytics.monthlyTrend.map(month => `
-                    <tr>
-                      <td>${month.month}</td>
-                      <td>${month.total}</td>
-                      <td class="success">${month.completed}</td>
-                      <td class="danger">${month.overdue}</td>
-                      <td>
-                        <div class="mini-bar">
-                          <div class="mini-bar-fill" style="width: ${month.completionRate}%; background: #10b981;"></div>
-                        </div>
-                        ${Math.round(month.completionRate)}%
-                      </td>
-                    </tr>
-                  `).join('')}
-                </tbody>
-              </table>
-            </div>
-          </div>
-        ` : ''}
+      <div class="analytics-insights">
+        <h3>💡 תובנות</h3>
+        ${this.generateInsights()}
       </div>
     `;
 
-    return html;
+    // יצירת גרפים
+    setTimeout(() => {
+      this.createDailyChart();
+      this.createSubjectChart();
+      this.createProductivityChart();
+      this.createCompletionRateChart();
+    }, 100);
+
+    console.log('✅ renderAnalyticsDashboard: Dashboard rendered');
   }
 
-  // יצירת גרפים
-  createAnalyticsCharts(homework, subjects) {
-    console.log('📊 AnalyticsManager: Creating analytics charts...');
-    
-    const analytics = this.calculateAdvancedAnalytics(homework, subjects);
-
-    // ניקוי גרפים קיימים
-    Object.values(this.charts).forEach(chart => {
-      if (chart) chart.destroy();
-    });
-    this.charts = {};
-
-    // גרף מגמה שבועית
-    const weeklyCtx = document.getElementById('weekly-trend-chart');
-    if (weeklyCtx) {
-      this.charts.weeklyTrend = new Chart(weeklyCtx, {
-        type: 'line',
-        data: {
-          labels: analytics.weeklyTrend.map(d => d.dayName),
-          datasets: [
-            {
-              label: 'הושלמו',
-              data: analytics.weeklyTrend.map(d => d.completed),
-              borderColor: '#10b981',
-              backgroundColor: 'rgba(16, 185, 129, 0.1)',
-              tension: 0.4,
-              fill: true
-            },
-            {
-              label: 'נוספו',
-              data: analytics.weeklyTrend.map(d => d.added),
-              borderColor: '#3b82f6',
-              backgroundColor: 'rgba(59, 130, 246, 0.1)',
-              tension: 0.4,
-              fill: true
-            }
-          ]
-        },
-        options: {
-          responsive: true,
-          maintainAspectRatio: true,
-          plugins: {
-            legend: {
-              labels: {
-                color: getComputedStyle(document.body).getPropertyValue('--text-primary')
-              }
-            }
-          },
-          scales: {
-            y: {
-              beginAtZero: true,
-              ticks: {
-                stepSize: 1,
-                color: getComputedStyle(document.body).getPropertyValue('--text-secondary')
-              },
-              grid: {
-                color: getComputedStyle(document.body).getPropertyValue('--border-color')
-              }
-            },
-            x: {
-              ticks: {
-                color: getComputedStyle(document.body).getPropertyValue('--text-secondary')
-              },
-              grid: {
-                display: false
-              }
-            }
-          }
-        }
-      });
-    }
-
-    // גרף השלמה לפי יום
-    const dayCtx = document.getElementById('day-completion-chart');
-    if (dayCtx) {
-      this.charts.dayCompletion = new Chart(dayCtx, {
-        type: 'bar',
-        data: {
-          labels: analytics.completionByDay.map(d => d.name),
-          datasets: [{
-            label: 'אחוז השלמה',
-            data: analytics.completionByDay.map(d => d.completionRate),
-            backgroundColor: analytics.completionByDay.map(d => 
-              d.completionRate >= 75 ? '#10b981' :
-              d.completionRate >= 50 ? '#f59e0b' : '#ef4444'
-            ),
-            borderWidth: 0
-          }]
-        },
-        options: {
-          responsive: true,
-          maintainAspectRatio: true,
-          plugins: {
-            legend: {
-              display: false
-            }
-          },
-          scales: {
-            y: {
-              beginAtZero: true,
-              max: 100,
-              ticks: {
-                callback: (value) => value + '%',
-                color: getComputedStyle(document.body).getPropertyValue('--text-secondary')
-              },
-              grid: {
-                color: getComputedStyle(document.body).getPropertyValue('--border-color')
-              }
-            },
-            x: {
-              ticks: {
-                color: getComputedStyle(document.body).getPropertyValue('--text-secondary')
-              },
-              grid: {
-                display: false
-              }
-            }
-          }
-        }
-      });
-    }
-
-    // גרף חלוקת דחיפות
-    const urgencyCtx = document.getElementById('urgency-distribution-chart');
-    if (urgencyCtx) {
-      this.charts.urgency = new Chart(urgencyCtx, {
-        type: 'doughnut',
-        data: {
-          labels: ['בטוח (7+ ימים)', 'מתקרב (3-7 ימים)', 'דחוף (0-2 ימים)', 'באיחור'],
-          datasets: [{
-            data: [
-              analytics.urgencyDistribution.safe,
-              analytics.urgencyDistribution.approaching,
-              analytics.urgencyDistribution.urgent,
-              analytics.urgencyDistribution.overdue
-            ],
-            backgroundColor: ['#10b981', '#3b82f6', '#f59e0b', '#ef4444'],
-            borderWidth: 2,
-            borderColor: '#ffffff'
-          }]
-        },
-        options: {
-          responsive: true,
-          maintainAspectRatio: true,
-          plugins: {
-            legend: {
-              position: 'bottom',
-              labels: {
-                color: getComputedStyle(document.body).getPropertyValue('--text-primary')
-              }
-            }
-          }
-        }
-      });
-    }
-
-    // גרף השלמה לפי מקצוע
-    const subjectCompCtx = document.getElementById('subject-completion-chart');
-    if (subjectCompCtx) {
-      this.charts.subjectCompletion = new Chart(subjectCompCtx, {
-        type: 'horizontalBar',
-        data: {
-          labels: analytics.subjectCompletion.map(s => s.name),
-          datasets: [{
-            label: 'אחוז השלמה',
-            data: analytics.subjectCompletion.map(s => s.completionRate),
-            backgroundColor: analytics.subjectCompletion.map(s => s.color + '80'),
-            borderColor: analytics.subjectCompletion.map(s => s.color),
-            borderWidth: 2
-          }]
-        },
-        options: {
-          indexAxis: 'y',
-          responsive: true,
-          maintainAspectRatio: true,
-          plugins: {
-            legend: {
-              display: false
-            }
-          },
-          scales: {
-            x: {
-              beginAtZero: true,
-              max: 100,
-              ticks: {
-                callback: (value) => value + '%',
-                color: getComputedStyle(document.body).getPropertyValue('--text-secondary')
-              },
-              grid: {
-                color: getComputedStyle(document.body).getPropertyValue('--border-color')
-              }
-            },
-            y: {
-              ticks: {
-                color: getComputedStyle(document.body).getPropertyValue('--text-secondary')
-              },
-              grid: {
-                display: false
-              }
-            }
-          }
-        }
-      });
-    }
-
-    console.log('✅ AnalyticsManager: Charts created');
+  async getTotalTasks() {
+    const homework = await storage.get('homework-list') || [];
+    return homework.length;
   }
 
-  // עדכון צבעי גרפים
-  updateChartColors() {
-    console.log('🎨 AnalyticsManager: Updating chart colors...');
+  async getOverallCompletionRate() {
+    const homework = await storage.get('homework-list') || [];
+    if (homework.length === 0) return 0;
+    const completed = homework.filter(hw => hw.completed).length;
+    return Math.round((completed / homework.length) * 100);
+  }
+
+  async getAvgTimeToComplete() {
+    const homework = await storage.get('homework-list') || [];
+    return this.calculateAvgTimeToComplete(homework);
+  }
+
+  getMostProductiveHour() {
+    if (this.analyticsData.productivity.length === 0) return 0;
     
-    const textColor = getComputedStyle(document.body).getPropertyValue('--text-primary');
-    const secondaryColor = getComputedStyle(document.body).getPropertyValue('--text-secondary');
-    const borderColor = getComputedStyle(document.body).getPropertyValue('--border-color');
-
-    Object.values(this.charts).forEach(chart => {
-      if (!chart) return;
-
-      if (chart.options.plugins.legend) {
-        chart.options.plugins.legend.labels.color = textColor;
+    let maxTasks = 0;
+    let maxHour = 0;
+    
+    this.analyticsData.productivity.forEach(h => {
+      if (h.tasks > maxTasks) {
+        maxTasks = h.tasks;
+        maxHour = h.hour;
       }
-      
-      if (chart.options.scales) {
-        if (chart.options.scales.x) {
-          chart.options.scales.x.ticks.color = secondaryColor;
-          if (chart.options.scales.x.grid) {
-            chart.options.scales.x.grid.color = borderColor;
-          }
-        }
-        if (chart.options.scales.y) {
-          chart.options.scales.y.ticks.color = secondaryColor;
-          if (chart.options.scales.y.grid) {
-            chart.options.scales.y.grid.color = borderColor;
-          }
-        }
-      }
-
-      chart.update();
     });
+    
+    return maxHour;
+  }
 
-    console.log('✅ AnalyticsManager: Chart colors updated');
+  generateInsights() {
+    const insights = [];
+    
+    // תובנה על מקצוע עם הכי הרבה משימות
+    const subjects = Object.values(this.analyticsData.subjects);
+    if (subjects.length > 0) {
+      const maxSubject = subjects.reduce((max, s) => s.total > max.total ? s : max);
+      insights.push(`
+        <div class="insight-item">
+          <span class="insight-icon">📚</span>
+          <span>המקצוע עם הכי הרבה משימות הוא <strong>${maxSubject.name}</strong> עם ${maxSubject.total} משימות</span>
+        </div>
+      `);
+    }
+    
+    // תובנה על רצף
+    if (gamification && gamification.userStats) {
+      const streak = gamification.userStats.streak;
+      if (streak > 0) {
+        insights.push(`
+          <div class="insight-item">
+            <span class="insight-icon">🔥</span>
+            <span>אתה ב-streak של <strong>${streak} ימים</strong>! המשך כך!</span>
+          </div>
+        `);
+      }
+    }
+    
+    // תובנה על פרודוקטיביות
+    const mostProductiveHour = this.getMostProductiveHour();
+    insights.push(`
+      <div class="insight-item">
+        <span class="insight-icon">⏰</span>
+        <span>השעה הכי פרודוקטיבית שלך היא <strong>${mostProductiveHour}:00</strong></span>
+      </div>
+    `);
+    
+    return insights.join('');
   }
 }
 
 // יצירת אובייקט גלובלי
 console.log('📊 Creating global analytics manager...');
-const analyticsManager = new AnalyticsManager();
+const analytics = new AnalyticsManager();
 console.log('✅ Global analytics manager created');
+
+// אתחול
+window.addEventListener('DOMContentLoaded', async () => {
+  console.log('📊 analytics.js: Initializing...');
+  
+  const panel = document.getElementById('analytics-panel');
+  if (panel) {
+    await analytics.renderAnalyticsDashboard();
+  }
+  
+  console.log('✅ analytics.js: Initialized');
+});
