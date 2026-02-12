@@ -1,6 +1,6 @@
 // Integration Layer - חיבור בין הפיצ'רים החדשים לקוד המקורי
 // ================================================================
-// ⭐ מערכת XP דינמית + יום מושלם חכם שבודק מחדש בכל פעם
+// ⭐ מערכת XP דינמית + יום מושלם חכם + מעקב צבעים ותגיות
 
 console.log('🔗 Integration: Starting integration layer...');
 
@@ -15,20 +15,14 @@ if (typeof toggleComplete === 'function') {
     
     originalToggleComplete(id);
     
-    // אם המשימה הושלמה עכשיו (ולא הייתה מושלמת קודם)
     if (hw && !wasCompleted && hw.completed) {
       console.log('🔗 Integration: Task completed, awarding XP...');
       
       hw.completedAt = new Date().toISOString();
-      
-      // בדיקה אם זה מוקדם
       const daysLeft = getDaysUntilDue(hw.dueDate);
       const isEarly = daysLeft > 0;
-      
-      // שמירת מידע על מהירות
       hw.wasEarly = isEarly;
       
-      // ספירת משימות היום
       const today = new Date().toDateString();
       const tasksToday = homework.filter(h => {
         if (!h.completedAt) return false;
@@ -36,47 +30,34 @@ if (typeof toggleComplete === 'function') {
         return completedDate === today && h.completed;
       }).length;
       
-      // הפעלת גמיפיקציה
       if (typeof gamification !== 'undefined') {
         gamification.onTaskCompleted(isEarly, tasksToday);
       }
       
-      // בדיקת יום מושלם - תמיד מחדש!
       checkAndUpdatePerfectDay();
-      
-      // שמירת הנתונים
       saveData();
     } 
-    // ⭐ אם המשימה בוטלה (הייתה מושלמת ועכשיו לא) - מחזירים XP
     else if (hw && wasCompleted && !hw.completed) {
       console.log('⏪ Integration: Task uncompleted - reversing XP...');
       
       if (typeof gamification !== 'undefined') {
-        // הסרת XP בסיסי
         gamification.removeXP(10, 'ביטול משימה');
         
-        // הסרת בונוס מהירות אם היה
         if (hw.wasEarly) {
           gamification.removeXP(5, 'ביטול בונוס מהירות');
           hw.wasEarly = false;
         }
         
-        // עדכון סטטיסטיקות
         if (gamification.userStats.totalTasksCompleted > 0) {
           gamification.userStats.totalTasksCompleted--;
         }
         
-        // בדיקה מחדש של הישגים (עשוי לבטל הישגים)
         gamification.recheckAchievements();
-        
         gamification.saveStats();
       }
       
       hw.completedAt = null;
-      
-      // בדיקת יום מושלם - תמיד מחדש!
       checkAndUpdatePerfectDay();
-      
       saveData();
       
       if (notifications && notifications.showInAppNotification) {
@@ -101,18 +82,15 @@ function checkAndUpdatePerfectDay() {
   
   console.log(`✨ checkAndUpdatePerfectDay: Found ${todayHomework.length} tasks for today`);
   
-  // בדיקת המצב האמיתי כרגע
   const isPerfectNow = todayHomework.length > 0 && todayHomework.every(h => h.completed);
   const completedCount = todayHomework.filter(h => h.completed).length;
   
   console.log(`✨ checkAndUpdatePerfectDay: ${completedCount}/${todayHomework.length} completed. Perfect NOW: ${isPerfectNow}`);
   
-  // בדיקת המצב השמור
   const wasPerfectBefore = gamification.userStats.perfectDayToday === today;
   
   console.log(`✨ checkAndUpdatePerfectDay: Was perfect BEFORE: ${wasPerfectBefore}`);
   
-  // ⭐ מצב 1: עכשיו מושלם, לא היה מושלם קודם → תן XP והישג!
   if (isPerfectNow && !wasPerfectBefore) {
     console.log('🎉 checkAndUpdatePerfectDay: NEW perfect day achieved!');
     
@@ -126,7 +104,6 @@ function checkAndUpdatePerfectDay() {
       notifications.showInAppNotification('🎉 יום מושלם! כל המשימות הושלמו! +50 XP', 'success');
     }
   }
-  // ⭐ מצב 2: לא מושלם עכשיו, אבל היה מושלם קודם → בטל XP והישג!
   else if (!isPerfectNow && wasPerfectBefore) {
     console.log('⏪ checkAndUpdatePerfectDay: Perfect day LOST!');
     
@@ -142,11 +119,9 @@ function checkAndUpdatePerfectDay() {
       notifications.showInAppNotification('⏪ יום מושלם בוטל - יש משימות שלא הושלמו', 'info');
     }
   }
-  // ⭐ מצב 3: עדיין מושלם (היה מושלם וגם עכשיו מושלם)
   else if (isPerfectNow && wasPerfectBefore) {
     console.log('✨ checkAndUpdatePerfectDay: Still perfect - no change needed');
   }
-  // ⭐ מצב 4: עדיין לא מושלם (לא היה מושלם וגם עכשיו לא מושלם)
   else if (!isPerfectNow && !wasPerfectBefore) {
     console.log('⏸️ checkAndUpdatePerfectDay: Still not perfect - no change needed');
   }
@@ -160,7 +135,6 @@ if (typeof addHomework === 'function') {
     
     originalAddHomework();
     
-    // הוספת timestamp אם נוספה משימה
     if (homework.length > beforeLength) {
       const newHomework = homework[homework.length - 1];
       newHomework.createdAt = new Date().toISOString();
@@ -170,7 +144,6 @@ if (typeof addHomework === 'function') {
       saveData();
       console.log('🔗 Integration: Added timestamps to new homework');
       
-      // בדיקת יום מושלם (אולי הוספת משימה ביטלה יום מושלם!)
       checkAndUpdatePerfectDay();
     }
   };
@@ -183,17 +156,75 @@ if (typeof deleteHomework === 'function') {
   window.deleteHomework = function(id) {
     originalDeleteHomework(id);
     
-    // עדכון אינדקס חיפוש
     if (typeof smartSearch !== 'undefined') {
       smartSearch.buildSearchIndex();
     }
     
-    // בדיקת יום מושלם (אולי מחיקה השלימה יום מושלם!)
     checkAndUpdatePerfectDay();
     
     console.log('🔗 Integration: Search index updated after deletion');
   };
   console.log('✅ Integration: deleteHomework enhanced');
+}
+
+// ⭐ הרחבת addSubject - עדכון צבעים
+if (typeof addSubject === 'function') {
+  const originalAddSubject = addSubject;
+  window.addSubject = function() {
+    originalAddSubject();
+    
+    // עדכון סטטיסטיקות צבעים
+    if (typeof gamification !== 'undefined') {
+      console.log('🎨 Integration: Subject added, updating color stats...');
+      gamification.onSubjectsOrTagsChanged();
+    }
+  };
+  console.log('✅ Integration: addSubject enhanced with color tracking');
+}
+
+// ⭐ הרחבת deleteSubject - עדכון צבעים
+if (typeof deleteSubject === 'function') {
+  const originalDeleteSubject = deleteSubject;
+  window.deleteSubject = function(id) {
+    originalDeleteSubject(id);
+    
+    // עדכון סטטיסטיקות צבעים
+    if (typeof gamification !== 'undefined') {
+      console.log('🎨 Integration: Subject deleted, updating color stats...');
+      gamification.onSubjectsOrTagsChanged();
+    }
+  };
+  console.log('✅ Integration: deleteSubject enhanced with color tracking');
+}
+
+// ⭐ הרחבת addTag - עדכון תגיות
+if (typeof addTag === 'function') {
+  const originalAddTag = addTag;
+  window.addTag = function() {
+    originalAddTag();
+    
+    // עדכון סטטיסטיקות תגיות
+    if (typeof gamification !== 'undefined') {
+      console.log('🏷️ Integration: Tag added, updating tag stats...');
+      gamification.onSubjectsOrTagsChanged();
+    }
+  };
+  console.log('✅ Integration: addTag enhanced with tag tracking');
+}
+
+// ⭐ הרחבת removeTag - עדכון תגיות
+if (typeof removeTag === 'function') {
+  const originalRemoveTag = removeTag;
+  window.removeTag = function(tag) {
+    originalRemoveTag(tag);
+    
+    // עדכון סטטיסטיקות תגיות
+    if (typeof gamification !== 'undefined') {
+      console.log('🏷️ Integration: Tag removed, updating tag stats...');
+      gamification.onSubjectsOrTagsChanged();
+    }
+  };
+  console.log('✅ Integration: removeTag enhanced with tag tracking');
 }
 
 // הרחבת render לעדכן גמיפיקציה
@@ -202,12 +233,10 @@ if (typeof render === 'function') {
   window.render = function() {
     originalRender();
     
-    // עדכון גמיפיקציה
     if (typeof gamification !== 'undefined') {
       gamification.updateUI();
     }
     
-    // עדכון אינדקס חיפוש
     if (typeof smartSearch !== 'undefined') {
       smartSearch.buildSearchIndex();
     }
@@ -246,13 +275,11 @@ function updateHeaderXP() {
 
 // חיבור אירועי טיימר לגמיפיקציה
 if (typeof studyTimer !== 'undefined') {
-  // שמירה על הפונקציה המקורית
   const originalOnTimerComplete = studyTimer.onTimerComplete.bind(studyTimer);
   
   studyTimer.onTimerComplete = function() {
     originalOnTimerComplete();
     
-    // הוספת זמן לימוד לגמיפיקציה
     if (this.currentMode === 'pomodoro' && typeof gamification !== 'undefined') {
       gamification.onStudyTimeAdded(this.settings.pomodoroDuration);
     }
@@ -271,8 +298,12 @@ setInterval(() => {
 // עדכון מיידי + בדיקת יום מושלם ראשונית
 setTimeout(() => {
   updateHeaderXP();
-  // בדיקה ראשונית של יום מושלם כשטוענים את הדף
   checkAndUpdatePerfectDay();
+  
+  // ⭐ עדכון ראשוני של צבעים ותגיות
+  if (typeof gamification !== 'undefined') {
+    gamification.onSubjectsOrTagsChanged();
+  }
 }, 1000);
 
 // ==================== הודעות לקונסול ====================
@@ -280,12 +311,14 @@ setTimeout(() => {
 console.log('✅ Integration: All features integrated successfully!');
 console.log('🔄 Integration: Dynamic XP system - XP is reversed when tasks are uncompleted');
 console.log('✨ Integration: Smart Perfect Day - always checks actual state');
+console.log('🎨 Integration: Creative tracking - colors and tags are monitored');
 console.log('🎉 Enhanced Homework System is ready to use!');
 console.log('');
 console.log('📚 Available features:');
 console.log('  ⏰ Study Timer & Pomodoro');
 console.log('  🏆 Achievements & Gamification (Dynamic XP!)');
 console.log('  ✨ Smart Perfect Day Detection');
+console.log('  🎨 Creative Achievement Tracking (Colors & Tags)');
 console.log('  📊 Advanced Analytics');
 console.log('  🎨 Theme Customizer');
 console.log('  ⚡ Quick Actions (Ctrl+H for help)');
@@ -297,3 +330,8 @@ console.log('🔄 Perfect Day System:');
 console.log('  ✅ Checks actual state every time');
 console.log('  ✅ Awards/removes XP based on real status');
 console.log('  ✅ Updates on: complete, uncomplete, add, delete');
+console.log('');
+console.log('🎨 Creative Achievement System:');
+console.log('  ✅ Tracks unique colors used in subjects');
+console.log('  ✅ Tracks total number of tags created');
+console.log('  ✅ Updates on: subject add/delete, tag add/remove');
