@@ -1,5 +1,5 @@
-// Authentication Manager with Guest Mode Support + Google Sign-In
-// =================================================================
+// Authentication Manager with Guest Mode Support
+// ===============================================
 
 class AuthManager {
   constructor() {
@@ -8,9 +8,8 @@ class AuthManager {
     this.db = null;
     this.authStateListener = null;
     this.isGuestMode = false;
-    this.autoSyncEnabled = true; // סנכרון אוטומטי
     
-    console.log('🔐 AuthManager: Initialized with Guest Mode + Google Sign-In support');
+    console.log('🔐 AuthManager: Initialized with Guest Mode support');
   }
 
   // ==================== אתחול ====================
@@ -203,13 +202,6 @@ class AuthManager {
         await user.updateProfile({ displayName });
       }
       
-      // שליחת אימות אימייל מיד
-      await user.sendEmailVerification({
-        url: window.location.href,
-        handleCodeInApp: false
-      });
-      console.log('📧 Verification email sent to:', user.email);
-      
       // העברת הנתונים ל-Firestore
       await this.createUserDocument(user.uid, {
         email: user.email,
@@ -240,7 +232,10 @@ class AuthManager {
       clearGuestData();
       this.isGuestMode = false;
       
-      this.showSuccess('החשבון נוצר בהצלחה! הנתונים שלך הועברו. בדוק את האימייל לאימות החשבון.');
+      // שליחת אימות אימייל
+      await user.sendEmailVerification();
+      
+      this.showSuccess('החשבון נוצר בהצלחה! הנתונים שלך הועברו. נשלח אימייל אימות.');
       console.log('✅ Guest converted to user successfully');
       
       return true;
@@ -251,39 +246,35 @@ class AuthManager {
     }
   }
 
-  // ==================== פעולות אימות ====================
+  // ==================== רישום ====================
   
   async signup(email, password, displayName) {
-    console.log('📝 signup: Creating new user account...');
-    
-    if (!this.validateEmail(email)) {
-      this.showError('כתובת אימייל לא תקינה');
-      return false;
-    }
-    
-    if (password.length < 6) {
-      this.showError('הסיסמה חייבת להכיל לפחות 6 תווים');
-      return false;
-    }
+    console.log('📝 Signup: Attempting signup for', email);
     
     try {
-      // יצירת משתמש חדש
+      // וולידציה
+      if (!this.validateEmail(email)) {
+        throw new Error('כתובת אימייל לא תקינה');
+      }
+      
+      if (password.length < 6) {
+        throw new Error('הסיסמה חייבת להכיל לפחות 6 תווים');
+      }
+      
+      // יצירת משתמש
       const userCredential = await this.auth.createUserWithEmailAndPassword(email, password);
       const user = userCredential.user;
       
-      console.log('✅ User created:', user.uid);
+      console.log('✅ Signup: User created:', user.uid);
       
       // עדכון שם תצוגה
       if (displayName) {
         await user.updateProfile({ displayName });
+        console.log('✅ Signup: Display name updated');
       }
       
-      // שליחת אימות אימייל מיד
-      await user.sendEmailVerification({
-        url: window.location.href,
-        handleCodeInApp: false
-      });
-      console.log('📧 Verification email sent to:', user.email);
+      // שליחת אימות אימייל
+      await this.sendVerificationEmail();
       
       // יצירת מסמך משתמש ב-Firestore
       await this.createUserDocument(user.uid, {
@@ -293,41 +284,87 @@ class AuthManager {
         emailVerified: false
       });
       
-      this.showSuccess('החשבון נוצר בהצלחה! בדוק את האימייל שלך לאימות החשבון.');
+      this.showSuccess('החשבון נוצר בהצלחה! נשלח אימייל אימות.');
+      console.log('✅ Signup: Complete');
       
-      return true;
+      return user;
     } catch (error) {
       console.error('❌ Signup error:', error);
       this.handleAuthError(error);
-      return false;
+      throw error;
     }
   }
 
+  // ==================== התחברות ====================
+  
   async login(email, password) {
-    console.log('🔑 login: Authenticating user...');
-    
-    if (!this.validateEmail(email)) {
-      this.showError('כתובת אימייל לא תקינה');
-      return false;
-    }
+    console.log('🔑 Login: Attempting login for', email);
     
     try {
+      // וולידציה
+      if (!this.validateEmail(email)) {
+        throw new Error('כתובת אימייל לא תקינה');
+      }
+      
+      if (!password) {
+        throw new Error('נא להזין סיסמה');
+      }
+      
+      // התחברות
       const userCredential = await this.auth.signInWithEmailAndPassword(email, password);
       const user = userCredential.user;
       
-      console.log('✅ Login successful:', user.email);
-      this.showSuccess('התחברת בהצלחה!');
+      console.log('✅ Login: Success for', user.email);
       
-      return true;
+      // עדכון זמן התחברות אחרון
+      await this.updateUserDocument(user.uid, {
+        lastLogin: firebase.firestore.FieldValue.serverTimestamp()
+      });
+      
+      this.showSuccess(`ברוך הבא, ${user.displayName || user.email}!`);
+      
+      return user;
     } catch (error) {
       console.error('❌ Login error:', error);
       this.handleAuthError(error);
-      return false;
+      throw error;
     }
   }
 
-  async signInWithGoogle() {
-    console.log('🔵 signInWithGoogle: Starting Google authentication...');
+  // ==================== התנתקות ====================
+  
+  async logout() {
+    console.log('👋 Logout: Logging out user...');
+    
+    try {
+      if (this.isGuestMode) {
+        // התנתקות אורח
+        console.log('👋 Logging out guest...');
+        this.isGuestMode = false;
+        this.currentUser = null;
+        
+        // הצגת מסך התחברות
+        this.showAuthUI();
+        this.hideApp();
+        
+        this.showSuccess('התנתקת בהצלחה');
+      } else {
+        // התנתקות משתמש רגיל
+        await this.auth.signOut();
+        console.log('✅ Logout: Success');
+        this.showSuccess('התנתקת בהצלחה');
+      }
+    } catch (error) {
+      console.error('❌ Logout error:', error);
+      this.showError('שגיאה בהתנתקות');
+      throw error;
+    }
+  }
+
+  // ==================== Google Sign-In ====================
+  
+  async loginWithGoogle() {
+    console.log('🔑 Google Login: Attempting...');
     
     try {
       const provider = new firebase.auth.GoogleAuthProvider();
@@ -335,240 +372,130 @@ class AuthManager {
         prompt: 'select_account'
       });
       
-      // התחברות עם Google
       const result = await this.auth.signInWithPopup(provider);
       const user = result.user;
       
-      console.log('✅ Google sign-in successful:', user.email);
+      console.log('✅ Google Login: Success');
       
-      // בדיקה אם זה משתמש חדש
-      const additionalUserInfo = result.additionalUserInfo;
-      if (additionalUserInfo && additionalUserInfo.isNewUser) {
-        console.log('🆕 New Google user, creating Firestore document...');
-        
-        // יצירת מסמך משתמש ב-Firestore
+      // בדיקה אם זה משתמש חדש - צור מסמך
+      if (result.additionalUserInfo.isNewUser) {
         await this.createUserDocument(user.uid, {
           email: user.email,
           displayName: user.displayName,
           photoURL: user.photoURL,
           createdAt: firebase.firestore.FieldValue.serverTimestamp(),
           emailVerified: user.emailVerified,
-          provider: 'google.com'
+          provider: 'google'
         });
-      } else {
-        console.log('👤 Existing Google user logged in');
       }
       
-      // אם יש נתוני אורח, שאל אם להעביר
-      if (isGuestMode()) {
-        await this.migrateGuestDataToUser(user.uid);
-      }
-      
-      this.showSuccess('התחברת בהצלחה עם Google!');
-      return true;
-      
+      return user;
     } catch (error) {
-      console.error('❌ Google sign-in error:', error);
-      
-      if (error.code === 'auth/popup-closed-by-user') {
-        this.showError('ההתחברות בוטלה');
-      } else if (error.code === 'auth/popup-blocked') {
-        this.showError('החלון הקופץ נחסם. אנא אפשר חלונות קופצים.');
-      } else {
-        this.handleAuthError(error);
-      }
-      
-      return false;
-    }
-  }
-
-  async linkPasswordProvider(email, password) {
-    console.log('🔗 linkPasswordProvider: Linking password to existing account...');
-    
-    if (!this.currentUser || this.currentUser.isGuest) {
-      this.showError('חייב להיות מחובר עם Google כדי להוסיף סיסמה');
-      return false;
-    }
-    
-    try {
-      const user = this.auth.currentUser;
-      
-      // בדיקה אם כבר יש סיסמה
-      const providers = user.providerData.map(p => p.providerId);
-      if (providers.includes('password')) {
-        this.showError('כבר יש לחשבון זה סיסמה. אם שכחת אותה, השתמש באיפוס סיסמה.');
-        return false;
-      }
-      
-      // יצירת Credential
-      const credential = firebase.auth.EmailAuthProvider.credential(email, password);
-      
-      // קישור הסיסמה לחשבון
-      await user.linkWithCredential(credential);
-      
-      console.log('✅ Password linked successfully');
-      this.showSuccess('סיסמה נוספה בהצלחה! כעת אפשר להתחבר גם עם אימייל וסיסמה.');
-      
-      return true;
-    } catch (error) {
-      console.error('❌ Error linking password:', error);
-      
-      if (error.code === 'auth/email-already-in-use') {
-        this.showError('האימייל כבר קיים עם סיסמה אחרת');
-      } else if (error.code === 'auth/weak-password') {
-        this.showError('הסיסמה חלשה מדי. השתמש בלפחות 6 תווים.');
-      } else {
-        this.handleAuthError(error);
-      }
-      
-      return false;
-    }
-  }
-
-  async logout() {
-    console.log('👋 logout: Signing out...');
-    
-    try {
-      if (this.isGuestMode) {
-        // אורח - פשוט ננקה את המשתנים
-        this.currentUser = null;
-        this.isGuestMode = false;
-        clearGuestData();
-        
-        this.showAuthUI();
-        this.hideApp();
-        
-        this.showSuccess('התנתקת בהצלחה');
-        window.dispatchEvent(new CustomEvent('userLoggedOut'));
-      } else {
-        // משתמש רגיל - התנתקות מ-Firebase
-        await this.auth.signOut();
-        this.showSuccess('התנתקת בהצלחה');
-      }
-      
-      console.log('✅ Logout successful');
-      return true;
-    } catch (error) {
-      console.error('❌ Logout error:', error);
-      this.showError('שגיאה בהתנתקות');
-      return false;
-    }
-  }
-
-  async resetPassword(email) {
-    console.log('🔄 resetPassword: Sending password reset email...');
-    
-    if (!this.validateEmail(email)) {
-      this.showError('כתובת אימייל לא תקינה');
-      return false;
-    }
-    
-    try {
-      await this.auth.sendPasswordResetEmail(email, {
-        url: window.location.href,
-        handleCodeInApp: false
-      });
-      
-      console.log('✅ Password reset email sent');
-      this.showSuccess('נשלח אימייל לאיפוס הסיסמה. בדוק את תיבת הדואר שלך.');
-      
-      return true;
-    } catch (error) {
-      console.error('❌ Password reset error:', error);
+      console.error('❌ Google Login error:', error);
       this.handleAuthError(error);
-      return false;
+      throw error;
     }
   }
 
-  async resendVerificationEmail() {
-    console.log('📧 resendVerificationEmail: Sending verification email...');
+  // ==================== שכחתי סיסמה ====================
+  
+  async resetPassword(email) {
+    console.log('🔐 Password Reset: Sending email to', email);
     
     try {
-      const user = this.auth.currentUser;
-      
-      if (!user) {
-        this.showError('לא נמצא משתמש מחובר');
-        return false;
+      if (!this.validateEmail(email)) {
+        throw new Error('כתובת אימייל לא תקינה');
       }
       
-      if (user.emailVerified) {
-        this.showSuccess('האימייל כבר מאומת!');
-        return true;
-      }
+      await this.auth.sendPasswordResetEmail(email);
       
-      await user.sendEmailVerification({
-        url: window.location.href,
-        handleCodeInApp: false
-      });
-      
-      console.log('✅ Verification email sent');
-      this.showSuccess('אימייל אימות נשלח מחדש. בדוק את תיבת הדואר.');
+      console.log('✅ Password Reset: Email sent');
+      this.showSuccess('נשלח אימייל לאיפוס סיסמה');
       
       return true;
     } catch (error) {
-      console.error('❌ Error sending verification email:', error);
-      
-      if (error.code === 'auth/too-many-requests') {
-        this.showError('נשלחו יותר מדי אימיילים. נסה שוב מאוחר יותר.');
-      } else {
-        this.handleAuthError(error);
-      }
-      
-      return false;
+      console.error('❌ Password Reset error:', error);
+      this.handleAuthError(error);
+      throw error;
     }
   }
 
-  // ==================== ניהול נתונים ====================
+  // ==================== אימות אימייל ====================
+  
+  async sendVerificationEmail() {
+    console.log('📧 Verification: Sending email...');
+    
+    try {
+      const user = this.auth.currentUser;
+      if (!user) {
+        throw new Error('אין משתמש מחובר');
+      }
+      
+      await user.sendEmailVerification();
+      console.log('✅ Verification: Email sent');
+      this.showSuccess('נשלח אימייל אימות');
+      
+      return true;
+    } catch (error) {
+      console.error('❌ Verification error:', error);
+      this.handleAuthError(error);
+      throw error;
+    }
+  }
+
+  // ==================== Firestore ====================
   
   async createUserDocument(uid, data) {
-    console.log('📝 createUserDocument: Creating user document in Firestore...');
+    console.log('📝 Firestore: Creating user document for', uid);
     
     try {
-      await this.db.collection('users').doc(uid).set(data, { merge: true });
-      console.log('✅ User document created/updated');
-      return true;
+      await this.db.collection('users').doc(uid).set(data);
+      console.log('✅ Firestore: User document created');
     } catch (error) {
-      console.error('❌ Error creating user document:', error);
-      return false;
+      console.error('❌ Firestore: Error creating user document:', error);
+    }
+  }
+
+  async updateUserDocument(uid, data) {
+    console.log('📝 Firestore: Updating user document for', uid);
+    
+    try {
+      await this.db.collection('users').doc(uid).update(data);
+      console.log('✅ Firestore: User document updated');
+    } catch (error) {
+      console.error('❌ Firestore: Error updating user document:', error);
     }
   }
 
   async loadUserData() {
-    console.log('📥 loadUserData: Loading user data from Firestore...');
-    
-    if (!this.currentUser || this.currentUser.isGuest) {
-      console.log('⚠️ Not a registered user, skipping Firestore load');
-      return;
-    }
+    console.log('📥 Firestore: Loading user data...');
     
     try {
       const uid = this.currentUser.uid;
       
       // טעינת מקצועות
-      const subjectsSnapshot = await this.db.collection('subjects')
+      const subjectsSnapshot = await this.db
+        .collection('subjects')
         .doc(uid)
         .collection('items')
         .get();
       
-      subjects = [];
-      subjectsSnapshot.forEach(doc => {
-        subjects.push({ id: doc.id, ...doc.data() });
-      });
-      
-      console.log('✅ Loaded subjects:', subjects.length);
+      if (!subjectsSnapshot.empty) {
+        subjects = subjectsSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+        console.log('✅ Loaded subjects:', subjects.length);
+      }
       
       // טעינת משימות
-      const homeworkSnapshot = await this.db.collection('homework')
+      const homeworkSnapshot = await this.db
+        .collection('homework')
         .doc(uid)
         .collection('items')
         .get();
       
-      homework = [];
-      homeworkSnapshot.forEach(doc => {
-        homework.push({ id: doc.id, ...doc.data() });
-      });
-      
-      console.log('✅ Loaded homework:', homework.length);
+      if (!homeworkSnapshot.empty) {
+        homework = homeworkSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+        console.log('✅ Loaded homework:', homework.length);
+      }
       
       // עדכון UI
       if (typeof render === 'function') {
@@ -578,208 +505,340 @@ class AuthManager {
       console.log('✅ User data loaded successfully');
     } catch (error) {
       console.error('❌ Error loading user data:', error);
-      this.showError('שגיאה בטעינת הנתונים');
+      this.showError('שגיאה בטעינת נתונים');
     }
   }
 
-  async syncData() {
-    console.log('🔄 syncData: Syncing data to Firestore...');
+  async saveUserData() {
+    console.log('💾 Firestore: Saving user data...');
     
-    if (!this.currentUser || this.currentUser.isGuest) {
-      // אורח - שמירה ל-localStorage
-      await this.saveGuestData();
-      return;
-    }
-    
-    if (!this.autoSyncEnabled) {
-      console.log('⏸️ Auto-sync disabled, skipping');
-      return;
+    // אם במצב אורח - שמור ב-localStorage
+    if (this.isGuestMode) {
+      return this.saveGuestData();
     }
     
     try {
       const uid = this.currentUser.uid;
       const batch = this.db.batch();
       
-      // סנכרון מקצועות
-      subjects.forEach(subject => {
-        const docRef = this.db.collection('subjects').doc(uid).collection('items').doc(subject.id.toString());
-        batch.set(docRef, subject, { merge: true });
-      });
-      
-      // סנכרון משימות
-      homework.forEach(hw => {
-        const docRef = this.db.collection('homework').doc(uid).collection('items').doc(hw.id.toString());
-        batch.set(docRef, hw, { merge: true });
-      });
-      
-      await batch.commit();
-      console.log('✅ Data synced successfully');
-      
-    } catch (error) {
-      console.error('❌ Sync error:', error);
-      // לא מציגים שגיאה למשתמש כי זה סנכרון רקע
-    }
-  }
-
-  async migrateGuestDataToUser(uid) {
-    console.log('🔄 migrateGuestDataToUser: Migrating guest data to user account...');
-    
-    try {
-      // שמירת נתוני האורח
-      const guestData = {
-        subjects: subjects.slice(),
-        homework: homework.slice()
-      };
-      
-      if (guestData.subjects.length === 0 && guestData.homework.length === 0) {
-        console.log('⏭️ No guest data to migrate');
-        clearGuestData();
-        return;
-      }
-      
-      // העברת הנתונים ל-Firestore
-      const batch = this.db.batch();
-      
       // שמירת מקצועות
-      guestData.subjects.forEach(subject => {
-        const docRef = this.db.collection('subjects').doc(uid).collection('items').doc(subject.id.toString());
+      const subjectsRef = this.db.collection('subjects').doc(uid).collection('items');
+      subjects.forEach(subject => {
+        const docRef = subjectsRef.doc(subject.id.toString());
         batch.set(docRef, subject);
       });
       
       // שמירת משימות
-      guestData.homework.forEach(hw => {
-        const docRef = this.db.collection('homework').doc(uid).collection('items').doc(hw.id.toString());
+      const homeworkRef = this.db.collection('homework').doc(uid).collection('items');
+      homework.forEach(hw => {
+        const docRef = homeworkRef.doc(hw.id.toString());
         batch.set(docRef, hw);
       });
       
       await batch.commit();
-      
-      // מחיקת נתוני אורח
-      clearGuestData();
-      
-      this.showSuccess('הנתונים מהמצב אורח הועברו בהצלחה!');
-      console.log('✅ Guest data migrated successfully');
-      
+      console.log('✅ User data saved successfully');
     } catch (error) {
-      console.error('❌ Error migrating guest data:', error);
-      this.showError('שגיאה בהעברת הנתונים');
+      console.error('❌ Error saving user data:', error);
+      this.showError('שגיאה בשמירת נתונים');
     }
   }
 
-  // ==================== UI Management ====================
+  // ==================== UI ====================
   
   showAuthUI() {
-    const authContainer = document.getElementById('auth-container');
-    if (authContainer) {
-      authContainer.classList.remove('hidden');
-      authContainer.style.display = 'flex';
-      console.log('👁️ Auth UI shown');
+    console.log('🎨 UI: Showing auth screen');
+    
+    let authContainer = document.getElementById('auth-container');
+    if (!authContainer) {
+      authContainer = document.createElement('div');
+      authContainer.id = 'auth-container';
+      document.body.appendChild(authContainer);
     }
+    
+    authContainer.classList.remove('hidden');
+    authContainer.innerHTML = this.getAuthHTML();
+    
+    // הסתרת האפליקציה
+    const appContainer = document.querySelector('.container');
+    if (appContainer) {
+      appContainer.style.display = 'none';
+    }
+    
+    this.attachAuthEventListeners();
   }
 
   hideAuthUI() {
+    console.log('🎨 UI: Hiding auth screen');
+    
     const authContainer = document.getElementById('auth-container');
     if (authContainer) {
       authContainer.classList.add('hidden');
-      authContainer.style.display = 'none';
-      console.log('🙈 Auth UI hidden');
     }
   }
 
   showApp() {
-    const appContainer = document.getElementById('app');
+    console.log('🎨 UI: Showing app');
+    
+    const appContainer = document.querySelector('.container');
     if (appContainer) {
-      appContainer.classList.remove('hidden');
       appContainer.style.display = 'block';
-      console.log('👁️ App shown');
     }
   }
 
   hideApp() {
-    const appContainer = document.getElementById('app');
+    console.log('🎨 UI: Hiding app');
+    
+    const appContainer = document.querySelector('.container');
     if (appContainer) {
-      appContainer.classList.add('hidden');
       appContainer.style.display = 'none';
-      console.log('🙈 App hidden');
     }
   }
 
   updateUserUI() {
-    console.log('🎨 updateUserUI: Updating user interface...');
+    console.log('🎨 UI: Updating user info');
     
-    // עדכון תפריט משתמש
-    const userMenuName = document.getElementById('user-menu-name');
-    const userMenuEmail = document.getElementById('user-menu-email');
-    const userMenuAvatar = document.getElementById('user-menu-avatar');
-    
-    if (userMenuName) {
-      userMenuName.textContent = this.currentUser.displayName || 'משתמש';
-    }
-    
-    if (userMenuEmail) {
-      userMenuEmail.textContent = this.currentUser.email || 'אורח';
-      
-      // הצגת סטטוס אימות
-      if (!this.currentUser.isGuest && !this.currentUser.emailVerified) {
-        userMenuEmail.innerHTML = `
-          ${this.currentUser.email}
-          <span style="color: #f59e0b; font-size: 0.75rem; display: block;">
-            ⚠️ אימייל לא מאומת
-            <a href="#" onclick="authManager.resendVerificationEmail(); return false;" 
-               style="color: #3b82f6; text-decoration: underline;">
-              שלח שוב
-            </a>
-          </span>
+    // עדכון כפתור משתמש בכותרת
+    const headerActions = document.querySelector('.header-actions');
+    if (headerActions && this.currentUser) {
+      let userBtn = document.getElementById('user-menu-btn');
+      if (!userBtn) {
+        userBtn = document.createElement('button');
+        userBtn.id = 'user-menu-btn';
+        userBtn.className = 'settings-btn';
+        userBtn.title = this.currentUser.isGuest ? 'אורח' : this.currentUser.email;
+        userBtn.innerHTML = this.currentUser.isGuest ? '👤' : `
+          <svg width="24" height="24" fill="currentColor">
+            <circle cx="12" cy="8" r="4"/>
+            <path d="M12 14c-5 0-9 2-9 5v2h18v-2c0-3-4-5-9-5z"/>
+          </svg>
         `;
+        userBtn.onclick = () => this.showUserMenu();
+        
+        headerActions.insertBefore(userBtn, headerActions.firstChild);
       }
     }
-    
-    if (userMenuAvatar) {
-      if (this.currentUser.photoURL) {
-        userMenuAvatar.innerHTML = `<img src="${this.currentUser.photoURL}" alt="avatar" style="width: 100%; height: 100%; border-radius: 50%; object-fit: cover;">`;
-      } else {
-        const initial = this.currentUser.displayName ? this.currentUser.displayName[0].toUpperCase() : '?';
-        userMenuAvatar.textContent = initial;
-      }
-    }
-    
-    // הצגת כפתור העברה לחשבון אם אורח
-    const convertBtn = document.getElementById('convert-guest-btn');
-    if (convertBtn) {
-      convertBtn.style.display = this.currentUser.isGuest ? 'block' : 'none';
-    }
-    
-    // הצגת כפתור הוספת סיסמה אם Google
-    const linkPasswordBtn = document.getElementById('link-password-btn');
-    if (linkPasswordBtn) {
-      const user = this.auth.currentUser;
-      if (user && !this.currentUser.isGuest) {
-        const providers = user.providerData.map(p => p.providerId);
-        const hasGoogle = providers.includes('google.com');
-        const hasPassword = providers.includes('password');
-        linkPasswordBtn.style.display = (hasGoogle && !hasPassword) ? 'block' : 'none';
-      } else {
-        linkPasswordBtn.style.display = 'none';
-      }
-    }
-    
-    console.log('✅ User UI updated');
   }
 
-  createAuthUI() {
-    console.log('🎨 createAuthUI: Creating authentication interface...');
+  showUserMenu() {
+    const modal = document.createElement('div');
+    modal.className = 'modal';
+    modal.id = 'user-menu-modal';
     
+    let menuContent = '';
+    
+    if (this.isGuestMode) {
+      // תפריט אורח
+      menuContent = `
+        <div style="text-align: center; margin-bottom: 1.5rem;">
+          <div style="width: 80px; height: 80px; border-radius: 50%; background: #3b82f6; color: white; display: flex; align-items: center; justify-content: center; font-size: 2rem; margin: 0 auto 1rem;">
+            👤
+          </div>
+          <h3 style="margin: 0.5rem 0;">אורח</h3>
+          <p style="color: var(--text-secondary); font-size: 0.875rem;">הנתונים שלך שמורים מקומית</p>
+        </div>
+        
+        <div style="background: #fff3cd; border: 1px solid #ffc107; border-radius: 0.5rem; padding: 1rem; margin-bottom: 1.5rem;">
+          <p style="margin: 0; font-size: 0.875rem; color: #856404;">
+            <strong>💡 רוצה לשמור את הנתונים בענן?</strong><br>
+            צור חשבון וכל הנתונים שלך יועברו אוטומטית!
+          </p>
+        </div>
+        
+        <div style="display: flex; flex-direction: column; gap: 0.75rem;">
+          <button class="btn btn-primary" onclick="authManager.showConvertGuestModal(); document.getElementById('user-menu-modal').remove();">
+            🔒 צור חשבון והעבר נתונים
+          </button>
+          <button class="btn btn-secondary" onclick="if(confirm('האם אתה בטוח? הנתונים שלך יימחקו!')) { authManager.clearGuestAndLogout(); document.getElementById('user-menu-modal').remove(); }">
+            🗑️ מחק נתונים והתנתק
+          </button>
+          <button class="btn btn-secondary" onclick="authManager.logout(); document.getElementById('user-menu-modal').remove();">
+            👋 התנתק (שמור נתונים)
+          </button>
+        </div>
+      `;
+    } else {
+      // תפריט משתמש רגיל
+      menuContent = `
+        <div style="text-align: center; margin-bottom: 1.5rem;">
+          ${this.currentUser.photoURL 
+            ? `<img src="${this.currentUser.photoURL}" alt="Profile" style="width: 80px; height: 80px; border-radius: 50%; margin-bottom: 1rem;">` 
+            : '<div style="width: 80px; height: 80px; border-radius: 50%; background: #3b82f6; color: white; display: flex; align-items: center; justify-content: center; font-size: 2rem; margin: 0 auto 1rem;">' + this.currentUser.displayName.charAt(0).toUpperCase() + '</div>'}
+          <h3 style="margin: 0.5rem 0;">${this.currentUser.displayName}</h3>
+          <p style="color: var(--text-secondary); font-size: 0.875rem;">${this.currentUser.email}</p>
+          ${!this.currentUser.emailVerified ? '<p style="color: #f59e0b; font-size: 0.875rem;">⚠️ אימייל לא מאומת</p>' : ''}
+        </div>
+        
+        <div style="display: flex; flex-direction: column; gap: 0.75rem;">
+          ${!this.currentUser.emailVerified ? `
+            <button class="btn btn-secondary" onclick="authManager.sendVerificationEmail()">
+              📧 שלח אימייל אימות מחדש
+            </button>
+          ` : ''}
+          <button class="btn btn-secondary" onclick="authManager.showResetPasswordModal()">
+            🔐 שנה סיסמה
+          </button>
+          <button class="btn btn-danger" onclick="authManager.logout(); document.getElementById('user-menu-modal').remove();">
+            👋 התנתק
+          </button>
+        </div>
+        
+        <div style="margin-top: 1.5rem; padding-top: 1.5rem; border-top: 1px solid var(--border-color); font-size: 0.75rem; color: var(--text-secondary);">
+          <p>נוצר: ${new Date(this.currentUser.createdAt).toLocaleDateString('he-IL')}</p>
+          <p>התחברות אחרונה: ${new Date(this.currentUser.lastLogin).toLocaleDateString('he-IL')}</p>
+        </div>
+      `;
+    }
+    
+    modal.innerHTML = `
+      <div class="modal-content" style="max-width: 400px;">
+        <div class="modal-header">
+          <h2>👤 חשבון משתמש</h2>
+          <button class="close-modal-btn" onclick="document.getElementById('user-menu-modal').remove()">
+            <svg width="24" height="24"><use href="#x"></use></svg>
+          </button>
+        </div>
+        <div class="modal-body">
+          ${menuContent}
+        </div>
+      </div>
+    `;
+    
+    document.body.appendChild(modal);
+    
+    modal.addEventListener('click', (e) => {
+      if (e.target === modal) modal.remove();
+    });
+  }
+
+  showConvertGuestModal() {
+    const modal = document.createElement('div');
+    modal.className = 'modal';
+    modal.id = 'convert-guest-modal';
+    
+    modal.innerHTML = `
+      <div class="modal-content" style="max-width: 450px;">
+        <div class="modal-header">
+          <h2>🔒 צור חשבון</h2>
+          <button class="close-modal-btn" onclick="document.getElementById('convert-guest-modal').remove()">
+            <svg width="24" height="24"><use href="#x"></use></svg>
+          </button>
+        </div>
+        <div class="modal-body">
+          <div style="background: #d1fae5; border: 1px solid #10b981; border-radius: 0.5rem; padding: 1rem; margin-bottom: 1.5rem;">
+            <p style="margin: 0; font-size: 0.875rem; color: #065f46;">
+              <strong>✨ כל הנתונים שלך יישמרו!</strong><br>
+              המקצועות והמשימות שיצרת יועברו אוטומטית לחשבון החדש.
+            </p>
+          </div>
+          
+          <div class="form-group">
+            <label>שם מלא</label>
+            <input type="text" class="input" id="convert-name" placeholder="השם שלך">
+          </div>
+          <div class="form-group">
+            <label>אימייל</label>
+            <input type="email" class="input" id="convert-email" placeholder="your@email.com">
+          </div>
+          <div class="form-group">
+            <label>סיסמה</label>
+            <input type="password" class="input" id="convert-password" placeholder="לפחות 6 תווים">
+          </div>
+          <div class="form-group">
+            <label>אימות סיסמה</label>
+            <input type="password" class="input" id="convert-password-confirm" placeholder="הזן סיסמה שוב">
+          </div>
+          
+          <button class="btn btn-primary" id="convert-guest-btn">
+            🔒 צור חשבון והעבר נתונים
+          </button>
+        </div>
+      </div>
+    `;
+    
+    document.body.appendChild(modal);
+    
+    const convertBtn = document.getElementById('convert-guest-btn');
+    convertBtn.addEventListener('click', async () => {
+      const name = document.getElementById('convert-name').value;
+      const email = document.getElementById('convert-email').value;
+      const password = document.getElementById('convert-password').value;
+      const passwordConfirm = document.getElementById('convert-password-confirm').value;
+      
+      if (password !== passwordConfirm) {
+        this.showError('הסיסמאות לא תואמות');
+        return;
+      }
+      
+      convertBtn.disabled = true;
+      convertBtn.textContent = '⏳ יוצר חשבון...';
+      
+      const success = await this.convertGuestToUser(email, password, name);
+      
+      if (success) {
+        modal.remove();
+      } else {
+        convertBtn.disabled = false;
+        convertBtn.innerHTML = '🔒 צור חשבון והעבר נתונים';
+      }
+    });
+    
+    modal.addEventListener('click', (e) => {
+      if (e.target === modal) modal.remove();
+    });
+  }
+
+  clearGuestAndLogout() {
+    clearGuestData();
+    this.logout();
+  }
+
+  showResetPasswordModal() {
+    document.getElementById('user-menu-modal')?.remove();
+    
+    const modal = document.createElement('div');
+    modal.className = 'modal';
+    modal.id = 'reset-password-modal';
+    
+    modal.innerHTML = `
+      <div class="modal-content" style="max-width: 400px;">
+        <div class="modal-header">
+          <h2>🔐 שנה סיסמה</h2>
+          <button class="close-modal-btn" onclick="document.getElementById('reset-password-modal').remove()">
+            <svg width="24" height="24"><use href="#x"></use></svg>
+          </button>
+        </div>
+        <div class="modal-body">
+          <p style="margin-bottom: 1rem; color: var(--text-secondary);">
+            נשלח אליך אימייל עם קישור לאיפוס הסיסמה
+          </p>
+          <button class="btn btn-primary" onclick="authManager.resetPassword('${this.currentUser.email}'); document.getElementById('reset-password-modal').remove();">
+            שלח אימייל איפוס
+          </button>
+        </div>
+      </div>
+    `;
+    
+    document.body.appendChild(modal);
+    
+    modal.addEventListener('click', (e) => {
+      if (e.target === modal) modal.remove();
+    });
+  }
+
+  getAuthHTML() {
     return `
-      <!-- Authentication Container -->
-      <div id="auth-container" class="auth-container">
-        <div class="auth-box">
+      <div class="auth-screen">
+        <div class="auth-card">
           <div class="auth-header">
-            <h1>📚 ניהול שיעורי בית</h1>
-            <p>ארגן את המטלות שלך בקלות</p>
+            <svg width="48" height="48" style="color: #3b82f6;">
+              <use href="#book-open"></use>
+            </svg>
+            <h1>ניהול שיעורי בית</h1>
+            <p>התחבר כדי לגשת למשימות שלך</p>
           </div>
 
           <!-- Guest Mode Button -->
-          <div style="margin-bottom: 1.5rem; padding: 1rem; background: linear-gradient(135deg, rgba(16, 185, 129, 0.1), rgba(5, 150, 105, 0.1)); border-radius: 12px; border: 1px solid rgba(16, 185, 129, 0.2);">
+          <div style="padding: 1.5rem; text-align: center; border-bottom: 2px solid var(--border-color);">
             <button class="btn btn-primary" onclick="authManager.continueAsGuest(); document.getElementById('auth-container').classList.add('hidden');" style="width: 100%; background: linear-gradient(135deg, #10b981, #059669);">
               👤 המשך כאורח
             </button>
@@ -791,22 +850,6 @@ class AuthManager {
           <!-- Login Form -->
           <div id="login-form" class="auth-form">
             <h2>התחברות</h2>
-            
-            <!-- Google Sign-In Button -->
-            <button class="btn" id="google-signin-btn" style="width: 100%; background: white; color: #1f2937; border: 1px solid #e5e7eb; margin-bottom: 1rem; display: flex; align-items: center; justify-content: center; gap: 0.5rem;">
-              <svg style="width: 20px; height: 20px;" viewBox="0 0 24 24">
-                <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/>
-                <path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/>
-                <path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"/>
-                <path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/>
-              </svg>
-              המשך עם Google
-            </button>
-            
-            <div style="text-align: center; margin: 1rem 0; color: var(--text-secondary); font-size: 0.875rem;">
-              או
-            </div>
-            
             <div class="form-group">
               <label>אימייל</label>
               <input type="email" class="input" id="login-email" placeholder="your@email.com" autocomplete="email">
@@ -827,22 +870,6 @@ class AuthManager {
           <!-- Signup Form -->
           <div id="signup-form" class="auth-form hidden">
             <h2>הרשמה</h2>
-            
-            <!-- Google Sign-In Button -->
-            <button class="btn" id="google-signin-btn-signup" style="width: 100%; background: white; color: #1f2937; border: 1px solid #e5e7eb; margin-bottom: 1rem; display: flex; align-items: center; justify-center: center; gap: 0.5rem;">
-              <svg style="width: 20px; height: 20px;" viewBox="0 0 24 24">
-                <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/>
-                <path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/>
-                <path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"/>
-                <path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/>
-              </svg>
-              הירשם עם Google
-            </button>
-            
-            <div style="text-align: center; margin: 1rem 0; color: var(--text-secondary); font-size: 0.875rem;">
-              או
-            </div>
-            
             <div class="form-group">
               <label>שם מלא</label>
               <input type="text" class="input" id="signup-name" placeholder="השם שלך" autocomplete="name">
@@ -891,66 +918,6 @@ class AuthManager {
 
   attachAuthEventListeners() {
     console.log('🎧 AuthManager: Attaching event listeners...');
-    
-    // Google Sign-In (Login)
-    const googleSignInBtn = document.getElementById('google-signin-btn');
-    if (googleSignInBtn) {
-      googleSignInBtn.addEventListener('click', async () => {
-        googleSignInBtn.disabled = true;
-        googleSignInBtn.innerHTML = `
-          <svg style="width: 20px; height: 20px; animation: spin 1s linear infinite;" viewBox="0 0 24 24">
-            <circle cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4" fill="none" opacity="0.25"/>
-            <path fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" opacity="0.75"/>
-          </svg>
-          מתחבר...
-        `;
-        
-        try {
-          await this.signInWithGoogle();
-        } catch (error) {
-          googleSignInBtn.disabled = false;
-          googleSignInBtn.innerHTML = `
-            <svg style="width: 20px; height: 20px;" viewBox="0 0 24 24">
-              <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/>
-              <path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/>
-              <path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"/>
-              <path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/>
-            </svg>
-            המשך עם Google
-          `;
-        }
-      });
-    }
-    
-    // Google Sign-In (Signup)
-    const googleSignInBtnSignup = document.getElementById('google-signin-btn-signup');
-    if (googleSignInBtnSignup) {
-      googleSignInBtnSignup.addEventListener('click', async () => {
-        googleSignInBtnSignup.disabled = true;
-        googleSignInBtnSignup.innerHTML = `
-          <svg style="width: 20px; height: 20px; animation: spin 1s linear infinite;" viewBox="0 0 24 24">
-            <circle cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4" fill="none" opacity="0.25"/>
-            <path fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" opacity="0.75"/>
-          </svg>
-          מתחבר...
-        `;
-        
-        try {
-          await this.signInWithGoogle();
-        } catch (error) {
-          googleSignInBtnSignup.disabled = false;
-          googleSignInBtnSignup.innerHTML = `
-            <svg style="width: 20px; height: 20px;" viewBox="0 0 24 24">
-              <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/>
-              <path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/>
-              <path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"/>
-              <path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/>
-            </svg>
-            הירשם עם Google
-          `;
-        }
-      });
-    }
     
     // Login
     const loginBtn = document.getElementById('login-btn');
@@ -1075,9 +1042,7 @@ class AuthManager {
       'auth/user-not-found': 'המשתמש לא קיים',
       'auth/wrong-password': 'סיסמה שגויה',
       'auth/too-many-requests': 'יותר מדי ניסיונות. נסה שוב מאוחר יותר',
-      'auth/network-request-failed': 'שגיאת רשת. בדוק את החיבור לאינטרנט',
-      'auth/popup-closed-by-user': 'החלון נסגר',
-      'auth/cancelled-popup-request': 'הבקשה בוטלה'
+      'auth/network-request-failed': 'שגיאת רשת. בדוק את החיבור לאינטרנט'
     };
     
     const message = errorMessages[error.code] || error.message;
@@ -1104,7 +1069,7 @@ class AuthManager {
 // יצירת אובייקט גלובלי
 console.log('🔐 Creating global auth manager...');
 const authManager = new AuthManager();
-console.log('✅ Global auth manager created with Guest Mode + Google Sign-In');
+console.log('✅ Global auth manager created with Guest Mode');
 
 // אתחול אוטומטי
 window.addEventListener('DOMContentLoaded', async () => {
@@ -1112,17 +1077,3 @@ window.addEventListener('DOMContentLoaded', async () => {
   await authManager.initialize();
   console.log('✅ auth.js: Initialized');
 });
-
-// ========================================
-// Auto-Sync Integration
-// ========================================
-// קריאה ל-syncData אחרי כל שינוי בנתונים
-// הוסף את זה אחרי כל פעולת עריכה/הוספה/מחיקה:
-
-// דוגמה לשימוש:
-// אחרי addHomework():
-//   authManager.syncData();
-// אחרי updateHomework():
-//   authManager.syncData();
-// אחרי deleteHomework():
-//   authManager.syncData();
