@@ -3,24 +3,63 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>מערכת ניהול שיעורי בית</title>
+  <title>מערכת ניהול שיעורי בית - Enhanced Edition</title>
+  
+  <!-- 📊 Google Analytics - Tracking Code -->
+  <script async src="https://www.googletagmanager.com/gtag/js?id=G-N5W4B1DDXP"></script>
+  <script>
+    window.dataLayer = window.dataLayer || [];
+    function gtag(){dataLayer.push(arguments);}
+    gtag('js', new Date());
+    gtag('config', 'G-N5W4B1DDXP');
+  </script>
+  
+  <link rel="icon" href="icon.png" type="image/png">
+  
+  <!-- CSS Files -->
   <link rel="stylesheet" href="styles.css">
+  <link rel="stylesheet" href="calendar-styles.css">
+  <link rel="stylesheet" href="enhanced-styles.css">
+  <link rel="stylesheet" href="statistics-styles.css">
+  <link rel="stylesheet" href="achievement-progress-styles.css">
+  
+  <!-- External Libraries -->
   <script src="https://cdnjs.cloudflare.com/ajax/libs/lucide/0.263.1/umd/lucide.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
 </head>
 <body>
   <div class="container">
-    <!-- Header -->
+    <!-- Header with Enhanced Actions -->
     <div class="header">
       <div class="header-title">
         <svg width="32" height="32" style="color: #3b82f6;">
           <use href="#book-open"></use>
         </svg>
-        <h1>ניהול שיעורי בית</h1>
-        <button class="settings-btn" id="open-settings" title="הגדרות">
-          <svg width="24" height="24"><use href="#settings"></use></svg>
-        </button>
+        <h1>ניהול שיעורי בית <span style="font-size: 0.5em; color: #8b5cf6;">Enhanced</span></h1>
+        <div class="header-actions">
+          <button class="settings-btn" id="quick-search-btn" title="חיפוש מהיר (Ctrl+F)" onclick="smartSearch.openSearchPanel()">
+            <svg width="24" height="24"><use href="#search"></use></svg>
+          </button>
+          <button class="settings-btn" id="theme-selector-btn" title="ערכות נושא" onclick="themeCustomizer.openThemeSelector()">
+            <svg width="24" height="24"><use href="#palette"></use></svg>
+          </button>
+          <button class="settings-btn" id="toggle-dark-mode" title="מצב לילה/יום (Ctrl+D)">
+            <svg width="24" height="24"><use href="#moon"></use></svg>
+          </button>
+          <button class="settings-btn" id="toggle-view-mode" title="החלף תצוגה">
+            <svg width="24" height="24"><use href="#calendar"></use></svg>
+          </button>
+          <button class="settings-btn" id="quick-help-btn" title="עזרה (Shift+H)" onclick="quickActions.showHelpModal()">
+            <svg width="24" height="24"><use href="#help-circle"></use></svg>
+          </button>
+          <button class="settings-btn" id="open-settings" title="הגדרות">
+            <svg width="24" height="24"><use href="#settings"></use></svg>
+          </button>
+        </div>
       </div>
       
+      <!-- Stats with XP Bar -->
       <div class="stats">
         <div class="stat-card blue">
           <div class="stat-number blue" id="stat-total">0</div>
@@ -39,9 +78,24 @@
           <div class="stat-label">דחוף</div>
         </div>
       </div>
+      
+      <!-- Mini XP Progress -->
+      <div class="xp-progress-container" style="margin-top: 1rem;">
+        <div class="xp-progress-bar">
+          <div class="xp-progress-fill" id="header-xp-progress" style="width: 0%"></div>
+        </div>
+        <div class="xp-progress-text">
+          רמה <span id="header-level">1</span> • <span id="header-xp-text">0 / 100 XP</span>
+        </div>
+      </div>
     </div>
 
     <div class="grid">
+      <!-- Study Timer Panel -->
+      <div class="panel" id="timer-panel">
+        <!-- Will be rendered by study-timer.js -->
+      </div>
+
       <!-- Subjects Panel -->
       <div class="panel">
         <h2>מקצועות</h2>
@@ -53,7 +107,7 @@
         
         <div class="add-form hidden" id="add-subject-form">
           <input type="text" class="input" id="subject-name" placeholder="שם המקצוע" style="margin-bottom: 0.75rem;">
-          <div class="color-picker" id="color-picker"></div>
+          <div id="color-picker"></div>
           <div class="btn-group">
             <button class="btn btn-success" id="save-subject">שמור</button>
             <button class="btn btn-secondary" id="cancel-subject">ביטול</button>
@@ -61,6 +115,11 @@
         </div>
         
         <div class="subject-list" id="subject-list"></div>
+      </div>
+
+      <!-- Filters Panel -->
+      <div class="panel">
+        <div id="filters-container"></div>
       </div>
 
       <!-- Add Homework Panel -->
@@ -110,7 +169,7 @@
       </div>
 
       <!-- Homework List Panel -->
-      <div class="panel">
+      <div class="panel homework-panel">
         <div class="list-header">
           <h2>רשימת משימות</h2>
           <button class="archive-btn hidden" id="archive-toggle"></button>
@@ -118,10 +177,20 @@
         
         <div class="homework-list" id="homework-list"></div>
       </div>
+
+      <!-- Gamification Panel -->
+      <div class="panel" id="gamification-panel">
+        <!-- Will be rendered by gamification.js -->
+      </div>
+
+      <!-- UNIFIED Statistics & Analytics Panel -->
+      <div class="panel statistics-panel" id="statistics-panel">
+        <!-- Will be rendered by statistics.js (unified) -->
+      </div>
     </div>
   </div>
 
-  <!-- Settings Modal -->
+  <!-- Settings Modal (Enhanced) -->
   <div class="modal hidden" id="settings-modal">
     <div class="modal-content">
       <div class="modal-header">
@@ -132,6 +201,28 @@
       </div>
       
       <div class="modal-body">
+        <div class="settings-section">
+          <h3>מראה</h3>
+          <div class="setting-item">
+            <label>
+              <input type="checkbox" id="dark-mode-toggle">
+              מצב לילה
+            </label>
+          </div>
+          <div class="setting-item">
+            <label>
+              <input type="checkbox" id="view-mode-toggle">
+              תצוגת לוח שנה כברירת מחדל
+            </label>
+          </div>
+          <div class="setting-item">
+            <button class="btn btn-secondary" onclick="themeCustomizer.openThemeSelector()">
+              <svg width="20" height="20"><use href="#palette"></use></svg>
+              בחר ערכת נושא
+            </button>
+          </div>
+        </div>
+
         <div class="settings-section">
           <h3>התראות</h3>
           <div class="setting-item">
@@ -155,11 +246,28 @@
         </div>
 
         <div class="settings-section">
+          <h3>ניהול תגיות</h3>
+          <div id="tag-management"></div>
+        </div>
+
+        <div class="settings-section">
           <h3>ייבוא/ייצוא נתונים</h3>
           <div class="setting-item">
             <button class="btn btn-primary" id="export-data" type="button">
               <svg width="20" height="20"><use href="#download"></use></svg>
-              ייצא נתונים
+              ייצא נתונים (JSON)
+            </button>
+          </div>
+          <div class="setting-item">
+            <button class="btn btn-secondary" id="export-pdf" type="button">
+              <svg width="20" height="20"><use href="#file-text"></use></svg>
+              ייצא ל-PDF
+            </button>
+          </div>
+          <div class="setting-item">
+            <button class="btn btn-secondary" id="export-excel" type="button">
+              <svg width="20" height="20"><use href="#table"></use></svg>
+              ייצא ל-Excel
             </button>
           </div>
           <div class="setting-item">
@@ -217,7 +325,7 @@
     </div>
   </div>
 
-  <!-- SVG Icons -->
+  <!-- SVG Icons (Extended) -->
   <svg style="display: none;">
     <symbol id="book-open" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
       <path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"></path>
@@ -246,6 +354,32 @@
       <line x1="18" y1="6" x2="6" y2="18"></line>
       <line x1="6" y1="6" x2="18" y2="18"></line>
     </symbol>
+    <symbol id="play" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+      <polygon points="5 3 19 12 5 21 5 3"></polygon>
+    </symbol>
+    <symbol id="pause" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+      <rect x="6" y="4" width="4" height="16"></rect>
+      <rect x="14" y="4" width="4" height="16"></rect>
+    </symbol>
+    <symbol id="square" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+      <rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect>
+    </symbol>
+    <symbol id="search" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+      <circle cx="11" cy="11" r="8"></circle>
+      <path d="m21 21-4.35-4.35"></path>
+    </symbol>
+    <symbol id="palette" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+      <circle cx="13.5" cy="6.5" r=".5"></circle>
+      <circle cx="17.5" cy="10.5" r=".5"></circle>
+      <circle cx="8.5" cy="7.5" r=".5"></circle>
+      <circle cx="6.5" cy="12.5" r=".5"></circle>
+      <path d="M12 2C6.5 2 2 6.5 2 12s4.5 10 10 10c.926 0 1.648-.746 1.648-1.688 0-.437-.18-.835-.437-1.125-.29-.289-.438-.652-.438-1.125a1.64 1.64 0 0 1 1.668-1.668h1.996c3.051 0 5.555-2.503 5.555-5.554C21.965 6.012 17.461 2 12 2z"></path>
+    </symbol>
+    <symbol id="help-circle" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+      <circle cx="12" cy="12" r="10"></circle>
+      <path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"></path>
+      <line x1="12" y1="17" x2="12.01" y2="17"></line>
+    </symbol>
     <symbol id="download" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
       <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
       <polyline points="7 10 12 15 17 10"></polyline>
@@ -260,401 +394,76 @@
       <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"></path>
       <path d="M13.73 21a2 2 0 0 1-3.46 0"></path>
     </symbol>
+    <symbol id="moon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+      <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path>
+    </symbol>
+    <symbol id="sun" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+      <circle cx="12" cy="12" r="5"></circle>
+      <line x1="12" y1="1" x2="12" y2="3"></line>
+      <line x1="12" y1="21" x2="12" y2="23"></line>
+      <line x1="4.22" y1="4.22" x2="5.64" y2="5.64"></line>
+      <line x1="18.36" y1="18.36" x2="19.78" y2="19.78"></line>
+      <line x1="1" y1="12" x2="3" y2="12"></line>
+      <line x1="21" y1="12" x2="23" y2="12"></line>
+      <line x1="4.22" y1="19.78" x2="5.64" y2="18.36"></line>
+      <line x1="18.36" y1="5.64" x2="19.78" y2="4.22"></line>
+    </symbol>
     <symbol id="github" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
       <path d="M9 19c-5 1.5-5-2.5-7-3m14 6v-3.87a3.37 3.37 0 0 0-.94-2.61c3.14-.35 6.44-1.54 6.44-7A5.44 5.44 0 0 0 20 4.77 5.07 5.07 0 0 0 19.91 1S18.73.65 16 2.48a13.38 13.38 0 0 0-7 0C6.27.65 5.09 1 5.09 1A5.07 5.07 0 0 0 5 4.77a5.44 5.44 0 0 0-1.5 3.78c0 5.42 3.3 6.61 6.44 7A3.37 3.37 0 0 0 9 18.13V22"></path>
     </symbol>
     <symbol id="message-square" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
       <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path>
     </symbol>
+    <symbol id="tag" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+      <path d="M20.59 13.41l-7.17 7.17a2 2 0 0 1-2.83 0L2 12V2h10l8.59 8.59a2 2 0 0 1 0 2.82z"></path>
+      <line x1="7" y1="7" x2="7.01" y2="7"></line>
+    </symbol>
+    <symbol id="file-text" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+      <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+      <polyline points="14 2 14 8 20 8"></polyline>
+      <line x1="16" y1="13" x2="8" y2="13"></line>
+      <line x1="16" y1="17" x2="8" y2="17"></line>
+      <polyline points="10 9 9 9 8 9"></polyline>
+    </symbol>
+    <symbol id="table" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+      <path d="M9 3H5a2 2 0 0 0-2 2v4m6-6h10a2 2 0 0 1 2 2v4M9 3v18m0 0h10a2 2 0 0 0 2-2V9M9 21H5a2 2 0 0 1-2-2V9m0 0h18"></path>
+    </symbol>
+    <symbol id="list" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+      <line x1="8" y1="6" x2="21" y2="6"></line>
+      <line x1="8" y1="12" x2="21" y2="12"></line>
+      <line x1="8" y1="18" x2="21" y2="18"></line>
+      <line x1="3" y1="6" x2="3.01" y2="6"></line>
+      <line x1="3" y1="12" x2="3.01" y2="12"></line>
+      <line x1="3" y1="18" x2="3.01" y2="18"></line>
+    </symbol>
+    <symbol id="chevron-left" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+      <polyline points="15 18 9 12 15 6"></polyline>
+    </symbol>
+    <symbol id="chevron-right" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+      <polyline points="9 18 15 12 9 6"></polyline>
+    </symbol>
   </svg>
 
+  <!-- JavaScript Files -->
   <script src="storage.js"></script>
   <script src="notifications.js"></script>
+  <script src="calendar.js"></script>
+  <script src="statistics.js"></script>
+  <script src="study-timer.js"></script>
+  <script src="gamification.js"></script>
+  <script src="utilities.js"></script>
   <script src="app.js"></script>
+  <script src="integration.js"></script>
+  <script src="analytics-tracking.js"></script>
   
-  <script>
-    const colors = ['#3b82f6', '#ef4444', '#10b981', '#f59e0b', '#8b5cf6', '#ec4899'];
-    let subjects = [];
-    let homework = [];
-    let selectedColor = '#3b82f6';
-    let showArchive = false;
-
-    // Load data
-// Load data
-async function loadData() {
-  try {
-    if (window.storage) {
-      const subResult = await window.storage.get('homework-subjects');
-      const hwResult = await window.storage.get('homework-list');
-      if (subResult) subjects = JSON.parse(subResult.value);
-      if (hwResult) homework = JSON.parse(hwResult.value);
-    } else {
-      subjects = JSON.parse(localStorage.getItem('homework-subjects') || '[]');
-      homework = JSON.parse(localStorage.getItem('homework-list') || '[]');
-    }
-  } catch (error) {
-    console.log('מערכת חדשה');
-  }
-  render();
-}
-
-// Save data
-async function saveData() {
-  try {
-    if (window.storage) {
-      await window.storage.set('homework-subjects', JSON.stringify(subjects));
-      await window.storage.set('homework-list', JSON.stringify(homework));
-    } else {
-      localStorage.setItem('homework-subjects', JSON.stringify(subjects));
-      localStorage.setItem('homework-list', JSON.stringify(homework));
-    }
-  } catch (error) {
-    console.error('שגיאה בשמירה:', error);
-  }
-}
-
-
-    // Calculate days until due
-    function getDaysUntilDue(dueDate) {
-      const today = new Date();
-      today.setHours(0, 0, 0, 0);
-      const due = new Date(dueDate + 'T00:00:00');
-      return Math.round((due - today) / (1000 * 60 * 60 * 24));
-    }
-
-    // Render color picker
-    function renderColorPicker() {
-      const picker = document.getElementById('color-picker');
-      picker.innerHTML = colors.map(color => `
-        <div class="color-option ${color === selectedColor ? 'selected' : ''}" 
-             style="background-color: ${color};"
-             onclick="selectedColor = '${color}'; renderColorPicker();"></div>
-      `).join('');
-    }
-
-    // Render subjects
-    function renderSubjects() {
-      const list = document.getElementById('subject-list');
-      const select = document.getElementById('hw-subject');
-      
-      if (subjects.length === 0) {
-        list.innerHTML = '<p class="empty-state">טרם הוספו מקצועות</p>';
-      } else {
-        list.innerHTML = subjects.map(s => `
-          <div class="subject-item" style="border-color: ${s.color};">
-            <div class="subject-info">
-              <div class="subject-color" style="background-color: ${s.color};"></div>
-              <span class="subject-name">${s.name}</span>
-            </div>
-            <button class="icon-btn" onclick="deleteSubject(${s.id})">
-              <svg width="16" height="16"><use href="#trash"></use></svg>
-            </button>
-          </div>
-        `).join('');
-      }
-      
-      select.innerHTML = '<option value="">בחר מקצוע</option>' + 
-        subjects.map(s => `<option value="${s.id}">${s.name}</option>`).join('');
-    }
-
-    // Render homework
-function renderHomework() {
-  const list = document.getElementById('homework-list');
-  const archiveBtn = document.getElementById('archive-toggle');
-
-  const activeHomework = homework.filter(h => {
-    if (!h.completed) return true;
-    return getDaysUntilDue(h.dueDate) >= 0;
-  });
-
-  const archivedHomework = homework.filter(h => {
-    if (!h.completed) return false;
-    return getDaysUntilDue(h.dueDate) < 0;
-  });
-
-  if (archivedHomework.length > 0) {
-    archiveBtn.classList.remove('hidden');
-    archiveBtn.textContent = showArchive ? 'הסתר ארכיון' : `ארכיון (${archivedHomework.length})`;
-  } else {
-    archiveBtn.classList.add('hidden');
-  }
-
-  const displayList = showArchive ? archivedHomework : activeHomework;
-
-  if (displayList.length === 0) {
-    list.innerHTML = `<p class="empty-state">${showArchive ? 'אין פריטים בארכיון' : 'אין שיעורי בית להצגה'}</p>`;
-    return;
-  }
-
-  const sorted = [...displayList].sort((a, b) => {
-    if (a.completed !== b.completed) return a.completed ? 1 : -1;
-    return new Date(a.dueDate) - new Date(b.dueDate);
-  });
-
-  list.innerHTML = sorted.map(hw => {
-    const subject = subjects.find(s => s.id == hw.subject);
-    const daysLeft = getDaysUntilDue(hw.dueDate);
-    const isUrgent = daysLeft <= 2 && !hw.completed;
-    const isOverdue = daysLeft < 0 && !hw.completed;
-
-    let classes = 'homework-item';
-    if (hw.completed) classes += ' completed';
-    if (isOverdue) classes += ' overdue';
-    else if (isUrgent) classes += ' urgent';
-
-    let daysText = '';
-    if (!hw.completed) {
-      if (isOverdue) daysText = `באיחור של ${Math.abs(daysLeft)} ימים`;
-      else if (daysLeft === 0) daysText = 'היום!';
-      else if (daysLeft === 1) daysText = 'מחר';
-      else if (daysLeft === 2) daysText = 'מחרתיים';
-      else daysText = `עוד ${daysLeft} ימים`;
-    }
-
-    return `
-      <div class="${classes}" ${!hw.completed && !isOverdue && !isUrgent && subject ? `style="border-color: ${subject.color};"` : ''}>
-        <div class="homework-header">
-          <input type="checkbox" class="checkbox" ${hw.completed ? 'checked' : ''} 
-                 onchange="toggleComplete(${hw.id})">
-          <div class="homework-content">
-            <div class="homework-badges">
-              ${subject ? `<span class="badge" style="background-color: ${subject.color};">${subject.name}</span>` : ''}
-              ${isOverdue ? '<span class="badge" style="background-color: #ef4444;">איחור!</span>' : ''}
-              ${isUrgent && !isOverdue ? '<span class="badge" style="background-color: #f59e0b;">דחוף</span>' : ''}
-            </div>
-            <h3 class="homework-title ${hw.completed ? 'completed' : ''}">${hw.title}</h3>
-            ${hw.description ? `<p class="homework-desc">${hw.description}</p>` : ''}
-
-            ${hw.files && hw.files.length ? `
-              <div class="homework-files">
-                <strong>קבצים מצורפים:</strong>
-                <ul>
-                  ${hw.files.map(f => `
-                    <li>
-                      ${f.name} 
-                      <button onclick="downloadFile('${f.name}', '${f.data}')" class="btn btn-secondary" style="margin-left:0.5rem;">הורד</button>
-                    </li>
-                  `).join('')}
-                </ul>
-              </div>
-            ` : ''}
-
-            <div class="homework-meta">
-              <span>
-                <svg width="16" height="16" style="display: inline; vertical-align: middle;"><use href="#calendar"></use></svg>
-                ${new Date(hw.dueDate).toLocaleDateString('he-IL')}
-              </span>
-              ${daysText ? `<span class="days-left ${isOverdue ? 'overdue' : isUrgent ? 'urgent' : ''}">${daysText}</span>` : ''}
-            </div>
-          </div>
-          <button class="icon-btn" onclick="deleteHomework(${hw.id})">
-            <svg width="20" height="20"><use href="#trash"></use></svg>
-          </button>
-        </div>
-      </div>
-    `;
-  }).join('');
-}
-
-
-    // Update stats
-    function updateStats() {
-      document.getElementById('stat-total').textContent = homework.length;
-      document.getElementById('stat-completed').textContent = homework.filter(h => h.completed).length;
-      document.getElementById('stat-pending').textContent = homework.filter(h => !h.completed).length;
-      document.getElementById('stat-urgent').textContent = homework.filter(h => !h.completed && getDaysUntilDue(h.dueDate) <= 2).length;
-    }
-
-    // Render all
-    function render() {
-      renderSubjects();
-      renderHomework();
-      updateStats();
-    }
-
-    // Add subject
-    function addSubject() {
-      const name = document.getElementById('subject-name').value.trim();
-      if (!name) return;
-      
-      subjects.push({ id: Date.now(), name, color: selectedColor });
-      document.getElementById('subject-name').value = '';
-      selectedColor = '#3b82f6';
-      document.getElementById('add-subject-form').classList.add('hidden');
-      document.getElementById('show-add-subject').classList.remove('hidden');
-      
-      saveData();
-      render();
-    }
-
-    // Delete subject
-    function deleteSubject(id) {
-      subjects = subjects.filter(s => s.id !== id);
-      homework = homework.filter(h => h.subject != id);
-      saveData();
-      render();
-    }
-
-    // Add homework
-function addHomework() {
-  const subject = document.getElementById('hw-subject').value;
-  const title = document.getElementById('hw-title').value.trim();
-  const description = document.getElementById('hw-desc').value.trim();
-  const dueDate = document.getElementById('hw-date').value;
-  const priority = document.getElementById('hw-priority').value;
-  const fileInput = document.getElementById('hw-files');
-
-  if (!subject || !title || !dueDate) {
-    alert('נא למלא את כל השדות החובה');
-    return;
-  }
-
-  const files = Array.from(fileInput.files);
-  const hwFiles = [];
-
-  if (files.length === 0) {
-    // אין קבצים – אפשר לשמור מיד
-    saveHomework([]);
-  } else {
-    let loadedCount = 0;
-    files.forEach(file => {
-      const reader = new FileReader();
-      reader.onload = function(e) {
-        hwFiles.push({
-          name: file.name,
-          type: file.type,
-          data: e.target.result // Base64
-        });
-        loadedCount++;
-        if (loadedCount === files.length) {
-          saveHomework(hwFiles);
-        }
-      };
-      reader.readAsDataURL(file);
-    });
-  }
-
-  function saveHomework(hwFiles) {
-    homework.push({
-      id: Date.now(),
-      subject,
-      title,
-      description,
-      dueDate,
-      priority,
-      completed: false,
-      files: hwFiles
-    });
-
-    // איפוס הטופס
-    document.getElementById('hw-subject').value = '';
-    document.getElementById('hw-title').value = '';
-    document.getElementById('hw-desc').value = '';
-    document.getElementById('hw-date').value = '';
-    document.getElementById('hw-priority').value = 'medium';
-    document.getElementById('hw-files').value = '';
-
-    saveData();
-    render();
-  }
-}
-
-    // Toggle complete
-    function toggleComplete(id) {
-      const hw = homework.find(h => h.id === id);
-      if (hw) {
-        hw.completed = !hw.completed;
-        saveData();
-        render();
-      }
-    }
-
-    // Delete homework
-    function deleteHomework(id) {
-      if (confirm('האם אתה בטוח שברצונך למחוק את המשימה הזו?')) {
-        homework = homework.filter(h => h.id !== id);
-        saveData();
-        render();
-      }
-    }
-
-    function downloadFile(filename, dataUrl) {
-  const link = document.createElement('a');
-  link.href = dataUrl;
-  link.download = filename;
-  document.body.appendChild(link);
-  link.click();
-  document.body.removeChild(link);
-}
-
-    // Toggle archive view
-    document.getElementById('archive-toggle').addEventListener('click', () => {
-      showArchive = !showArchive;
-      renderHomework();
-    });
-
-    // Add subject form controls
-    document.getElementById('show-add-subject').addEventListener('click', () => {
-      document.getElementById('add-subject-form').classList.remove('hidden');
-      document.getElementById('show-add-subject').classList.add('hidden');
-      renderColorPicker();
-    });
-
-    document.getElementById('cancel-subject').addEventListener('click', () => {
-      document.getElementById('add-subject-form').classList.add('hidden');
-      document.getElementById('show-add-subject').classList.remove('hidden');
-    });
-
-    document.getElementById('save-subject').addEventListener('click', addSubject);
-    document.getElementById('add-homework').addEventListener('click', addHomework);
-
-<script>
-        window.addEventListener('DOMContentLoaded', loadData);
-    </script>
-
-<footer class="footer">
-    <div id="beta-footer-container"></div>
-
-    <script src="config.js"></script>
-
-    <script>
-      const container = document.getElementById('beta-footer-container');
-
-      const oldDesign = `
-        <div style="margin-bottom: 2rem; padding: 1.5rem; background: rgba(255, 255, 255, 0.5); border-radius: 1rem; border: 1px dashed #3b82f6;">
-          <h3 style="color: #1f2937; margin-bottom: 0.5rem;">גרסת בטא (Testing)</h3>
-          <p style="margin-bottom: 1rem;">כרגע אין שינויים ענקיים אבל אולי יש פיצ'רים חדשים קטנים.</p>
-          <a href="test/" style="display: inline-flex; padding: 0.5rem 2rem; background: #3b82f6; color: white; text-decoration: none; border-radius: 0.5rem;">כניסה לעמוד הבדיקה</a>
-        </div>
-      `;
-
-      const newDesign = `
-        <div style="margin-bottom: 2rem; padding: 2rem; background: linear-gradient(135deg, #eff6ff 0%, #dbeafe 100%); border-radius: 1.5rem; border: 2px solid #3b82f6; box-shadow: 0 10px 15px -3px rgba(59, 130, 246, 0.1); font-family: sans-serif; direction: rtl;">
-          <div style="text-align: center; margin-bottom: 1.5rem;">
-            <h2 style="color: #1e40af; font-size: 2.2rem; margin-bottom: 0.5rem; font-weight: 800;">🔥 עומס של פיצ'רים חדשים!</h2>
-            <p style="color: #1d4ed8; font-size: 1.3rem; font-weight: 600;">העלינו המון עדכונים משמעותיים לעמוד הבדיקה – כדאי לבדוק!</p>
-          </div>
-          <div style="background: white; padding: 1.5rem; border-radius: 1rem; border: 1px dashed #3b82f6; text-align: center;">
-            <p style="margin-bottom: 1rem; color: #374151;">העלינו המון עדכונים משמעותיים לעמוד הבדיקה – כדאי לבדוק!</p>
-            <a href="test/" style="display: inline-block; padding: 1rem 3.5rem; background: #3b82f6; color: white; text-decoration: none; font-size: 1.2rem; font-weight: bold; border-radius: 0.75rem; box-shadow: 0 4px 6px rgba(59, 130, 246, 0.3);">
-              כניסה לעמוד הבדיקה המורחב 🚀
-            </a>
-          </div>
-        </div>
-      `;
-
-      if (typeof isBigUpdate !== 'undefined' && isBigUpdate) {
-        container.innerHTML = newDesign;
-      } else {
-        container.innerHTML = oldDesign;
-      }
-    </script>
-
-    <p>2025 giamat13.</p>
+  <footer class="footer">
+    <p>© 2025 giamat13 כל הזכויות שמורות.</p>
     <p>התוכן זמין תחת רישיון <a href="https://creativecommons.org/licenses/by-nc/4.0/deed.he" target="_blank" style="color: #3b82f6; text-decoration: none;">Creative Commons BY-NC 4.0</a></p>
     <p>(שימוש לא מסחרי עם מתן קרדיט בלבד)</p>
     <p style="margin-top: 10px; font-size: 0.9em; opacity: 0.8;">נוצר עם קלוד | Created with Claude</p>
-</footer>
-
+    <p style="margin-top: 5px; font-size: 0.85em; color: #8b5cf6; font-weight: 600;">
+      ✨ Enhanced Edition with Unified Statistics ✨
+    </p>
+  </footer>
 </body>
 </html>
