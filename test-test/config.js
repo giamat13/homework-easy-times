@@ -1,24 +1,27 @@
-// Configuration file for the Homework Management System
-// ====================================================
-
+// ========================================
 // Google Analytics Configuration
-// ==============================
-// Replace 'G-XXXXXXXXXX' with your actual Google Analytics Measurement ID
-// You can find this in your Google Analytics dashboard under Admin > Data Streams
-
-const GA_MEASUREMENT_ID = 'G-3P7J53MD27'; // 👈 Replace with your actual GA4 Measurement ID
-
-// Big Update Flag
-// ===============
-// Set to true when there are major updates to show in the beta footer
-const isBigUpdate = true; // Change to false for minor updates
+// ========================================
+// החלף את ה-ID למטה עם ה-Measurement ID שלך מ-Google Analytics
+const GA_MEASUREMENT_ID = 'G-3P7J53MD27'; // 👈 החלף כאן!
 
 // Export for use in other scripts
 if (typeof window !== 'undefined') {
   window.GA_MEASUREMENT_ID = GA_MEASUREMENT_ID;
+}
+
+// ========================================
+// Beta Banner Configuration
+// ========================================
+// הגדר true אם יש עדכון גדול, false אם לא
+const isBigUpdate = true;
+
+// Export for beta footer
+if (typeof window !== 'undefined') {
   window.isBigUpdate = isBigUpdate;
 }
 
-console.log('⚙️ config.js loaded');
-console.log('📊 GA Measurement ID:', GA_MEASUREMENT_ID);
-console.log('🚀 Big Update Mode:', isBigUpdate);
+console.log('✅ Config loaded:', {
+  analyticsConfigured: GA_MEASUREMENT_ID !== 'G-XXXXXXXXXX',
+  measurementId: GA_MEASUREMENT_ID,
+  bigUpdate: isBigUpdate
+});

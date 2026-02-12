@@ -1,4 +1,4 @@
-// Advanced Analytics Dashboard - דשבורד אנליטיקה מתקדם
+// Advanced Analytics Dashboard - דשבורד אנליטיקה מתקדם 
 class AnalyticsManager {
   constructor() {
     this.charts = {};
