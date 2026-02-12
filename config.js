@@ -6,7 +6,7 @@
 // Replace 'G-XXXXXXXXXX' with your actual Google Analytics Measurement ID
 // You can find this in your Google Analytics dashboard under Admin > Data Streams
 
-const GA_MEASUREMENT_ID = 'G-N5W4B1DDXP'; // 👈 Replace with your actual GA4 Measurement ID
+const GA_MEASUREMENT_ID = 'G-3P7J53MD27'; // 👈 Replace with your actual GA4 Measurement ID
 
 // Big Update Flag
 // ===============
