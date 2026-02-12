@@ -5,6 +5,37 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>מערכת ניהול שיעורי בית</title>
   <link rel="stylesheet" href="styles.css">
+  
+  <!-- Load config FIRST -->
+  <script src="config.js"></script>
+  
+  <!-- Google Analytics - Dynamic Loading -->
+  <script>
+    // Wait for config.js to load, then initialize Analytics
+    window.addEventListener('DOMContentLoaded', function() {
+      const measurementId = window.GA_MEASUREMENT_ID || 'G-XXXXXXXXXX';
+      
+      if (measurementId && measurementId !== 'G-XXXXXXXXXX') {
+        // Load gtag.js
+        const script = document.createElement('script');
+        script.async = true;
+        script.src = `https://www.googletagmanager.com/gtag/js?id=${measurementId}`;
+        document.head.appendChild(script);
+        
+        // Initialize dataLayer
+        window.dataLayer = window.dataLayer || [];
+        function gtag(){dataLayer.push(arguments);}
+        window.gtag = gtag;
+        gtag('js', new Date());
+        gtag('config', measurementId);
+        
+        console.log('✅ Google Analytics initialized:', measurementId);
+      } else {
+        console.warn('⚠️ Google Analytics not configured. Please set GA_MEASUREMENT_ID in config.js');
+      }
+    });
+  </script>
+  
   <script src="https://cdnjs.cloudflare.com/ajax/libs/lucide/0.263.1/umd/lucide.min.js"></script>
 </head>
 <body>
@@ -268,10 +299,59 @@
     </symbol>
   </svg>
 
+  <!-- Load JavaScript in correct order -->
   <script src="storage.js"></script>
   <script src="notifications.js"></script>
   <script src="app.js"></script>
   
+  <!-- Analytics Tracking (loads after everything else) -->
+  <script src="analytics-tracking.js"></script>
+
+<footer class="footer">
+    <div id="beta-footer-container"></div>
+
+    <script>
+      const container = document.getElementById('beta-footer-container');
+      const isBigUpdate = window.isBigUpdate !== undefined ? window.isBigUpdate : true;
+
+      const oldDesign = `
+        <div style="margin-bottom: 2rem; padding: 1.5rem; background: rgba(255, 255, 255, 0.5); border-radius: 1rem; border: 1px dashed #3b82f6;">
+          <h3 style="color: #1f2937; margin-bottom: 0.5rem;">גרסת בטא (Testing)</h3>
+          <p style="margin-bottom: 1rem;">כרגע אין שינויים ענקיים אבל אולי יש פיצ'רים חדשים קטנים.</p>
+          <a href="test/" style="display: inline-flex; padding: 0.5rem 2rem; background: #3b82f6; color: white; text-decoration: none; border-radius: 0.5rem;">כניסה לעמוד הבדיקה</a>
+        </div>
+      `;
+
+      const newDesign = `
+        <div style="margin-bottom: 2rem; padding: 2rem; background: linear-gradient(135deg, #eff6ff 0%, #dbeafe 100%); border-radius: 1.5rem; border: 2px solid #3b82f6; box-shadow: 0 10px 15px -3px rgba(59, 130, 246, 0.1); font-family: sans-serif; direction: rtl;">
+          <div style="text-align: center; margin-bottom: 1.5rem;">
+            <h2 style="color: #1e40af; font-size: 2.2rem; margin-bottom: 0.5rem; font-weight: 800;">🔥 עומס של פיצ'רים חדשים!</h2>
+            <p style="color: #1d4ed8; font-size: 1.3rem; font-weight: 600;">העלינו המון עדכונים משמעותיים לעמוד הבדיקה – כדאי לבדוק!</p>
+          </div>
+          <div style="background: white; padding: 1.5rem; border-radius: 1rem; border: 1px dashed #3b82f6; text-align: center;">
+            <p style="margin-bottom: 1rem; color: #374151;">העלינו המון עדכונים משמעותיים לעמוד הבדיקה – כדאי לבדוק!</p>
+            <a href="test/" style="display: inline-block; padding: 1rem 3.5rem; background: #3b82f6; color: white; text-decoration: none; font-size: 1.2rem; font-weight: bold; border-radius: 0.75rem; box-shadow: 0 4px 6px rgba(59, 130, 246, 0.3);">
+              כניסה לעמוד הבדיקה המורחב 🚀
+            </a>
+          </div>
+        </div>
+      `;
+
+      if (isBigUpdate) {
+        container.innerHTML = newDesign;
+      } else {
+        container.innerHTML = oldDesign;
+      }
+    </script>
+
+    <p>2025 giamat13.</p>
+    <p>התוכן זמין תחת רישיון <a href="https://creativecommons.org/licenses/by-nc/4.0/deed.he" target="_blank" style="color: #3b82f6; text-decoration: none;">Creative Commons BY-NC 4.0</a></p>
+    <p>(שימוש לא מסחרי עם מתן קרדיט בלבד)</p>
+    <p style="margin-top: 10px; font-size: 0.9em; opacity: 0.8;">נוצר עם קלוד | Created with Claude</p>
+</footer>
+
+</body>
+</html>
   <script>
     const colors = ['#3b82f6', '#ef4444', '#10b981', '#f59e0b', '#8b5cf6', '#ec4899'];
     let subjects = [];
@@ -280,7 +360,6 @@
     let showArchive = false;
 
     // Load data
-// Load data
 async function loadData() {
   try {
     if (window.storage) {
@@ -513,7 +592,6 @@ function addHomework() {
   const hwFiles = [];
 
   if (files.length === 0) {
-    // אין קבצים – אפשר לשמור מיד
     saveHomework([]);
   } else {
     let loadedCount = 0;
@@ -523,7 +601,7 @@ function addHomework() {
         hwFiles.push({
           name: file.name,
           type: file.type,
-          data: e.target.result // Base64
+          data: e.target.result
         });
         loadedCount++;
         if (loadedCount === files.length) {
@@ -546,7 +624,6 @@ function addHomework() {
       files: hwFiles
     });
 
-    // איפוס הטופס
     document.getElementById('hw-subject').value = '';
     document.getElementById('hw-title').value = '';
     document.getElementById('hw-desc').value = '';
@@ -608,53 +685,5 @@ function addHomework() {
     document.getElementById('save-subject').addEventListener('click', addSubject);
     document.getElementById('add-homework').addEventListener('click', addHomework);
 
-<script>
-        window.addEventListener('DOMContentLoaded', loadData);
+    window.addEventListener('DOMContentLoaded', loadData);
     </script>
-
-<footer class="footer">
-    <div id="beta-footer-container"></div>
-
-    <script src="config.js"></script>
-
-    <script>
-      const container = document.getElementById('beta-footer-container');
-
-      const oldDesign = `
-        <div style="margin-bottom: 2rem; padding: 1.5rem; background: rgba(255, 255, 255, 0.5); border-radius: 1rem; border: 1px dashed #3b82f6;">
-          <h3 style="color: #1f2937; margin-bottom: 0.5rem;">גרסת בטא (Testing)</h3>
-          <p style="margin-bottom: 1rem;">כרגע אין שינויים ענקיים אבל אולי יש פיצ'רים חדשים קטנים.</p>
-          <a href="test/" style="display: inline-flex; padding: 0.5rem 2rem; background: #3b82f6; color: white; text-decoration: none; border-radius: 0.5rem;">כניסה לעמוד הבדיקה</a>
-        </div>
-      `;
-
-      const newDesign = `
-        <div style="margin-bottom: 2rem; padding: 2rem; background: linear-gradient(135deg, #eff6ff 0%, #dbeafe 100%); border-radius: 1.5rem; border: 2px solid #3b82f6; box-shadow: 0 10px 15px -3px rgba(59, 130, 246, 0.1); font-family: sans-serif; direction: rtl;">
-          <div style="text-align: center; margin-bottom: 1.5rem;">
-            <h2 style="color: #1e40af; font-size: 2.2rem; margin-bottom: 0.5rem; font-weight: 800;">🔥 עומס של פיצ'רים חדשים!</h2>
-            <p style="color: #1d4ed8; font-size: 1.3rem; font-weight: 600;">העלינו המון עדכונים משמעותיים לעמוד הבדיקה – כדאי לבדוק!</p>
-          </div>
-          <div style="background: white; padding: 1.5rem; border-radius: 1rem; border: 1px dashed #3b82f6; text-align: center;">
-            <p style="margin-bottom: 1rem; color: #374151;">העלינו המון עדכונים משמעותיים לעמוד הבדיקה – כדאי לבדוק!</p>
-            <a href="test/" style="display: inline-block; padding: 1rem 3.5rem; background: #3b82f6; color: white; text-decoration: none; font-size: 1.2rem; font-weight: bold; border-radius: 0.75rem; box-shadow: 0 4px 6px rgba(59, 130, 246, 0.3);">
-              כניסה לעמוד הבדיקה המורחב 🚀
-            </a>
-          </div>
-        </div>
-      `;
-
-      if (typeof isBigUpdate !== 'undefined' && isBigUpdate) {
-        container.innerHTML = newDesign;
-      } else {
-        container.innerHTML = oldDesign;
-      }
-    </script>
-
-    <p>2025 giamat13.</p>
-    <p>התוכן זמין תחת רישיון <a href="https://creativecommons.org/licenses/by-nc/4.0/deed.he" target="_blank" style="color: #3b82f6; text-decoration: none;">Creative Commons BY-NC 4.0</a></p>
-    <p>(שימוש לא מסחרי עם מתן קרדיט בלבד)</p>
-    <p style="margin-top: 10px; font-size: 0.9em; opacity: 0.8;">נוצר עם קלוד | Created with Claude</p>
-</footer>
-
-</body>
-</html>
