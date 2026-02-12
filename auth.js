@@ -1,5 +1,5 @@
-// Authentication Manager - מנהל אימות משתמשים
-// ================================================
+// Authentication Manager with Guest Mode Support
+// ===============================================
 
 class AuthManager {
   constructor() {
@@ -7,8 +7,9 @@ class AuthManager {
     this.auth = null;
     this.db = null;
     this.authStateListener = null;
+    this.isGuestMode = false;
     
-    console.log('🔐 AuthManager: Initialized');
+    console.log('🔐 AuthManager: Initialized with Guest Mode support');
   }
 
   // ==================== אתחול ====================
@@ -22,8 +23,14 @@ class AuthManager {
       this.auth = firebase.auth;
       this.db = firebase.db;
       
-      // האזנה לשינויים בסטטוס האימות
-      this.setupAuthStateListener();
+      // בדיקה אם יש משתמש אורח קיים
+      if (isGuestMode()) {
+        console.log('👤 AuthManager: Found existing guest session');
+        await this.continueAsGuest();
+      } else {
+        // האזנה לשינויים בסטטוס האימות (משתמשים רגילים)
+        this.setupAuthStateListener();
+      }
       
       console.log('✅ AuthManager: Initialized successfully');
       return true;
@@ -41,7 +48,8 @@ class AuthManager {
       console.log('🔐 Auth state changed:', user ? user.email : 'null');
       
       if (user) {
-        // משתמש מחובר
+        // משתמש מחובר (לא אורח)
+        this.isGuestMode = false;
         this.currentUser = {
           uid: user.uid,
           email: user.email,
@@ -49,12 +57,13 @@ class AuthManager {
           emailVerified: user.emailVerified,
           photoURL: user.photoURL,
           createdAt: user.metadata.creationTime,
-          lastLogin: user.metadata.lastSignInTime
+          lastLogin: user.metadata.lastSignInTime,
+          isGuest: false
         };
         
         console.log('✅ User logged in:', this.currentUser.email);
         
-        // טעינת נתוני המשתמש
+        // טעינת נתוני המשתמש מ-Firestore
         await this.loadUserData();
         
         // הסתרת מסך התחברות והצגת האפליקציה
@@ -72,14 +81,169 @@ class AuthManager {
         console.log('⏸️ User logged out');
         this.currentUser = null;
         
-        // הצגת מסך התחברות
-        this.showAuthUI();
-        this.hideApp();
+        // הצגת מסך התחברות (אם לא במצב אורח)
+        if (!this.isGuestMode) {
+          this.showAuthUI();
+          this.hideApp();
+        }
         
         // אירוע custom
         window.dispatchEvent(new CustomEvent('userLoggedOut'));
       }
     });
+  }
+
+  // ==================== מצב אורח ====================
+  
+  async continueAsGuest() {
+    console.log('👤 continueAsGuest: Entering guest mode...');
+    
+    this.isGuestMode = true;
+    const guestUID = getGuestUID();
+    
+    this.currentUser = {
+      uid: guestUID,
+      displayName: 'אורח',
+      email: null,
+      emailVerified: false,
+      photoURL: null,
+      createdAt: new Date().toISOString(),
+      lastLogin: new Date().toISOString(),
+      isGuest: true
+    };
+    
+    console.log('✅ Guest session started:', guestUID);
+    
+    // טעינת נתוני אורח מ-localStorage
+    await this.loadGuestData();
+    
+    // הסתרת מסך התחברות והצגת האפליקציה
+    this.hideAuthUI();
+    this.showApp();
+    
+    // עדכון UI
+    this.updateUserUI();
+    
+    // אירוע custom
+    window.dispatchEvent(new CustomEvent('userLoggedIn', { detail: this.currentUser }));
+  }
+
+  async loadGuestData() {
+    console.log('📥 loadGuestData: Loading guest data from localStorage...');
+    
+    try {
+      // טעינת נתונים מ-localStorage עם prefix של אורח
+      const guestPrefix = GUEST_MODE.localStoragePrefix;
+      
+      // טעינת מקצועות
+      const subjectsData = localStorage.getItem(guestPrefix + 'homework-subjects');
+      if (subjectsData) {
+        subjects = JSON.parse(subjectsData);
+        console.log('✅ Loaded subjects:', subjects.length);
+      }
+      
+      // טעינת משימות
+      const homeworkData = localStorage.getItem(guestPrefix + 'homework-list');
+      if (homeworkData) {
+        homework = JSON.parse(homeworkData);
+        console.log('✅ Loaded homework:', homework.length);
+      }
+      
+      // עדכון UI
+      if (typeof render === 'function') {
+        render();
+      }
+      
+      console.log('✅ Guest data loaded successfully');
+    } catch (error) {
+      console.error('❌ Error loading guest data:', error);
+    }
+  }
+
+  async saveGuestData() {
+    console.log('💾 saveGuestData: Saving guest data to localStorage...');
+    
+    try {
+      const guestPrefix = GUEST_MODE.localStoragePrefix;
+      
+      // שמירת מקצועות
+      localStorage.setItem(guestPrefix + 'homework-subjects', JSON.stringify(subjects));
+      
+      // שמירת משימות
+      localStorage.setItem(guestPrefix + 'homework-list', JSON.stringify(homework));
+      
+      console.log('✅ Guest data saved successfully');
+    } catch (error) {
+      console.error('❌ Error saving guest data:', error);
+    }
+  }
+
+  async convertGuestToUser(email, password, displayName) {
+    console.log('🔄 convertGuestToUser: Converting guest to registered user...');
+    
+    if (!this.isGuestMode) {
+      console.warn('⚠️ Not in guest mode, cannot convert');
+      return false;
+    }
+    
+    try {
+      // שמירת נתוני האורח
+      const guestData = {
+        subjects: subjects.slice(),
+        homework: homework.slice()
+      };
+      
+      // יצירת משתמש חדש
+      const userCredential = await this.auth.createUserWithEmailAndPassword(email, password);
+      const user = userCredential.user;
+      
+      // עדכון שם תצוגה
+      if (displayName) {
+        await user.updateProfile({ displayName });
+      }
+      
+      // העברת הנתונים ל-Firestore
+      await this.createUserDocument(user.uid, {
+        email: user.email,
+        displayName: displayName || user.email.split('@')[0],
+        createdAt: firebase.firestore.FieldValue.serverTimestamp(),
+        emailVerified: false,
+        convertedFromGuest: true
+      });
+      
+      // שמירת נתוני האורח ל-Firestore
+      const batch = this.db.batch();
+      
+      // שמירת מקצועות
+      guestData.subjects.forEach(subject => {
+        const docRef = this.db.collection('subjects').doc(user.uid).collection('items').doc(subject.id.toString());
+        batch.set(docRef, subject);
+      });
+      
+      // שמירת משימות
+      guestData.homework.forEach(hw => {
+        const docRef = this.db.collection('homework').doc(user.uid).collection('items').doc(hw.id.toString());
+        batch.set(docRef, hw);
+      });
+      
+      await batch.commit();
+      
+      // מחיקת נתוני אורח
+      clearGuestData();
+      this.isGuestMode = false;
+      
+      // שליחת אימות אימייל
+      await user.sendEmailVerification();
+      
+      this.showSuccess('החשבון נוצר בהצלחה! הנתונים שלך הועברו. נשלח אימייל אימות.');
+      console.log('✅ Guest converted to user successfully');
+      
+      return true;
+    } catch (error) {
+      console.error('❌ Error converting guest to user:', error);
+      this.handleAuthError(error);
+      return false;
+    }
   }
 
   // ==================== רישום ====================
@@ -105,9 +269,7 @@ class AuthManager {
       
       // עדכון שם תצוגה
       if (displayName) {
-        await user.updateProfile({
-          displayName: displayName
-        });
+        await user.updateProfile({ displayName });
         console.log('✅ Signup: Display name updated');
       }
       
@@ -175,9 +337,23 @@ class AuthManager {
     console.log('👋 Logout: Logging out user...');
     
     try {
-      await this.auth.signOut();
-      console.log('✅ Logout: Success');
-      this.showSuccess('התנתקת בהצלחה');
+      if (this.isGuestMode) {
+        // התנתקות אורח
+        console.log('👋 Logging out guest...');
+        this.isGuestMode = false;
+        this.currentUser = null;
+        
+        // הצגת מסך התחברות
+        this.showAuthUI();
+        this.hideApp();
+        
+        this.showSuccess('התנתקת בהצלחה');
+      } else {
+        // התנתקות משתמש רגיל
+        await this.auth.signOut();
+        console.log('✅ Logout: Success');
+        this.showSuccess('התנתקת בהצלחה');
+      }
     } catch (error) {
       console.error('❌ Logout error:', error);
       this.showError('שגיאה בהתנתקות');
@@ -185,7 +361,7 @@ class AuthManager {
     }
   }
 
-  // ==================== Google Sign-In (מוכן לעתיד) ====================
+  // ==================== Google Sign-In ====================
   
   async loginWithGoogle() {
     console.log('🔑 Google Login: Attempting...');
@@ -267,7 +443,7 @@ class AuthManager {
     }
   }
 
-  // ==================== Firestore - ניהול נתוני משתמשים ====================
+  // ==================== Firestore ====================
   
   async createUserDocument(uid, data) {
     console.log('📝 Firestore: Creating user document for', uid);
@@ -335,6 +511,11 @@ class AuthManager {
 
   async saveUserData() {
     console.log('💾 Firestore: Saving user data...');
+    
+    // אם במצב אורח - שמור ב-localStorage
+    if (this.isGuestMode) {
+      return this.saveGuestData();
+    }
     
     try {
       const uid = this.currentUser.uid;
@@ -416,17 +597,16 @@ class AuthManager {
   updateUserUI() {
     console.log('🎨 UI: Updating user info');
     
-    // עדכון כפתור יציאה בכותרת
+    // עדכון כפתור משתמש בכותרת
     const headerActions = document.querySelector('.header-actions');
     if (headerActions && this.currentUser) {
-      // בדיקה אם כבר יש כפתור
       let userBtn = document.getElementById('user-menu-btn');
       if (!userBtn) {
         userBtn = document.createElement('button');
         userBtn.id = 'user-menu-btn';
         userBtn.className = 'settings-btn';
-        userBtn.title = this.currentUser.email;
-        userBtn.innerHTML = `
+        userBtn.title = this.currentUser.isGuest ? 'אורח' : this.currentUser.email;
+        userBtn.innerHTML = this.currentUser.isGuest ? '👤' : `
           <svg width="24" height="24" fill="currentColor">
             <circle cx="12" cy="8" r="4"/>
             <path d="M12 14c-5 0-9 2-9 5v2h18v-2c0-3-4-5-9-5z"/>
@@ -444,6 +624,71 @@ class AuthManager {
     modal.className = 'modal';
     modal.id = 'user-menu-modal';
     
+    let menuContent = '';
+    
+    if (this.isGuestMode) {
+      // תפריט אורח
+      menuContent = `
+        <div style="text-align: center; margin-bottom: 1.5rem;">
+          <div style="width: 80px; height: 80px; border-radius: 50%; background: #3b82f6; color: white; display: flex; align-items: center; justify-content: center; font-size: 2rem; margin: 0 auto 1rem;">
+            👤
+          </div>
+          <h3 style="margin: 0.5rem 0;">אורח</h3>
+          <p style="color: var(--text-secondary); font-size: 0.875rem;">הנתונים שלך שמורים מקומית</p>
+        </div>
+        
+        <div style="background: #fff3cd; border: 1px solid #ffc107; border-radius: 0.5rem; padding: 1rem; margin-bottom: 1.5rem;">
+          <p style="margin: 0; font-size: 0.875rem; color: #856404;">
+            <strong>💡 רוצה לשמור את הנתונים בענן?</strong><br>
+            צור חשבון וכל הנתונים שלך יועברו אוטומטית!
+          </p>
+        </div>
+        
+        <div style="display: flex; flex-direction: column; gap: 0.75rem;">
+          <button class="btn btn-primary" onclick="authManager.showConvertGuestModal(); document.getElementById('user-menu-modal').remove();">
+            🔒 צור חשבון והעבר נתונים
+          </button>
+          <button class="btn btn-secondary" onclick="if(confirm('האם אתה בטוח? הנתונים שלך יימחקו!')) { authManager.clearGuestAndLogout(); document.getElementById('user-menu-modal').remove(); }">
+            🗑️ מחק נתונים והתנתק
+          </button>
+          <button class="btn btn-secondary" onclick="authManager.logout(); document.getElementById('user-menu-modal').remove();">
+            👋 התנתק (שמור נתונים)
+          </button>
+        </div>
+      `;
+    } else {
+      // תפריט משתמש רגיל
+      menuContent = `
+        <div style="text-align: center; margin-bottom: 1.5rem;">
+          ${this.currentUser.photoURL 
+            ? `<img src="${this.currentUser.photoURL}" alt="Profile" style="width: 80px; height: 80px; border-radius: 50%; margin-bottom: 1rem;">` 
+            : '<div style="width: 80px; height: 80px; border-radius: 50%; background: #3b82f6; color: white; display: flex; align-items: center; justify-content: center; font-size: 2rem; margin: 0 auto 1rem;">' + this.currentUser.displayName.charAt(0).toUpperCase() + '</div>'}
+          <h3 style="margin: 0.5rem 0;">${this.currentUser.displayName}</h3>
+          <p style="color: var(--text-secondary); font-size: 0.875rem;">${this.currentUser.email}</p>
+          ${!this.currentUser.emailVerified ? '<p style="color: #f59e0b; font-size: 0.875rem;">⚠️ אימייל לא מאומת</p>' : ''}
+        </div>
+        
+        <div style="display: flex; flex-direction: column; gap: 0.75rem;">
+          ${!this.currentUser.emailVerified ? `
+            <button class="btn btn-secondary" onclick="authManager.sendVerificationEmail()">
+              📧 שלח אימייל אימות מחדש
+            </button>
+          ` : ''}
+          <button class="btn btn-secondary" onclick="authManager.showResetPasswordModal()">
+            🔐 שנה סיסמה
+          </button>
+          <button class="btn btn-danger" onclick="authManager.logout(); document.getElementById('user-menu-modal').remove();">
+            👋 התנתק
+          </button>
+        </div>
+        
+        <div style="margin-top: 1.5rem; padding-top: 1.5rem; border-top: 1px solid var(--border-color); font-size: 0.75rem; color: var(--text-secondary);">
+          <p>נוצר: ${new Date(this.currentUser.createdAt).toLocaleDateString('he-IL')}</p>
+          <p>התחברות אחרונה: ${new Date(this.currentUser.lastLogin).toLocaleDateString('he-IL')}</p>
+        </div>
+      `;
+    }
+    
     modal.innerHTML = `
       <div class="modal-content" style="max-width: 400px;">
         <div class="modal-header">
@@ -453,33 +698,7 @@ class AuthManager {
           </button>
         </div>
         <div class="modal-body">
-          <div style="text-align: center; margin-bottom: 1.5rem;">
-            ${this.currentUser.photoURL 
-              ? `<img src="${this.currentUser.photoURL}" alt="Profile" style="width: 80px; height: 80px; border-radius: 50%; margin-bottom: 1rem;">` 
-              : '<div style="width: 80px; height: 80px; border-radius: 50%; background: #3b82f6; color: white; display: flex; align-items: center; justify-content: center; font-size: 2rem; margin: 0 auto 1rem;">' + this.currentUser.displayName.charAt(0).toUpperCase() + '</div>'}
-            <h3 style="margin: 0.5rem 0;">${this.currentUser.displayName}</h3>
-            <p style="color: var(--text-secondary); font-size: 0.875rem;">${this.currentUser.email}</p>
-            ${!this.currentUser.emailVerified ? '<p style="color: #f59e0b; font-size: 0.875rem;">⚠️ אימייל לא מאומת</p>' : ''}
-          </div>
-          
-          <div style="display: flex; flex-direction: column; gap: 0.75rem;">
-            ${!this.currentUser.emailVerified ? `
-              <button class="btn btn-secondary" onclick="authManager.sendVerificationEmail()">
-                📧 שלח אימייל אימות מחדש
-              </button>
-            ` : ''}
-            <button class="btn btn-secondary" onclick="authManager.showResetPasswordModal()">
-              🔐 שנה סיסמה
-            </button>
-            <button class="btn btn-danger" onclick="authManager.logout(); document.getElementById('user-menu-modal').remove();">
-              👋 התנתק
-            </button>
-          </div>
-          
-          <div style="margin-top: 1.5rem; padding-top: 1.5rem; border-top: 1px solid var(--border-color); font-size: 0.75rem; color: var(--text-secondary);">
-            <p>נוצר: ${new Date(this.currentUser.createdAt).toLocaleDateString('he-IL')}</p>
-            <p>התחברות אחרונה: ${new Date(this.currentUser.lastLogin).toLocaleDateString('he-IL')}</p>
-          </div>
+          ${menuContent}
         </div>
       </div>
     `;
@@ -489,6 +708,88 @@ class AuthManager {
     modal.addEventListener('click', (e) => {
       if (e.target === modal) modal.remove();
     });
+  }
+
+  showConvertGuestModal() {
+    const modal = document.createElement('div');
+    modal.className = 'modal';
+    modal.id = 'convert-guest-modal';
+    
+    modal.innerHTML = `
+      <div class="modal-content" style="max-width: 450px;">
+        <div class="modal-header">
+          <h2>🔒 צור חשבון</h2>
+          <button class="close-modal-btn" onclick="document.getElementById('convert-guest-modal').remove()">
+            <svg width="24" height="24"><use href="#x"></use></svg>
+          </button>
+        </div>
+        <div class="modal-body">
+          <div style="background: #d1fae5; border: 1px solid #10b981; border-radius: 0.5rem; padding: 1rem; margin-bottom: 1.5rem;">
+            <p style="margin: 0; font-size: 0.875rem; color: #065f46;">
+              <strong>✨ כל הנתונים שלך יישמרו!</strong><br>
+              המקצועות והמשימות שיצרת יועברו אוטומטית לחשבון החדש.
+            </p>
+          </div>
+          
+          <div class="form-group">
+            <label>שם מלא</label>
+            <input type="text" class="input" id="convert-name" placeholder="השם שלך">
+          </div>
+          <div class="form-group">
+            <label>אימייל</label>
+            <input type="email" class="input" id="convert-email" placeholder="your@email.com">
+          </div>
+          <div class="form-group">
+            <label>סיסמה</label>
+            <input type="password" class="input" id="convert-password" placeholder="לפחות 6 תווים">
+          </div>
+          <div class="form-group">
+            <label>אימות סיסמה</label>
+            <input type="password" class="input" id="convert-password-confirm" placeholder="הזן סיסמה שוב">
+          </div>
+          
+          <button class="btn btn-primary" id="convert-guest-btn">
+            🔒 צור חשבון והעבר נתונים
+          </button>
+        </div>
+      </div>
+    `;
+    
+    document.body.appendChild(modal);
+    
+    const convertBtn = document.getElementById('convert-guest-btn');
+    convertBtn.addEventListener('click', async () => {
+      const name = document.getElementById('convert-name').value;
+      const email = document.getElementById('convert-email').value;
+      const password = document.getElementById('convert-password').value;
+      const passwordConfirm = document.getElementById('convert-password-confirm').value;
+      
+      if (password !== passwordConfirm) {
+        this.showError('הסיסמאות לא תואמות');
+        return;
+      }
+      
+      convertBtn.disabled = true;
+      convertBtn.textContent = '⏳ יוצר חשבון...';
+      
+      const success = await this.convertGuestToUser(email, password, name);
+      
+      if (success) {
+        modal.remove();
+      } else {
+        convertBtn.disabled = false;
+        convertBtn.innerHTML = '🔒 צור חשבון והעבר נתונים';
+      }
+    });
+    
+    modal.addEventListener('click', (e) => {
+      if (e.target === modal) modal.remove();
+    });
+  }
+
+  clearGuestAndLogout() {
+    clearGuestData();
+    this.logout();
   }
 
   showResetPasswordModal() {
@@ -534,6 +835,16 @@ class AuthManager {
             </svg>
             <h1>ניהול שיעורי בית</h1>
             <p>התחבר כדי לגשת למשימות שלך</p>
+          </div>
+
+          <!-- Guest Mode Button -->
+          <div style="padding: 1.5rem; text-align: center; border-bottom: 2px solid var(--border-color);">
+            <button class="btn btn-primary" onclick="authManager.continueAsGuest(); document.getElementById('auth-container').classList.add('hidden');" style="width: 100%; background: linear-gradient(135deg, #10b981, #059669);">
+              👤 המשך כאורח
+            </button>
+            <p style="margin-top: 0.75rem; font-size: 0.875rem; color: var(--text-secondary);">
+              ניתן להתחיל מייד ללא הרשמה. הנתונים יישמרו מקומית.
+            </p>
           </div>
 
           <!-- Login Form -->
@@ -758,7 +1069,7 @@ class AuthManager {
 // יצירת אובייקט גלובלי
 console.log('🔐 Creating global auth manager...');
 const authManager = new AuthManager();
-console.log('✅ Global auth manager created');
+console.log('✅ Global auth manager created with Guest Mode');
 
 // אתחול אוטומטי
 window.addEventListener('DOMContentLoaded', async () => {

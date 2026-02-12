@@ -1,20 +1,5 @@
-// Firebase Configuration
-// ======================
-// ⚠️ חשוב: API Keys של Firebase Web הם PUBLIC by design
-// האבטחה נעשית דרך Firebase Security Rules, לא דרך הסתרת ה-Key
-// 
-// קרא עוד: https://firebase.google.com/docs/projects/api-keys
-
-// ========================================
-// שלב 1: הגדר Domain Restrictions ב-Firebase Console
-// ========================================
-// 1. לך ל-Firebase Console: https://console.firebase.google.com
-// 2. בחר את הפרויקט שלך
-// 3. Settings > Project Settings > Web API Key
-// 4. הוסף את הדומיינים המורשים:
-//    - localhost (לפיתוח)
-//    - YOUR-USERNAME.github.io (לפרודקשן)
-//    - הדומיין המותאם שלך (אם יש)
+// Firebase Configuration with Guest Mode Support
+// ==============================================
 
 const firebaseConfig = {
   apiKey: "AIzaSyCbHTfv0U0DdVRbKc4FSPQi-VF4zrdX0QQ",
@@ -27,35 +12,16 @@ const firebaseConfig = {
 };
 
 // ========================================
-// שלב 2: הגדר Firebase Security Rules
+// Guest Mode Configuration
 // ========================================
-// העתק את הקוד הזה ל-Firestore Rules ב-Firebase Console:
-/*
-rules_version = '2';
-service cloud.firestore {
-  match /databases/{database}/documents {
-    // משתמשים - כל אחד רואה רק את עצמו
-    match /users/{userId} {
-      allow read, write: if request.auth != null && request.auth.uid == userId;
-    }
-    
-    // נתוני משתמשים - רק בעל החשבון
-    match /userData/{userId}/{document=**} {
-      allow read, write: if request.auth != null && request.auth.uid == userId;
-    }
-    
-    // מקצועות - רק למשתמש מחובר של עצמו
-    match /subjects/{userId}/items/{subjectId} {
-      allow read, write: if request.auth != null && request.auth.uid == userId;
-    }
-    
-    // משימות - רק למשתמש מחובר של עצמו
-    match /homework/{userId}/items/{homeworkId} {
-      allow read, write: if request.auth != null && request.auth.uid == userId;
-    }
-  }
-}
-*/
+const GUEST_MODE = {
+  enabled: true,
+  // Guest users will use localStorage only (no cloud sync)
+  // Their data is temporary and local to their browser
+  localStoragePrefix: 'guest_',
+  // Guest UID will be generated and stored locally
+  guestUidKey: 'guest_user_id'
+};
 
 // ========================================
 // אתחול Firebase
@@ -79,20 +45,67 @@ function initializeFirebase() {
     
     console.log('✅ Firebase initialized successfully');
     console.log('📊 Analytics enabled:', firebaseConfig.measurementId ? 'Yes' : 'No');
+    console.log('👤 Guest mode enabled:', GUEST_MODE.enabled ? 'Yes' : 'No');
     
     // הגדרות נוספות
     auth.languageCode = 'he'; // עברית
     
-    return { app, auth, db };
+    return { app, auth, db, guestMode: GUEST_MODE };
   } catch (error) {
     console.error('❌ Firebase initialization error:', error);
     throw error;
   }
 }
 
-// ייצוא
-if (typeof module !== 'undefined' && module.exports) {
-  module.exports = { firebaseConfig, initializeFirebase };
+// ========================================
+// Guest Mode Helper Functions
+// ========================================
+
+function isGuestMode() {
+  // בודק אם משתמש נמצא במצב אורח
+  return localStorage.getItem(GUEST_MODE.guestUidKey) !== null;
 }
 
-console.log('✅ Firebase config loaded');
+function getGuestUID() {
+  // מחזיר או יוצר UID לאורח
+  let guestUID = localStorage.getItem(GUEST_MODE.guestUidKey);
+  if (!guestUID) {
+    guestUID = 'guest_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9);
+    localStorage.setItem(GUEST_MODE.guestUidKey, guestUID);
+    console.log('👤 New guest UID created:', guestUID);
+  }
+  return guestUID;
+}
+
+function clearGuestData() {
+  // מנקה את כל הנתונים של האורח
+  console.log('🗑️ Clearing guest data...');
+  
+  // מחיקת כל המפתחות שמתחילים ב-guest_
+  const keysToDelete = [];
+  for (let i = 0; i < localStorage.length; i++) {
+    const key = localStorage.key(i);
+    if (key.startsWith(GUEST_MODE.localStoragePrefix)) {
+      keysToDelete.push(key);
+    }
+  }
+  
+  keysToDelete.forEach(key => localStorage.removeItem(key));
+  localStorage.removeItem(GUEST_MODE.guestUidKey);
+  
+  console.log('✅ Guest data cleared:', keysToDelete.length, 'keys removed');
+}
+
+// ייצוא
+if (typeof module !== 'undefined' && module.exports) {
+  module.exports = { 
+    firebaseConfig, 
+    initializeFirebase, 
+    GUEST_MODE,
+    isGuestMode,
+    getGuestUID,
+    clearGuestData
+  };
+}
+
+console.log('✅ Firebase config loaded with Guest Mode support');
