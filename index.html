@@ -5,9 +5,28 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>מערכת ניהול שיעורי בית</title>
   <link rel="stylesheet" href="styles.css">
+  
+  <!-- Load config first -->
+  <script src="config.js"></script>
+  
+  <!-- Google Analytics 4 -->
+  <script async src="https://www.googletagmanager.com/gtag/js?id=G-XXXXXXXXXX"></script>
+  <script>
+    window.dataLayer = window.dataLayer || [];
+    function gtag(){dataLayer.push(arguments);}
+    gtag('js', new Date());
+    
+    // Use the GA_MEASUREMENT_ID from config.js if available
+    const measurementId = window.GA_MEASUREMENT_ID || 'G-XXXXXXXXXX';
+    gtag('config', measurementId);
+    
+    console.log('📊 Google Analytics initialized with ID:', measurementId);
+  </script>
+  
   <script src="https://cdnjs.cloudflare.com/ajax/libs/lucide/0.263.1/umd/lucide.min.js"></script>
 </head>
 <body>
+  <!-- Rest of your HTML stays exactly the same -->
   <div class="container">
     <!-- Header -->
     <div class="header">
@@ -217,7 +236,7 @@
     </div>
   </div>
 
-  <!-- SVG Icons -->
+  <!-- SVG Icons (keeping all existing icons) -->
   <svg style="display: none;">
     <symbol id="book-open" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
       <path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"></path>
@@ -268,10 +287,15 @@
     </symbol>
   </svg>
 
+  <!-- Load all JavaScript files -->
   <script src="storage.js"></script>
   <script src="notifications.js"></script>
   <script src="app.js"></script>
   
+  <!-- Load Analytics Tracking (this wraps the existing functions) -->
+  <script src="analytics-tracking.js"></script>
+  
+  <!-- Your existing inline script -->
   <script>
     const colors = ['#3b82f6', '#ef4444', '#10b981', '#f59e0b', '#8b5cf6', '#ec4899'];
     let subjects = [];
@@ -279,42 +303,37 @@
     let selectedColor = '#3b82f6';
     let showArchive = false;
 
-    // Load data
-// Load data
-async function loadData() {
-  try {
-    if (window.storage) {
-      const subResult = await window.storage.get('homework-subjects');
-      const hwResult = await window.storage.get('homework-list');
-      if (subResult) subjects = JSON.parse(subResult.value);
-      if (hwResult) homework = JSON.parse(hwResult.value);
-    } else {
-      subjects = JSON.parse(localStorage.getItem('homework-subjects') || '[]');
-      homework = JSON.parse(localStorage.getItem('homework-list') || '[]');
+    async function loadData() {
+      try {
+        if (window.storage) {
+          const subResult = await window.storage.get('homework-subjects');
+          const hwResult = await window.storage.get('homework-list');
+          if (subResult) subjects = JSON.parse(subResult.value);
+          if (hwResult) homework = JSON.parse(hwResult.value);
+        } else {
+          subjects = JSON.parse(localStorage.getItem('homework-subjects') || '[]');
+          homework = JSON.parse(localStorage.getItem('homework-list') || '[]');
+        }
+      } catch (error) {
+        console.log('מערכת חדשה');
+      }
+      render();
     }
-  } catch (error) {
-    console.log('מערכת חדשה');
-  }
-  render();
-}
 
-// Save data
-async function saveData() {
-  try {
-    if (window.storage) {
-      await window.storage.set('homework-subjects', JSON.stringify(subjects));
-      await window.storage.set('homework-list', JSON.stringify(homework));
-    } else {
-      localStorage.setItem('homework-subjects', JSON.stringify(subjects));
-      localStorage.setItem('homework-list', JSON.stringify(homework));
+    async function saveData() {
+      try {
+        if (window.storage) {
+          await window.storage.set('homework-subjects', JSON.stringify(subjects));
+          await window.storage.set('homework-list', JSON.stringify(homework));
+        } else {
+          localStorage.setItem('homework-subjects', JSON.stringify(subjects));
+          localStorage.setItem('homework-list', JSON.stringify(homework));
+        }
+      } catch (error) {
+        console.error('שגיאה בשמירה:', error);
+      }
     }
-  } catch (error) {
-    console.error('שגיאה בשמירה:', error);
-  }
-}
 
-
-    // Calculate days until due
     function getDaysUntilDue(dueDate) {
       const today = new Date();
       today.setHours(0, 0, 0, 0);
@@ -322,7 +341,6 @@ async function saveData() {
       return Math.round((due - today) / (1000 * 60 * 60 * 24));
     }
 
-    // Render color picker
     function renderColorPicker() {
       const picker = document.getElementById('color-picker');
       picker.innerHTML = colors.map(color => `
@@ -332,7 +350,6 @@ async function saveData() {
       `).join('');
     }
 
-    // Render subjects
     function renderSubjects() {
       const list = document.getElementById('subject-list');
       const select = document.getElementById('hw-subject');
@@ -357,107 +374,104 @@ async function saveData() {
         subjects.map(s => `<option value="${s.id}">${s.name}</option>`).join('');
     }
 
-    // Render homework
-function renderHomework() {
-  const list = document.getElementById('homework-list');
-  const archiveBtn = document.getElementById('archive-toggle');
+    function renderHomework() {
+      const list = document.getElementById('homework-list');
+      const archiveBtn = document.getElementById('archive-toggle');
 
-  const activeHomework = homework.filter(h => {
-    if (!h.completed) return true;
-    return getDaysUntilDue(h.dueDate) >= 0;
-  });
+      const activeHomework = homework.filter(h => {
+        if (!h.completed) return true;
+        return getDaysUntilDue(h.dueDate) >= 0;
+      });
 
-  const archivedHomework = homework.filter(h => {
-    if (!h.completed) return false;
-    return getDaysUntilDue(h.dueDate) < 0;
-  });
+      const archivedHomework = homework.filter(h => {
+        if (!h.completed) return false;
+        return getDaysUntilDue(h.dueDate) < 0;
+      });
 
-  if (archivedHomework.length > 0) {
-    archiveBtn.classList.remove('hidden');
-    archiveBtn.textContent = showArchive ? 'הסתר ארכיון' : `ארכיון (${archivedHomework.length})`;
-  } else {
-    archiveBtn.classList.add('hidden');
-  }
+      if (archivedHomework.length > 0) {
+        archiveBtn.classList.remove('hidden');
+        archiveBtn.textContent = showArchive ? 'הסתר ארכיון' : `ארכיון (${archivedHomework.length})`;
+      } else {
+        archiveBtn.classList.add('hidden');
+      }
 
-  const displayList = showArchive ? archivedHomework : activeHomework;
+      const displayList = showArchive ? archivedHomework : activeHomework;
 
-  if (displayList.length === 0) {
-    list.innerHTML = `<p class="empty-state">${showArchive ? 'אין פריטים בארכיון' : 'אין שיעורי בית להצגה'}</p>`;
-    return;
-  }
+      if (displayList.length === 0) {
+        list.innerHTML = `<p class="empty-state">${showArchive ? 'אין פריטים בארכיון' : 'אין שיעורי בית להצגה'}</p>`;
+        return;
+      }
 
-  const sorted = [...displayList].sort((a, b) => {
-    if (a.completed !== b.completed) return a.completed ? 1 : -1;
-    return new Date(a.dueDate) - new Date(b.dueDate);
-  });
+      const sorted = [...displayList].sort((a, b) => {
+        if (a.completed !== b.completed) return a.completed ? 1 : -1;
+        return new Date(a.dueDate) - new Date(b.dueDate);
+      });
 
-  list.innerHTML = sorted.map(hw => {
-    const subject = subjects.find(s => s.id == hw.subject);
-    const daysLeft = getDaysUntilDue(hw.dueDate);
-    const isUrgent = daysLeft <= 2 && !hw.completed;
-    const isOverdue = daysLeft < 0 && !hw.completed;
+      list.innerHTML = sorted.map(hw => {
+        const subject = subjects.find(s => s.id == hw.subject);
+        const daysLeft = getDaysUntilDue(hw.dueDate);
+        const isUrgent = daysLeft <= 2 && !hw.completed;
+        const isOverdue = daysLeft < 0 && !hw.completed;
 
-    let classes = 'homework-item';
-    if (hw.completed) classes += ' completed';
-    if (isOverdue) classes += ' overdue';
-    else if (isUrgent) classes += ' urgent';
+        let classes = 'homework-item';
+        if (hw.completed) classes += ' completed';
+        if (isOverdue) classes += ' overdue';
+        else if (isUrgent) classes += ' urgent';
 
-    let daysText = '';
-    if (!hw.completed) {
-      if (isOverdue) daysText = `באיחור של ${Math.abs(daysLeft)} ימים`;
-      else if (daysLeft === 0) daysText = 'היום!';
-      else if (daysLeft === 1) daysText = 'מחר';
-      else if (daysLeft === 2) daysText = 'מחרתיים';
-      else daysText = `עוד ${daysLeft} ימים`;
-    }
+        let daysText = '';
+        if (!hw.completed) {
+          if (isOverdue) daysText = `באיחור של ${Math.abs(daysLeft)} ימים`;
+          else if (daysLeft === 0) daysText = 'היום!';
+          else if (daysLeft === 1) daysText = 'מחר';
+          else if (daysLeft === 2) daysText = 'מחרתיים';
+          else daysText = `עוד ${daysLeft} ימים`;
+        }
 
-    return `
-      <div class="${classes}" ${!hw.completed && !isOverdue && !isUrgent && subject ? `style="border-color: ${subject.color};"` : ''}>
-        <div class="homework-header">
-          <input type="checkbox" class="checkbox" ${hw.completed ? 'checked' : ''} 
-                 onchange="toggleComplete(${hw.id})">
-          <div class="homework-content">
-            <div class="homework-badges">
-              ${subject ? `<span class="badge" style="background-color: ${subject.color};">${subject.name}</span>` : ''}
-              ${isOverdue ? '<span class="badge" style="background-color: #ef4444;">איחור!</span>' : ''}
-              ${isUrgent && !isOverdue ? '<span class="badge" style="background-color: #f59e0b;">דחוף</span>' : ''}
-            </div>
-            <h3 class="homework-title ${hw.completed ? 'completed' : ''}">${hw.title}</h3>
-            ${hw.description ? `<p class="homework-desc">${hw.description}</p>` : ''}
+        return `
+          <div class="${classes}" ${!hw.completed && !isOverdue && !isUrgent && subject ? `style="border-color: ${subject.color};"` : ''}>
+            <div class="homework-header">
+              <input type="checkbox" class="checkbox" ${hw.completed ? 'checked' : ''} 
+                     onchange="toggleComplete(${hw.id})">
+              <div class="homework-content">
+                <div class="homework-badges">
+                  ${subject ? `<span class="badge" style="background-color: ${subject.color};">${subject.name}</span>` : ''}
+                  ${isOverdue ? '<span class="badge" style="background-color: #ef4444;">איחור!</span>' : ''}
+                  ${isUrgent && !isOverdue ? '<span class="badge" style="background-color: #f59e0b;">דחוף</span>' : ''}
+                </div>
+                <h3 class="homework-title ${hw.completed ? 'completed' : ''}">${hw.title}</h3>
+                ${hw.description ? `<p class="homework-desc">${hw.description}</p>` : ''}
 
-            ${hw.files && hw.files.length ? `
-              <div class="homework-files">
-                <strong>קבצים מצורפים:</strong>
-                <ul>
-                  ${hw.files.map(f => `
-                    <li>
-                      ${f.name} 
-                      <button onclick="downloadFile('${f.name}', '${f.data}')" class="btn btn-secondary" style="margin-left:0.5rem;">הורד</button>
-                    </li>
-                  `).join('')}
-                </ul>
+                ${hw.files && hw.files.length ? `
+                  <div class="homework-files">
+                    <strong>קבצים מצורפים:</strong>
+                    <ul>
+                      ${hw.files.map(f => `
+                        <li>
+                          ${f.name} 
+                          <button onclick="downloadFile('${f.name}', '${f.data}')" class="btn btn-secondary" style="margin-left:0.5rem;">הורד</button>
+                        </li>
+                      `).join('')}
+                    </ul>
+                  </div>
+                ` : ''}
+
+                <div class="homework-meta">
+                  <span>
+                    <svg width="16" height="16" style="display: inline; vertical-align: middle;"><use href="#calendar"></use></svg>
+                    ${new Date(hw.dueDate).toLocaleDateString('he-IL')}
+                  </span>
+                  ${daysText ? `<span class="days-left ${isOverdue ? 'overdue' : isUrgent ? 'urgent' : ''}">${daysText}</span>` : ''}
+                </div>
               </div>
-            ` : ''}
-
-            <div class="homework-meta">
-              <span>
-                <svg width="16" height="16" style="display: inline; vertical-align: middle;"><use href="#calendar"></use></svg>
-                ${new Date(hw.dueDate).toLocaleDateString('he-IL')}
-              </span>
-              ${daysText ? `<span class="days-left ${isOverdue ? 'overdue' : isUrgent ? 'urgent' : ''}">${daysText}</span>` : ''}
+              <button class="icon-btn" onclick="deleteHomework(${hw.id})">
+                <svg width="20" height="20"><use href="#trash"></use></svg>
+              </button>
             </div>
           </div>
-          <button class="icon-btn" onclick="deleteHomework(${hw.id})">
-            <svg width="20" height="20"><use href="#trash"></use></svg>
-          </button>
-        </div>
-      </div>
-    `;
-  }).join('');
-}
+        `;
+      }).join('');
+    }
 
-
-    // Update stats
     function updateStats() {
       document.getElementById('stat-total').textContent = homework.length;
       document.getElementById('stat-completed').textContent = homework.filter(h => h.completed).length;
@@ -465,14 +479,12 @@ function renderHomework() {
       document.getElementById('stat-urgent').textContent = homework.filter(h => !h.completed && getDaysUntilDue(h.dueDate) <= 2).length;
     }
 
-    // Render all
     function render() {
       renderSubjects();
       renderHomework();
       updateStats();
     }
 
-    // Add subject
     function addSubject() {
       const name = document.getElementById('subject-name').value.trim();
       if (!name) return;
@@ -487,7 +499,6 @@ function renderHomework() {
       render();
     }
 
-    // Delete subject
     function deleteSubject(id) {
       subjects = subjects.filter(s => s.id !== id);
       homework = homework.filter(h => h.subject != id);
@@ -495,71 +506,67 @@ function renderHomework() {
       render();
     }
 
-    // Add homework
-function addHomework() {
-  const subject = document.getElementById('hw-subject').value;
-  const title = document.getElementById('hw-title').value.trim();
-  const description = document.getElementById('hw-desc').value.trim();
-  const dueDate = document.getElementById('hw-date').value;
-  const priority = document.getElementById('hw-priority').value;
-  const fileInput = document.getElementById('hw-files');
+    function addHomework() {
+      const subject = document.getElementById('hw-subject').value;
+      const title = document.getElementById('hw-title').value.trim();
+      const description = document.getElementById('hw-desc').value.trim();
+      const dueDate = document.getElementById('hw-date').value;
+      const priority = document.getElementById('hw-priority').value;
+      const fileInput = document.getElementById('hw-files');
 
-  if (!subject || !title || !dueDate) {
-    alert('נא למלא את כל השדות החובה');
-    return;
-  }
+      if (!subject || !title || !dueDate) {
+        alert('נא למלא את כל השדות החובה');
+        return;
+      }
 
-  const files = Array.from(fileInput.files);
-  const hwFiles = [];
+      const files = Array.from(fileInput.files);
+      const hwFiles = [];
 
-  if (files.length === 0) {
-    // אין קבצים – אפשר לשמור מיד
-    saveHomework([]);
-  } else {
-    let loadedCount = 0;
-    files.forEach(file => {
-      const reader = new FileReader();
-      reader.onload = function(e) {
-        hwFiles.push({
-          name: file.name,
-          type: file.type,
-          data: e.target.result // Base64
+      if (files.length === 0) {
+        saveHomework([]);
+      } else {
+        let loadedCount = 0;
+        files.forEach(file => {
+          const reader = new FileReader();
+          reader.onload = function(e) {
+            hwFiles.push({
+              name: file.name,
+              type: file.type,
+              data: e.target.result
+            });
+            loadedCount++;
+            if (loadedCount === files.length) {
+              saveHomework(hwFiles);
+            }
+          };
+          reader.readAsDataURL(file);
         });
-        loadedCount++;
-        if (loadedCount === files.length) {
-          saveHomework(hwFiles);
-        }
-      };
-      reader.readAsDataURL(file);
-    });
-  }
+      }
 
-  function saveHomework(hwFiles) {
-    homework.push({
-      id: Date.now(),
-      subject,
-      title,
-      description,
-      dueDate,
-      priority,
-      completed: false,
-      files: hwFiles
-    });
+      function saveHomework(hwFiles) {
+        homework.push({
+          id: Date.now(),
+          subject,
+          title,
+          description,
+          dueDate,
+          priority,
+          completed: false,
+          files: hwFiles
+        });
 
-    // איפוס הטופס
-    document.getElementById('hw-subject').value = '';
-    document.getElementById('hw-title').value = '';
-    document.getElementById('hw-desc').value = '';
-    document.getElementById('hw-date').value = '';
-    document.getElementById('hw-priority').value = 'medium';
-    document.getElementById('hw-files').value = '';
+        document.getElementById('hw-subject').value = '';
+        document.getElementById('hw-title').value = '';
+        document.getElementById('hw-desc').value = '';
+        document.getElementById('hw-date').value = '';
+        document.getElementById('hw-priority').value = 'medium';
+        document.getElementById('hw-files').value = '';
 
-    saveData();
-    render();
-  }
-}
+        saveData();
+        render();
+      }
+    }
 
-    // Toggle complete
     function toggleComplete(id) {
       const hw = homework.find(h => h.id === id);
       if (hw) {
@@ -569,7 +576,6 @@ function addHomework() {
       }
     }
 
-    // Delete homework
     function deleteHomework(id) {
       if (confirm('האם אתה בטוח שברצונך למחוק את המשימה הזו?')) {
         homework = homework.filter(h => h.id !== id);
@@ -579,21 +585,19 @@ function addHomework() {
     }
 
     function downloadFile(filename, dataUrl) {
-  const link = document.createElement('a');
-  link.href = dataUrl;
-  link.download = filename;
-  document.body.appendChild(link);
-  link.click();
-  document.body.removeChild(link);
-}
+      const link = document.createElement('a');
+      link.href = dataUrl;
+      link.download = filename;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+    }
 
-    // Toggle archive view
     document.getElementById('archive-toggle').addEventListener('click', () => {
       showArchive = !showArchive;
       renderHomework();
     });
 
-    // Add subject form controls
     document.getElementById('show-add-subject').addEventListener('click', () => {
       document.getElementById('add-subject-form').classList.remove('hidden');
       document.getElementById('show-add-subject').classList.add('hidden');
@@ -608,14 +612,11 @@ function addHomework() {
     document.getElementById('save-subject').addEventListener('click', addSubject);
     document.getElementById('add-homework').addEventListener('click', addHomework);
 
-<script>
-        window.addEventListener('DOMContentLoaded', loadData);
-    </script>
+    window.addEventListener('DOMContentLoaded', loadData);
+  </script>
 
-<footer class="footer">
+  <footer class="footer">
     <div id="beta-footer-container"></div>
-
-    <script src="config.js"></script>
 
     <script>
       const container = document.getElementById('beta-footer-container');
@@ -643,6 +644,7 @@ function addHomework() {
         </div>
       `;
 
+      // Use isBigUpdate from config.js
       if (typeof isBigUpdate !== 'undefined' && isBigUpdate) {
         container.innerHTML = newDesign;
       } else {
@@ -654,7 +656,7 @@ function addHomework() {
     <p>התוכן זמין תחת רישיון <a href="https://creativecommons.org/licenses/by-nc/4.0/deed.he" target="_blank" style="color: #3b82f6; text-decoration: none;">Creative Commons BY-NC 4.0</a></p>
     <p>(שימוש לא מסחרי עם מתן קרדיט בלבד)</p>
     <p style="margin-top: 10px; font-size: 0.9em; opacity: 0.8;">נוצר עם קלוד | Created with Claude</p>
-</footer>
+  </footer>
 
 </body>
 </html>
