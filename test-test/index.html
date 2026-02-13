@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>מערכת ניהול שיעורי בית</title>
+  <title>מערכת ניהול שיעורי בית - מאובטח</title>
   <link rel="icon" href="icon.png" type="image/png">
   
   <!-- Google Analytics -->
@@ -22,23 +22,44 @@
   <link rel="stylesheet" href="enhanced-styles.css">
   <link rel="stylesheet" href="statistics-styles.css">
   <link rel="stylesheet" href="achievement-progress-styles.css">
+  <link rel="stylesheet" href="auth-styles.css">
   
   <!-- External Libraries -->
   <script src="https://cdnjs.cloudflare.com/ajax/libs/lucide/0.263.1/umd/lucide.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+  
+  <!-- 🔥 Firebase SDK (Updated to Modular SDK v10+) -->
+  <script type="module">
+    // This will be handled by firebase-config.js
+    import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js';
+    import { getAuth } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js';
+    import { getFirestore } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js';
+    
+    window.firebaseImports = { initializeApp, getAuth, getFirestore };
+  </script>
 </head>
 <body>
+  <!-- Auth Container - מסך התחברות -->
+  <div id="auth-container" style="display: none;"></div>
+
   <!-- Main App Container -->
-  <div class="container">
+  <div class="container" style="display: none;">
+    <!-- Email Verification Banner -->
+    <div id="email-verification-banner" class="email-verification-banner hidden">
+      ⚠️ האימייל שלך לא מאומת.
+      <button onclick="authManager.sendVerificationEmail()">שלח אימייל אימות</button>
+    </div>
+
     <!-- Header with Enhanced Actions -->
     <div class="header">
       <div class="header-title">
         <svg width="32" height="32" style="color: #3b82f6;">
           <use href="#book-open"></use>
         </svg>
-        <h1>ניהול שיעורי בית</h1>
+        <h1>ניהול שיעורי בית <span style="font-size: 0.5em; color: #8b5cf6;">🔐 מאובטח</span></h1>
         <div class="header-actions">
+          <!-- User menu button will be added here by auth.js -->
           <button class="settings-btn" id="quick-search-btn" title="חיפוש מהיר (Ctrl+F)" onclick="smartSearch.openSearchPanel()">
             <svg width="24" height="24"><use href="#search"></use></svg>
           </button>
@@ -197,6 +218,15 @@
       
       <div class="modal-body">
         <div class="settings-section">
+          <h3>חשבון</h3>
+          <div class="setting-item">
+            <button class="btn btn-secondary" onclick="authManager.showUserMenu(); closeSettings();">
+              👤 ניהול חשבון
+            </button>
+          </div>
+        </div>
+
+        <div class="settings-section">
           <h3>מראה</h3>
           <div class="setting-item">
             <label>
@@ -275,6 +305,19 @@
         </div>
 
         <div class="settings-section">
+          <h3>סנכרון ענן ☁️</h3>
+          <div class="setting-item">
+            <p style="margin-bottom: 0.75rem; color: #6b7280; font-size: 0.875rem;">
+              הנתונים שלך מסונכרנים אוטומטית ל-Firebase
+            </p>
+            <button class="btn btn-secondary" onclick="authManager.saveUserData()">
+              <svg width="20" height="20"><use href="#cloud"></use></svg>
+              סנכרן עכשיו
+            </button>
+          </div>
+        </div>
+
+        <div class="settings-section">
           <h3>דיווח על בעיות</h3>
           <div class="setting-item">
             <p style="margin-bottom: 0.75rem; color: #6b7280; font-size: 0.875rem;">
@@ -296,7 +339,7 @@
     </div>
   </div>
 
-  <!-- SVG Icons -->
+  <!-- SVG Icons (Extended) -->
   <svg style="display: none;">
     <symbol id="book-open" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
       <path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"></path>
@@ -419,23 +462,52 @@
   </svg>
 
   <!-- JavaScript Files - ORDER MATTERS! -->
-  <!-- 1. Core functionality -->
+  <!-- ⚠️ CRITICAL: Load order is essential for proper functionality -->
+  
+  <!-- 1. Configuration (FIRST!) -->
+  <script src="config.js"></script>
+  
+  <!-- 2. Firebase Setup (needs to be early, uses module imports above) -->
+  <script type="module" src="firebase-config.js"></script>
+  
+  <!-- 3. Core Services (need Firebase) -->
   <script src="storage.js"></script>
   <script src="notifications.js"></script>
+  
+  <!-- 4. Authentication (needs Firebase + Storage) -->
+  <script src="auth.js"></script>
+  
+  <!-- 5. Feature Modules (need Storage + Auth) -->
   <script src="calendar.js"></script>
-  <script src="statistics.js"></script>
   <script src="study-timer.js"></script>
   <script src="gamification.js"></script>
+  <script src="statistics.js"></script>
   <script src="utilities.js"></script>
   
-  <!-- 2. Main app -->
+  <!-- 6. Main App Logic (needs everything above) -->
   <script src="app.js"></script>
   
-  <!-- 3. Integration (LAST!) -->
+  <!-- 7. Integration Layer (LAST! - connects everything) -->
   <script src="integration.js"></script>
   
+  <!-- 8. Optional: Analytics Tracking -->
+  <script src="analytics-tracking.js"></script>
+  
   <footer class="footer">
-    <p>© 2025 giamat13</p>
+    <div id="beta-footer-container"></div>
+    <script>
+      // Simple footer notice
+      const container = document.getElementById('beta-footer-container');
+      if (container) {
+        container.innerHTML = `
+          <div style="margin-bottom: 2rem; padding: 1.5rem; background: rgba(255, 255, 255, 0.5); border-radius: 1rem; border: 1px dashed #3b82f6;">
+            <h3 style="color: #1f2937; margin-bottom: 0.5rem;">גרסה מאובטחת - 🔐 Firebase Authentication</h3>
+            <p style="margin-bottom: 1rem;">כולל התחברות בטוחה, סנכרון ענן, ומצב אורח</p>
+          </div>
+        `;
+      }
+    </script>
+    <p>© 2025 giamat13 | 🔐 Protected by Firebase</p>
     <p>התוכן זמין תחת רישיון <a href="https://creativecommons.org/licenses/by-nc/4.0/deed.he" target="_blank" style="color: #3b82f6; text-decoration: none;">Creative Commons BY-NC 4.0</a></p>
     <p>(שימוש לא מסחרי עם מתן קרדיט בלבד)</p>
   </footer>
