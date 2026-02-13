@@ -1,38 +1,101 @@
-// firestore.rules
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
     
-    // פונקציית עזר - בדיקה אם המשתמש מחובר
+    // ============================================
+    // פונקציות עזר
+    // ============================================
+    
+    // בדיקה אם המשתמש מחובר
     function isSignedIn() {
       return request.auth != null;
     }
     
-    // פונקציית עזר - בדיקה אם המשתמש הוא הבעלים
+    // בדיקה אם המשתמש הוא הבעלים
     function isOwner(userId) {
-      return request.auth.uid == userId;
+      return request.auth != null && request.auth.uid == userId;
     }
     
     // ============================================
-    // כללים למסמכי משתמשים
+    // כללים למסמכי משתמשים - users collection
     // ============================================
     match /users/{userId} {
       // קריאה וכתיבה רק למשתמש עצמו
       allow read, write: if isSignedIn() && isOwner(userId);
       
-      // תת-קולקציות (הגדרות, משימות, וכו')
-      match /{document=**} {
+      // תת-קולקציות (הגדרות)
+      match /settings/{settingId} {
         allow read, write: if isSignedIn() && isOwner(userId);
       }
     }
     
     // ============================================
-    // דוגמה לקולקציה משותפת (אופציונלי)
+    // כללים למקצועות - subjects collection
+    // ============================================
+    match /subjects/{userId} {
+      // המשתמש יכול לקרוא ולכתוב רק את המקצועות שלו
+      allow read, write: if isSignedIn() && isOwner(userId);
+      
+      // תת-קולקציה של פריטים
+      match /items/{itemId} {
+        allow read, write: if isSignedIn() && isOwner(userId);
+      }
+    }
+    
+    // ============================================
+    // כללים למשימות - homework collection
+    // ============================================
+    match /homework/{userId} {
+      // המשתמש יכול לקרוא ולכתוב רק את המשימות שלו
+      allow read, write: if isSignedIn() && isOwner(userId);
+      
+      // תת-קולקציה של פריטים
+      match /items/{itemId} {
+        allow read, write: if isSignedIn() && isOwner(userId);
+      }
+    }
+    
+    // ============================================
+    // כללים לסשני לימוד - study-sessions collection
+    // ============================================
+    match /study-sessions/{userId} {
+      allow read, write: if isSignedIn() && isOwner(userId);
+      
+      match /sessions/{sessionId} {
+        allow read, write: if isSignedIn() && isOwner(userId);
+      }
+    }
+    
+    // ============================================
+    // כללים לגמיפיקציה - gamification collection
+    // ============================================
+    match /gamification/{userId} {
+      allow read, write: if isSignedIn() && isOwner(userId);
+      
+      match /achievements/{achievementId} {
+        allow read, write: if isSignedIn() && isOwner(userId);
+      }
+    }
+    
+    // ============================================
+    // כללים לתגיות - tags collection
+    // ============================================
+    match /tags/{userId} {
+      allow read, write: if isSignedIn() && isOwner(userId);
+      
+      match /items/{tagId} {
+        allow read, write: if isSignedIn() && isOwner(userId);
+      }
+    }
+    
+    // ============================================
+    // (אופציונלי) קולקציה משותפת - public collection
     // ============================================
     match /public/{document} {
-      // כולם יכולים לקרוא, רק מנהלים יכולים לכתוב
+      // כולם יכולים לקרוא
       allow read: if true;
-      allow write: if false; // או הוסף בדיקה למנהלים
+      // רק מנהלים יכולים לכתוב (אם תרצה להוסיף תכונה כזאת)
+      allow write: if false;
     }
     
     // ============================================
