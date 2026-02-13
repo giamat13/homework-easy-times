@@ -289,5 +289,7 @@ class StorageManager {
 // 🌍 GLOBAL INSTANCE
 // ============================================
 console.log('💾 Creating global storage manager...');
-window.storageManager = new StorageManager();
+const storageManagerInstance = new StorageManager();
+window.storageManager = storageManagerInstance;
+window.storage = storageManagerInstance; // Backward compatibility
 console.log('✅ Global storage manager created');
