@@ -460,11 +460,19 @@
   <!-- 1. Firebase Config (FIRST!) -->
   <script src="firebase-config.js"></script>
   
-  <!-- 2. Authentication (needs Firebase) -->
+  <!-- 2. Storage (needs Firebase) -->
+  <script src="storage.js"></script>
+  
+  <!-- 3. Auth Sync Fix (needs storage) -->
+  <script src="auth-sync-fix.js"></script>
+  
+  <!-- 4. Authentication (needs Firebase and storage) -->
   <script src="auth.js"></script>
   
-  <!-- 3. Core functionality -->
-  <script src="storage.js"></script>
+  <!-- 5. Auth Enhancements (needs auth.js) -->
+  <script src="auth-enhancements.js"></script>
+  
+  <!-- 6. Core functionality -->
   <script src="notifications.js"></script>
   <script src="calendar.js"></script>
   <script src="statistics.js"></script>
@@ -472,10 +480,10 @@
   <script src="gamification.js"></script>
   <script src="utilities.js"></script>
   
-  <!-- 4. Main app (needs all of the above) -->
+  <!-- 7. Main app (needs all of the above) -->
   <script src="app.js"></script>
   
-  <!-- 5. Integration (LAST!) -->
+  <!-- 8. Integration (LAST!) -->
   <script src="integration.js"></script>
   
   <footer class="footer">
