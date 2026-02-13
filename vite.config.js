@@ -4,7 +4,7 @@ import react from '@vitejs/plugin-react';
 
 export default defineConfig({
   plugins: [react()],
-  base: '/homework-easy-times/', // ⚠️ שנה את זה לשם הרפוזיטורי שלך!
+  base: './', // נתיב יחסי - יעבוד בכל מקום!
   build: {
     outDir: 'dist'
   },
