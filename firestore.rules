@@ -1,0 +1,45 @@
+// firestore.rules
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    
+    // פונקציית עזר - בדיקה אם המשתמש מחובר
+    function isSignedIn() {
+      return request.auth != null;
+    }
+    
+    // פונקציית עזר - בדיקה אם המשתמש הוא הבעלים
+    function isOwner(userId) {
+      return request.auth.uid == userId;
+    }
+    
+    // ============================================
+    // כללים למסמכי משתמשים
+    // ============================================
+    match /users/{userId} {
+      // קריאה וכתיבה רק למשתמש עצמו
+      allow read, write: if isSignedIn() && isOwner(userId);
+      
+      // תת-קולקציות (הגדרות, משימות, וכו')
+      match /{document=**} {
+        allow read, write: if isSignedIn() && isOwner(userId);
+      }
+    }
+    
+    // ============================================
+    // דוגמה לקולקציה משותפת (אופציונלי)
+    // ============================================
+    match /public/{document} {
+      // כולם יכולים לקרוא, רק מנהלים יכולים לכתוב
+      allow read: if true;
+      allow write: if false; // או הוסף בדיקה למנהלים
+    }
+    
+    // ============================================
+    // חסום הכל אחרת
+    // ============================================
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}
