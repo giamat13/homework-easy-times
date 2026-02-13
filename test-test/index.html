@@ -7,12 +7,13 @@
   <link rel="icon" href="icon.png" type="image/png">
   
   <!-- Google Analytics -->
+  <script src="config.js"></script>
   <script async src="https://www.googletagmanager.com/gtag/js?id=G-3P7J53MD27"></script>
   <script>
     window.dataLayer = window.dataLayer || [];
     function gtag(){dataLayer.push(arguments);}
     gtag('js', new Date());
-    gtag('config', 'G-3P7J53MD27');
+    gtag('config', window.GA_MEASUREMENT_ID || 'G-3P7J53MD27');
   </script>
   
   <!-- CSS Files -->
@@ -28,19 +29,14 @@
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
   
-  <!-- 🔥 Firebase SDK (Updated to Modular SDK v10+) -->
-  <script type="module">
-    // This will be handled by firebase-config.js
-    import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js';
-    import { getAuth } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js';
-    import { getFirestore } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js';
-    
-    window.firebaseImports = { initializeApp, getAuth, getFirestore };
-  </script>
+  <!-- 🔥 Firebase SDK -->
+  <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-auth-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore-compat.js"></script>
 </head>
 <body>
   <!-- Auth Container - מסך התחברות -->
-  <div id="auth-container" style="display: none;"></div>
+  <div id="auth-container"></div>
 
   <!-- Main App Container -->
   <div class="container" style="display: none;">
@@ -461,54 +457,43 @@
   </svg>
 
   <!-- JavaScript Files - ORDER MATTERS! -->
-  <!-- ⚠️ CRITICAL: Load order is essential for proper functionality -->
+  <!-- 1. Firebase Config (FIRST!) -->
+  <script src="firebase-config.js"></script>
   
-  <!-- 1. Configuration (FIRST!) -->
-  <script src="config.js"></script>
-  
-  <!-- 2. Firebase Setup (needs to be early, uses module imports above) -->
-  <script type="module" src="firebase-config.js"></script>
-  
-  <!-- 3. Core Services (need Firebase) -->
-  <script src="storage.js"></script>
-  <script src="notifications.js"></script>
-  
-  <!-- 4. Authentication (needs Firebase + Storage) -->
+  <!-- 2. Authentication (needs Firebase) -->
   <script src="auth.js"></script>
   
-  <!-- 5. Feature Modules (need Storage + Auth) -->
+  <!-- 3. Core functionality -->
+  <script src="storage.js"></script>
+  <script src="notifications.js"></script>
   <script src="calendar.js"></script>
+  <script src="statistics.js"></script>
   <script src="study-timer.js"></script>
   <script src="gamification.js"></script>
-  <script src="statistics.js"></script>
   <script src="utilities.js"></script>
   
-  <!-- 6. Main App Logic (needs everything above) -->
+  <!-- 4. Main app (needs all of the above) -->
   <script src="app.js"></script>
   
-  <!-- 7. Integration Layer (LAST! - connects everything) -->
+  <!-- 5. Integration (LAST!) -->
   <script src="integration.js"></script>
-  
-  <!-- 8. Optional: Analytics Tracking -->
-  <script src="analytics-tracking.js"></script>
   
   <footer class="footer">
     <div id="beta-footer-container"></div>
     <script>
-      // Simple footer notice
       const container = document.getElementById('beta-footer-container');
-      if (container) {
-        container.innerHTML = `
-          <div style="margin-bottom: 2rem; padding: 1.5rem; background: rgba(255, 255, 255, 0.5); border-radius: 1rem; border: 1px dashed #3b82f6;">
-            <h3 style="color: #1f2937; margin-bottom: 0.5rem;">גרסה מאובטחת - 🔐 Firebase Authentication</h3>
-            <p style="margin-bottom: 1rem;">כולל התחברות בטוחה, סנכרון ענן, ומצב אורח</p>
-          </div>
-        `;
-      }
+      const oldDesign = `
+        <div style="margin-bottom: 2rem; padding: 1.5rem; background: rgba(255, 255, 255, 0.5); border-radius: 1rem; border: 1px dashed #3b82f6;">
+          <h3 style="color: #1f2937; margin-bottom: 0.5rem;">גרסת בטא (Testing) - 🔐 מאובטח</h3>
+          <p style="margin-bottom: 1rem;">כעת עם מערכת התחברות מאובטחת ב-Firebase!</p>
+          <a href="test/" style="display: inline-flex; padding: 0.5rem 2rem; background: #3b82f6; color: white; text-decoration: none; border-radius: 0.5rem;">כניסה לעמוד הבדיקה</a>
+        </div>
+      `;
+      container.innerHTML = oldDesign;
     </script>
-    <p>© 2025 giamat13 | 🔐 Protected by Firebase</p>
+    <p>2025 giamat13 | 🔐 Protected by Firebase</p>
     <p>התוכן זמין תחת רישיון <a href="https://creativecommons.org/licenses/by-nc/4.0/deed.he" target="_blank" style="color: #3b82f6; text-decoration: none;">Creative Commons BY-NC 4.0</a></p>
     <p>(שימוש לא מסחרי עם מתן קרדיט בלבד)</p>
-  </footer>
+</footer>
 </body>
 </html>
