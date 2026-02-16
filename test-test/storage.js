@@ -147,20 +147,26 @@ class StorageManager {
   async remove(key) {
     console.log(`🗑️ StorageManager.remove: Removing key "${key}"...`);
 
+  // מחיקת כל הנתונים
+  async clearAll() {
+    console.log('🗑️ StorageManager.clearAll: Clearing all data...');
     try {
-      const user = firebase.auth().currentUser;
-
-      if (user) {
-        // 🔥 משתמש מחובר - מחק מ-Firestore
-        try {
-          const db = firebase.firestore();
-          const docRef = db.collection('users').doc(user.uid).collection('data').doc(key);
-          await docRef.delete();
-          console.log(`✅ StorageManager.remove: Removed "${key}" from Firestore`);
-        } catch (firestoreError) {
-          console.error(`❌ StorageManager.remove: Firestore error:`, firestoreError.message);
-        }
+      const keys = ['homework-subjects', 'homework-list', 'homework-settings', 'homework-last-backup', 'homework-tags'];
+      console.log('🗑️ StorageManager.clearAll: Keys to delete:', keys);
+      
+      for (const key of keys) {
+        console.log(`🗑️ StorageManager.clearAll: Deleting "${key}"...`);
+        await this.delete(key);
       }
+      
+      console.log('✅ StorageManager.clearAll: All data cleared successfully');
+      return true;
+    } catch (error) {
+      console.error('❌ StorageManager.clearAll: Error clearing data:', error);
+      console.error('❌ StorageManager.clearAll: Error stack:', error.stack);
+      return false;
+    }
+  }
 
       // מחק גם מ-localStorage
       localStorage.removeItem(key);
