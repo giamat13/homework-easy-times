@@ -619,8 +619,16 @@ class GamificationManager {
   unlockAchievement(achievement) {
     console.log('🎊 unlockAchievement: Unlocking', achievement.name);
     
+    // Only save serializable data (no functions)
     this.unlockedAchievements.push({
-      ...achievement,
+      id: achievement.id,
+      name: achievement.name,
+      description: achievement.description,
+      icon: achievement.icon,
+      xp: achievement.xp,
+      category: achievement.category,
+      target: achievement.target,
+      quantifiable: achievement.quantifiable,
       unlockedAt: new Date().toISOString()
     });
 
