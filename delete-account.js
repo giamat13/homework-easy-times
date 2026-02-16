@@ -153,19 +153,26 @@ async function deleteUserAccount() {
       if (authError.code === 'auth/requires-recent-login') {
         if (notifications && notifications.showInAppNotification) {
           notifications.showInAppNotification(
-            '⚠️ צריך להתחבר מחדש לפני מחיקת החשבון. מתנתק...',
+            '⚠️ צריך להתחבר מחדש כדי למחוק גם את החשבון בענן',
             'error'
           );
         }
         
+        alert(
+          '⚠️ מחיקה חלקית הושלמה\n\n' +
+          '✅ הנתונים המקומיים נמחקו (localStorage + cookies)\n' +
+          '❌ החשבון והנתונים בענן עדיין קיימים\n\n' +
+          'כדי למחוק גם את החשבון והנתונים מהענן:\n' +
+          '1. התחבר שוב לחשבון\n' +
+          '2. לך להגדרות\n' +
+          '3. לחץ שוב על "מחק חשבון"\n\n' +
+          'או:\n' +
+          '• אם אתה רוצה להשאיר את החשבון בענן - פשוט אל תתחבר שוב\n' +
+          '• הנתונים המקומיים כבר נמחקו מהמכשיר הזה'
+        );
+        
         // התנתקות
         await firebase.auth().signOut();
-        
-        alert(
-          'כדי למחוק את החשבון, צריך להתחבר מחדש.\n\n' +
-          'הנתונים המקומיים נמחקו.\n' +
-          'אנא התחבר שוב ונסה למחוק את החשבון בשנית.'
-        );
         
         // רענון הדף
         window.location.reload();
