@@ -280,26 +280,15 @@
         </div>
 
         <div class="settings-section">
-          <h3>ניהול נתונים</h3>
+          <h3>סנכרון ענן ☁️</h3>
           <div class="setting-item">
-            <button class="btn btn-danger" id="clear-all-data" type="button">
-              <svg width="20" height="20"><use href="#trash"></use></svg>
-              מחק את כל הנתונים
+            <p style="margin-bottom: 0.75rem; color: #6b7280; font-size: 0.875rem;">
+              הנתונים שלך מסונכרנים אוטומטית ל-Firebase
+            </p>
+            <button class="btn btn-secondary" onclick="syncAndRefresh()">
+              <svg width="20" height="20"><use href="#cloud"></use></svg>
+              סנכרן עכשיו
             </button>
-            <p class="warning-text">⚠️ פעולה זו תמחק את כל המקצועות והמשימות ללא אפשרות שחזור!</p>
-          </div>
-        </div>
-
-        <div class="settings-section">
-          <h3>גיבוי אוטומטי</h3>
-          <div class="setting-item">
-            <label>
-              <input type="checkbox" id="auto-backup">
-              גבה אוטומטית כל יום
-            </label>
-          </div>
-          <div class="setting-item" id="last-backup-info">
-            גיבוי אחרון: אף פעם
           </div>
         </div>
 
@@ -319,6 +308,22 @@
                 מלא טופס דיווח
               </a>
             </div>
+          </div>
+        </div>
+
+        <div class="settings-section" style="border-top: 2px solid #fee; padding-top: 1.5rem; margin-top: 1.5rem;">
+          <h3 style="color: #dc2626;">🗑️ אזור מסוכן</h3>
+          <div class="setting-item">
+            <p style="margin-bottom: 0.75rem; color: #991b1b; font-size: 0.875rem; font-weight: 600;">
+              ⚠️ פעולה זו תמחק לצמיתות את החשבון שלך ואת כל הנתונים!
+            </p>
+            <p style="margin-bottom: 1rem; color: #6b7280; font-size: 0.875rem;">
+              החשבון, כל המקצועות, כל המשימות, הסטטיסטיקות וההישגים - הכל יימחק ללא אפשרות שחזור.
+            </p>
+            <button class="btn" onclick="deleteUserAccount()" style="background-color: #dc2626; color: white;">
+              <svg width="20" height="20"><use href="#trash"></use></svg>
+              מחק חשבון לצמיתות
+            </button>
           </div>
         </div>
       </div>
@@ -446,6 +451,14 @@
 
   <!-- JavaScript Files -->
   <script src="storage.js"></script>
+  
+  <!-- 3. Auth -->
+  <script src="auth.js"></script>
+  
+  <!-- 4. Auth Enhancements (needs auth.js) -->
+  <script src="auth-enhancements.js"></script>
+  
+  <!-- 5. Core functionality -->
   <script src="notifications.js"></script>
   <script src="calendar.js"></script>
   <script src="statistics.js"></script>
@@ -462,9 +475,8 @@
       const container = document.getElementById('beta-footer-container');
       const oldDesign = `
         <div style="margin-bottom: 2rem; padding: 1.5rem; background: rgba(255, 255, 255, 0.5); border-radius: 1rem; border: 1px dashed #3b82f6;">
-          <h3 style="color: #1f2937; margin-bottom: 0.5rem;">גרסת בטא (Testing)</h3>
-          <p style="margin-bottom: 1rem;">כרגע אין שינויים ענקיים אבל אולי יש פיצ'רים חדשים קטנים.</p>
-          <a href="test/" style="display: inline-flex; padding: 0.5rem 2rem; background: #3b82f6; color: white; text-decoration: none; border-radius: 0.5rem;">כניסה לעמוד הבדיקה</a>
+          <h3 style="color: #1f2937; margin-bottom: 0.5rem;">🔐 מאובטח עם Firebase</h3>
+          <p style="margin-bottom: 1rem;">✅ אימייל וסיסמה</p>
         </div>
       `;
       const newDesign = `

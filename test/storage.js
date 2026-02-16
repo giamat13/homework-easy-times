@@ -1,30 +1,75 @@
-// Storage Manager - מנהל אחסון עם תמיכה ב-localStorage ו-window.storage
+// ============================================
+// 💾 STORAGE MANAGER - LOCAL & FIRESTORE SYNC
+// ============================================
+
 class StorageManager {
   constructor() {
-    this.useClaudeStorage = typeof window.storage !== 'undefined';
-    console.log('💾 StorageManager: Initialized, using Claude storage:', this.useClaudeStorage);
+    console.log('💾 StorageManager: Initialized, using Claude storage: false');
   }
 
-  // טעינת נתונים
+  /**
+   * 📥 GET - Load data from Firestore (if logged in) or localStorage (if guest)
+   */
   async get(key) {
     console.log(`📥 StorageManager.get: Loading key "${key}"...`);
+
     try {
-      if (this.useClaudeStorage) {
-        console.log(`📥 StorageManager.get: Using Claude storage for "${key}"`);
-        const result = await window.storage.get(key);
-        console.log(`📥 StorageManager.get: Raw result for "${key}":`, result);
+      // בדיקה אם משתמש מחובר
+      const user = firebase.auth().currentUser;
+
+      if (user) {
+        // 🔥 משתמש מחובר - טען מ-Firestore
+        console.log(`🔥 StorageManager.get: User logged in, loading "${key}" from Firestore`);
         
-        if (result && result.value) {
-          const parsed = JSON.parse(result.value);
-          console.log(`✅ StorageManager.get: Successfully loaded "${key}":`, parsed);
-          return parsed;
-        } else {
-          console.log(`⚠️ StorageManager.get: No data found for "${key}"`);
+        try {
+          const db = firebase.firestore();
+          const docRef = db.collection('users').doc(user.uid).collection('data').doc(key);
+          const doc = await docRef.get();
+
+          if (doc.exists) {
+            const data = doc.data().value;
+            console.log(`✅ StorageManager.get: Successfully loaded "${key}" from Firestore:`, data);
+            
+            // שמור גם ב-localStorage כ-cache
+            try {
+              localStorage.setItem(key, JSON.stringify(data));
+              console.log(`💾 StorageManager.get: Cached "${key}" to localStorage`);
+            } catch (e) {
+              console.warn(`⚠️ StorageManager.get: Failed to cache "${key}":`, e.message);
+            }
+            
+            return data;
+          } else {
+            console.log(`⚠️ StorageManager.get: No data found for "${key}" in Firestore`);
+            
+            // נסה לטעון מ-localStorage כ-fallback
+            const localData = localStorage.getItem(key);
+            if (localData) {
+              const parsed = JSON.parse(localData);
+              console.log(`💾 StorageManager.get: Found "${key}" in localStorage cache:`, parsed);
+              return parsed;
+            }
+            
+            return null;
+          }
+        } catch (firestoreError) {
+          console.error(`❌ StorageManager.get: Firestore error for "${key}":`, firestoreError.message);
+          
+          // נסה לטעון מ-localStorage כ-fallback
+          const localData = localStorage.getItem(key);
+          if (localData) {
+            const parsed = JSON.parse(localData);
+            console.log(`💾 StorageManager.get: Using localStorage fallback for "${key}":`, parsed);
+            return parsed;
+          }
+          
           return null;
         }
       } else {
-        console.log(`📥 StorageManager.get: Using localStorage for "${key}"`);
+        // 👤 אין משתמש - טען מ-localStorage
+        console.log(`📥 StorageManager.get: No user logged in, using localStorage for "${key}"`);
         const data = localStorage.getItem(key);
+
         if (data) {
           const parsed = JSON.parse(data);
           console.log(`✅ StorageManager.get: Successfully loaded "${key}" from localStorage:`, parsed);
@@ -36,57 +81,71 @@ class StorageManager {
       }
     } catch (error) {
       console.error(`❌ StorageManager.get: Error loading "${key}":`, error);
-      console.error(`❌ StorageManager.get: Error stack:`, error.stack);
       return null;
     }
   }
 
-  // שמירת נתונים
+  /**
+   * 💾 SET - Save data to Firestore (if logged in) or localStorage (if guest)
+   */
   async set(key, value) {
     console.log(`💾 StorageManager.set: Saving key "${key}"...`);
-    console.log(`💾 StorageManager.set: Value:`, value);
-    
+
     try {
-      const jsonData = JSON.stringify(value);
-      console.log(`💾 StorageManager.set: JSON length: ${jsonData.length} characters`);
-      
-      if (this.useClaudeStorage) {
-        console.log(`💾 StorageManager.set: Using Claude storage for "${key}"`);
-        await window.storage.set(key, jsonData);
-        console.log(`✅ StorageManager.set: Successfully saved "${key}" to Claude storage`);
+      // בדיקה אם משתמש מחובר
+      const user = firebase.auth().currentUser;
+
+      if (user) {
+        // 🔥 משתמש מחובר - שמור ב-Firestore
+        console.log(`🔥 StorageManager.set: User logged in, saving "${key}" to Firestore`);
+        
+        try {
+          const db = firebase.firestore();
+          const docRef = db.collection('users').doc(user.uid).collection('data').doc(key);
+          
+          await docRef.set({
+            value: value,
+            updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+          }, { merge: true });
+          
+          console.log(`✅ StorageManager.set: Successfully saved "${key}" to Firestore`);
+          
+          // שמור גם ב-localStorage כ-cache
+          try {
+            localStorage.setItem(key, JSON.stringify(value));
+            console.log(`💾 StorageManager.set: Cached "${key}" to localStorage`);
+          } catch (e) {
+            console.warn(`⚠️ StorageManager.set: Failed to cache "${key}":`, e.message);
+          }
+          
+          return true;
+        } catch (firestoreError) {
+          console.error(`❌ StorageManager.set: Firestore error for "${key}":`, firestoreError.message);
+          
+          // שמור ב-localStorage כ-fallback
+          localStorage.setItem(key, JSON.stringify(value));
+          console.log(`💾 StorageManager.set: Saved "${key}" to localStorage as fallback`);
+          
+          return false;
+        }
       } else {
-        console.log(`💾 StorageManager.set: Using localStorage for "${key}"`);
-        localStorage.setItem(key, jsonData);
+        // 👤 אין משתמש - שמור ב-localStorage
+        console.log(`💾 StorageManager.set: No user logged in, saving "${key}" to localStorage`);
+        localStorage.setItem(key, JSON.stringify(value));
         console.log(`✅ StorageManager.set: Successfully saved "${key}" to localStorage`);
+        return true;
       }
-      return true;
     } catch (error) {
       console.error(`❌ StorageManager.set: Error saving "${key}":`, error);
-      console.error(`❌ StorageManager.set: Error stack:`, error.stack);
       return false;
     }
   }
 
-  // מחיקת נתונים
-  async delete(key) {
-    console.log(`🗑️ StorageManager.delete: Deleting key "${key}"...`);
-    try {
-      if (this.useClaudeStorage) {
-        console.log(`🗑️ StorageManager.delete: Using Claude storage for "${key}"`);
-        await window.storage.delete(key);
-        console.log(`✅ StorageManager.delete: Successfully deleted "${key}" from Claude storage`);
-      } else {
-        console.log(`🗑️ StorageManager.delete: Using localStorage for "${key}"`);
-        localStorage.removeItem(key);
-        console.log(`✅ StorageManager.delete: Successfully deleted "${key}" from localStorage`);
-      }
-      return true;
-    } catch (error) {
-      console.error(`❌ StorageManager.delete: Error deleting "${key}":`, error);
-      console.error(`❌ StorageManager.delete: Error stack:`, error.stack);
-      return false;
-    }
-  }
+  /**
+   * 🗑️ REMOVE - Delete data from both Firestore and localStorage
+   */
+  async remove(key) {
+    console.log(`🗑️ StorageManager.remove: Removing key "${key}"...`);
 
   // מחיקת כל הנתונים
   async clearAll() {
@@ -109,206 +168,134 @@ class StorageManager {
     }
   }
 
-  // ייצוא נתונים לקובץ JSON
-  async exportData() {
-    console.log('📤 StorageManager.exportData: Starting data export...');
-    try {
-      console.log('📤 StorageManager.exportData: Loading all data...');
-      const subjects = await this.get('homework-subjects') || [];
-      console.log('📤 StorageManager.exportData: Subjects loaded:', subjects.length);
+      // מחק גם מ-localStorage
+      localStorage.removeItem(key);
+      console.log(`✅ StorageManager.remove: Removed "${key}" from localStorage`);
       
-      const homework = await this.get('homework-list') || [];
-      console.log('📤 StorageManager.exportData: Homework loaded:', homework.length);
-      
-      const settings = await this.get('homework-settings') || {};
-      console.log('📤 StorageManager.exportData: Settings loaded:', settings);
-      
-      const tags = await this.get('homework-tags') || [];
-      console.log('📤 StorageManager.exportData: Tags loaded:', tags.length);
-      
-      const exportData = {
-        version: '2.0',
-        exportDate: new Date().toISOString(),
-        subjects,
-        homework,
-        settings,
-        tags
-      };
-      
-      console.log('📤 StorageManager.exportData: Export data prepared:', exportData);
-
-      const blob = new Blob([JSON.stringify(exportData, null, 2)], { type: 'application/json' });
-      console.log('📤 StorageManager.exportData: Blob created, size:', blob.size, 'bytes');
-      
-      const url = URL.createObjectURL(blob);
-      const link = document.createElement('a');
-      link.href = url;
-      const filename = `homework-backup-${new Date().toISOString().split('T')[0]}.json`;
-      link.download = filename;
-      console.log('📤 StorageManager.exportData: Download filename:', filename);
-      
-      document.body.appendChild(link);
-      link.click();
-      document.body.removeChild(link);
-      URL.revokeObjectURL(url);
-      console.log('📤 StorageManager.exportData: Download triggered');
-
-      // עדכון תאריך גיבוי אחרון
-      const backupDate = new Date().toISOString();
-      await this.set('homework-last-backup', backupDate);
-      console.log('📤 StorageManager.exportData: Last backup date updated:', backupDate);
-      
-      console.log('✅ StorageManager.exportData: Export completed successfully');
       return true;
     } catch (error) {
-      console.error('❌ StorageManager.exportData: Error during export:', error);
-      console.error('❌ StorageManager.exportData: Error stack:', error.stack);
+      console.error(`❌ StorageManager.remove: Error removing "${key}":`, error);
       return false;
     }
   }
 
-  // ייבוא נתונים מקובץ JSON
-  async importData(file) {
-    console.log('📥 StorageManager.importData: Starting import...');
-    console.log('📥 StorageManager.importData: File:', file.name, file.size, 'bytes', file.type);
+  /**
+   * 🔄 SYNC ALL - Sync all localStorage data to Firestore when user logs in
+   */
+  async syncAllToFirestore() {
+    console.log('🔄 StorageManager.syncAllToFirestore: Starting sync...');
     
-    return new Promise((resolve, reject) => {
-      const reader = new FileReader();
-      
-      reader.onload = async (e) => {
-        console.log('📥 StorageManager.importData: File read complete');
-        try {
-          console.log('📥 StorageManager.importData: Parsing JSON...');
-          const importData = JSON.parse(e.target.result);
-          console.log('📥 StorageManager.importData: JSON parsed:', importData);
-          
-          // בדיקת תקינות הקובץ
-          if (!importData.version || !importData.subjects || !importData.homework) {
-            console.error('❌ StorageManager.importData: Invalid file structure');
-            throw new Error('קובץ לא תקין');
-          }
-          
-          console.log('✅ StorageManager.importData: File structure valid');
-          console.log('📊 StorageManager.importData: Subjects:', importData.subjects.length);
-          console.log('📚 StorageManager.importData: Homework:', importData.homework.length);
-          console.log('🏷️ StorageManager.importData: Tags:', importData.tags ? importData.tags.length : 0);
+    const user = firebase.auth().currentUser;
+    if (!user) {
+      console.log('⚠️ StorageManager.syncAllToFirestore: No user logged in');
+      return;
+    }
 
-          // ⚠️ אזהרה לפני החלפת נתונים
-          const confirmMsg = `האם אתה בטוח שברצונך לייבא את הנתונים?\n\n` +
-                           `הפעולה תחליף את כל הנתונים הקיימים:\n` +
-                           `- ${importData.subjects.length} מקצועות\n` +
-                           `- ${importData.homework.length} משימות\n` +
-                           (importData.tags ? `- ${importData.tags.length} תגיות\n` : '') +
-                           `\n⚠️ הנתונים הנוכחיים יימחקו לצמיתות!`;
-          
-          console.log('⚠️ StorageManager.importData: Asking user for confirmation...');
-          if (!confirm(confirmMsg)) {
-            console.log('⏸️ StorageManager.importData: User cancelled import');
-            resolve({ success: false, message: 'הייבוא בוטל על ידי המשתמש' });
-            return;
-          }
-          
-          console.log('✅ StorageManager.importData: User confirmed, saving data...');
+    const keysToSync = [
+      'homework-list',
+      'homework-subjects',
+      'homework-tags',
+      'homework-settings',
+      'gamification-stats',
+      'gamification-achievements',
+      'study-timer-settings',
+      'study-sessions-today',
+      'theme-settings',
+      'quick-actions-settings'
+    ];
 
-          // שמירת הנתונים
-          await this.set('homework-subjects', importData.subjects);
-          console.log('✅ StorageManager.importData: Subjects saved');
-          
-          await this.set('homework-list', importData.homework);
-          console.log('✅ StorageManager.importData: Homework saved');
-          
-          if (importData.settings) {
-            await this.set('homework-settings', importData.settings);
-            console.log('✅ StorageManager.importData: Settings saved');
-          }
-          if (importData.tags) {
-            await this.set('homework-tags', importData.tags);
-            console.log('✅ StorageManager.importData: Tags saved');
-          }
-
-          console.log('✅ StorageManager.importData: Import completed successfully');
-          resolve({ 
-            success: true, 
-            message: `הנתונים יובאו בהצלחה: ${importData.subjects.length} מקצועות, ${importData.homework.length} משימות`,
-            data: importData
-          });
-        } catch (error) {
-          console.error('❌ StorageManager.importData: Error during import:', error);
-          console.error('❌ StorageManager.importData: Error stack:', error.stack);
-          reject({ success: false, message: `שגיאה בקריאת הקובץ: ${error.message}` });
+    let syncCount = 0;
+    
+    for (const key of keysToSync) {
+      try {
+        const localData = localStorage.getItem(key);
+        if (localData) {
+          const parsed = JSON.parse(localData);
+          await this.set(key, parsed);
+          syncCount++;
+          console.log(`✅ Synced "${key}" to Firestore`);
         }
-      };
+      } catch (error) {
+        console.error(`❌ Failed to sync "${key}":`, error.message);
+      }
+    }
 
-      reader.onerror = () => {
-        console.error('❌ StorageManager.importData: FileReader error');
-        reject({ success: false, message: 'שגיאה בקריאת הקובץ' });
-      };
-
-      console.log('📥 StorageManager.importData: Starting file read...');
-      reader.readAsText(file);
-    });
+    console.log(`✅ StorageManager.syncAllToFirestore: Synced ${syncCount}/${keysToSync.length} items`);
   }
 
-  // גיבוי אוטומטי יומי
-  async autoBackup() {
-    console.log('🔄 StorageManager.autoBackup: Checking auto backup...');
+  /**
+   * 📥 SYNC ALL FROM FIRESTORE - Download all Firestore data to localStorage
+   */
+  async syncAllFromFirestore() {
+    console.log('📥 StorageManager.syncAllFromFirestore: Starting download...');
+    
+    const user = firebase.auth().currentUser;
+    if (!user) {
+      console.log('⚠️ StorageManager.syncAllFromFirestore: No user logged in');
+      return;
+    }
+
     try {
-      const settings = await this.get('homework-settings') || {};
-      console.log('🔄 StorageManager.autoBackup: Settings:', settings);
+      const db = firebase.firestore();
+      const snapshot = await db.collection('users').doc(user.uid).collection('data').get();
       
-      if (!settings.autoBackup) {
-        console.log('⏸️ StorageManager.autoBackup: Auto backup disabled');
-        return;
-      }
-
-      const lastBackup = await this.get('homework-last-backup');
-      const now = new Date();
-      console.log('🔄 StorageManager.autoBackup: Last backup:', lastBackup);
-      console.log('🔄 StorageManager.autoBackup: Current time:', now.toISOString());
+      let downloadCount = 0;
       
-      if (!lastBackup) {
-        console.log('🔄 StorageManager.autoBackup: No previous backup, creating first backup...');
-        await this.exportData();
-        return;
-      }
+      snapshot.forEach(doc => {
+        try {
+          const key = doc.id;
+          const value = doc.data().value;
+          localStorage.setItem(key, JSON.stringify(value));
+          downloadCount++;
+          console.log(`✅ Downloaded "${key}" from Firestore to localStorage`);
+        } catch (error) {
+          console.error(`❌ Failed to download "${doc.id}":`, error.message);
+        }
+      });
 
-      const lastBackupDate = new Date(lastBackup);
-      const daysSinceBackup = Math.floor((now - lastBackupDate) / (1000 * 60 * 60 * 24));
-      console.log('🔄 StorageManager.autoBackup: Days since backup:', daysSinceBackup);
-
-      if (daysSinceBackup >= 1) {
-        console.log('🔄 StorageManager.autoBackup: Creating auto backup...');
-        await this.exportData();
-      } else {
-        console.log('⏸️ StorageManager.autoBackup: Backup not needed yet');
-      }
+      console.log(`✅ StorageManager.syncAllFromFirestore: Downloaded ${downloadCount} items`);
+      return true;
     } catch (error) {
-      console.error('❌ StorageManager.autoBackup: Error in auto backup:', error);
-      console.error('❌ StorageManager.autoBackup: Error stack:', error.stack);
+      console.error('❌ StorageManager.syncAllFromFirestore: Error:', error.message);
+      return false;
     }
   }
 
-  // קבלת תאריך גיבוי אחרון
-  async getLastBackupDate() {
-    console.log('📅 StorageManager.getLastBackupDate: Getting last backup date...');
-    try {
-      const lastBackup = await this.get('homework-last-backup');
-      if (lastBackup) {
-        const date = new Date(lastBackup);
-        console.log('✅ StorageManager.getLastBackupDate: Last backup:', date);
-        return date;
-      } else {
-        console.log('⚠️ StorageManager.getLastBackupDate: No backup date found');
-        return null;
+  /**
+   * 🗑️ CLEAR ALL - Clear all data (both Firestore and localStorage)
+   */
+  async clearAll() {
+    console.log('🗑️ StorageManager.clearAll: Clearing all data...');
+
+    const user = firebase.auth().currentUser;
+    
+    if (user) {
+      try {
+        const db = firebase.firestore();
+        const snapshot = await db.collection('users').doc(user.uid).collection('data').get();
+        
+        const batch = db.batch();
+        snapshot.forEach(doc => {
+          batch.delete(doc.ref);
+        });
+        
+        await batch.commit();
+        console.log('✅ Cleared all Firestore data');
+      } catch (error) {
+        console.error('❌ Failed to clear Firestore:', error.message);
       }
-    } catch (error) {
-      console.error('❌ StorageManager.getLastBackupDate: Error getting backup date:', error);
-      return null;
     }
+
+    localStorage.clear();
+    console.log('✅ Cleared all localStorage data');
   }
 }
 
-// יצירת אובייקט גלובלי
+// ============================================
+// 🌍 GLOBAL INSTANCE
+// ============================================
 console.log('💾 Creating global storage manager...');
-const storage = new StorageManager();
+const storageManagerInstance = new StorageManager();
+window.storageManager = storageManagerInstance;
+window.storage = storageManagerInstance; // Backward compatibility
 console.log('✅ Global storage manager created');

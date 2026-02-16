@@ -1,0 +1,29 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    
+    // פונקציות עזר
+    function isSignedIn() {
+      return request.auth != null;
+    }
+    
+    function isOwner(userId) {
+      return request.auth != null && request.auth.uid == userId;
+    }
+    
+    // כללים למשתמשים
+    match /users/{userId} {
+      allow read, write: if isSignedIn() && isOwner(userId);
+      
+      // תת-קולקציית data - כאן נשמרים כל הנתונים
+      match /data/{document=**} {
+        allow read, write: if isSignedIn() && isOwner(userId);
+      }
+    }
+    
+    // חסום הכל אחרת
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}
