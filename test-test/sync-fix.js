@@ -222,18 +222,41 @@ if (isAutoSyncEnabled) {
     setTimeout(() => {
       const user = firebase.auth().currentUser;
       if (user) {
-        console.log('🔄 User is logged in, starting auto-sync...');
-        startAutoSync();
+        console.log('🔄 Page loaded with logged-in user, running immediate sync...');
+        syncAndRefresh();
+        
+        // סנכרון נוסף אחרי שנייה
+        setTimeout(() => {
+          console.log('🔄 Running verification sync (1 second after page load)...');
+          syncAndRefresh();
+        }, 1000);
+        
+        // הפעלת סנכרון אוטומטי קבוע
+        setTimeout(() => {
+          console.log('🔄 Starting auto-sync interval...');
+          startAutoSync();
+        }, 2000);
       }
-    }, 3000); // המתן 3 שניות אחרי טעינת הדף
+    }, 1000); // המתן שנייה אחרי טעינת הדף
   });
 }
 
 // הפעלה אוטומטית גם כשמשתמש מתחבר
 firebase.auth().onAuthStateChanged((user) => {
   if (user && isAutoSyncEnabled && !autoSyncInterval) {
+    // סנכרון מיידי - מיד אחרי התחברות
+    console.log('🔄 User logged in, running immediate sync...');
+    syncAndRefresh();
+    
+    // סנכרון נוסף אחרי שנייה אחת - לוודא שהכל מסונכרן
     setTimeout(() => {
-      console.log('🔄 User logged in, starting auto-sync...');
+      console.log('🔄 Running verification sync (1 second after login)...');
+      syncAndRefresh();
+    }, 1000);
+    
+    // הפעלת סנכרון אוטומטי קבוע אחרי 2 שניות
+    setTimeout(() => {
+      console.log('🔄 Starting auto-sync interval...');
       startAutoSync();
     }, 2000);
   } else if (!user && autoSyncInterval) {
@@ -247,4 +270,4 @@ console.log('🤖 Auto-sync functions:');
 console.log('  • startAutoSync() - Start automatic sync every 30 seconds');
 console.log('  • stopAutoSync() - Stop automatic sync');
 console.log('  • toggleAutoSync() - Toggle auto-sync on/off');
-console.log('  • Current status: ' + (isAutoSyncEnabled ? '✅ ENABLED' : '⏸️ DISABLED'));
+console.log('  • Current status: ' + (isAutoSyncEnabled ? '✅ ENABLED' : '⏸️ DISABLED'));ג
