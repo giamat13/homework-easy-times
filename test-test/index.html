@@ -330,6 +330,22 @@
             </div>
           </div>
         </div>
+
+        <div class="settings-section" style="border-top: 2px solid #fee; padding-top: 1.5rem; margin-top: 1.5rem;">
+          <h3 style="color: #dc2626;">🗑️ אזור מסוכן</h3>
+          <div class="setting-item">
+            <p style="margin-bottom: 0.75rem; color: #991b1b; font-size: 0.875rem; font-weight: 600;">
+              ⚠️ פעולה זו תמחק לצמיתות את החשבון שלך ואת כל הנתונים!
+            </p>
+            <p style="margin-bottom: 1rem; color: #6b7280; font-size: 0.875rem;">
+              החשבון, כל המקצועות, כל המשימות, הסטטיסטיקות וההישגים - הכל יימחק ללא אפשרות שחזור.
+            </p>
+            <button class="btn" onclick="deleteUserAccount()" style="background-color: #dc2626; color: white;">
+              <svg width="20" height="20"><use href="#trash"></use></svg>
+              מחק חשבון לצמיתות
+            </button>
+          </div>
+        </div>
       </div>
     </div>
   </div>
@@ -485,6 +501,9 @@
   
   <!-- 8. Sync Fix (NEW!) -->
   <script src="sync-fix.js"></script>
+  
+  <!-- 9. Delete Account (NEW!) -->
+  <script src="delete-account.js"></script>
   
   <footer class="footer">
     <div id="beta-footer-container"></div>
