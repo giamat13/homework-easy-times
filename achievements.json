@@ -98,7 +98,7 @@
       "icon": "⏰",
       "xp": 20,
       "category": "study",
-      "maxUnlocks": infinity,
+      "maxUnlocks": 1000,
       "condition": {
         "type": "totalStudyTime",
         "value": 60
@@ -111,7 +111,7 @@
       "icon": "📚",
       "xp": 100,
       "category": "study",
-      "maxUnlocks": 1,
+      "maxUnlocks": 100,
       "condition": {
         "type": "totalStudyTime",
         "value": 600
@@ -124,7 +124,7 @@
       "icon": "🎓",
       "xp": 300,
       "category": "study",
-      "maxUnlocks": 1,
+      "maxUnlocks": 1000,
       "condition": {
         "type": "totalStudyTime",
         "value": 3000
@@ -135,7 +135,7 @@
       "name": "חכם על",
       "description": "למד 100 שעות",
       "icon": "🧠",
-      "xp": 1000,
+      "xp": 10000,
       "category": "study",
       "maxUnlocks": 1,
       "condition": {
