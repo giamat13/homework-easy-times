@@ -1,15 +1,15 @@
-name: Deploy test
+name: Deploy test-test
 on:
   push:
     branches:
-      - test
+      - test-test
 
 permissions:
   contents: write
 
 jobs:
   deploy:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-latest-test
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -18,6 +18,6 @@ jobs:
         uses: JamesIves/github-pages-deploy-action@v4
         with:
           folder: .
-          target-folder: test
-          branch: main # זה ידחוף את התיקייה לתוך ה-test-test-test-test שלך
+          target-folder: test-test
+          branch: main # זה ידחוף את התיקייה לתוך ה-test-test שלך
 
