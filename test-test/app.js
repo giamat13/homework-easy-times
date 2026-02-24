@@ -1,4 +1,29 @@
 // Enhanced Main Application Logic
+
+// ── Fallback: ודא שמשתנה storage זמין ──────────────────────────
+// storage.js מגדיר window.storage, אבל אם הוא נטען לפני Firebase
+// הוא עדיין עובד (fallback ל-localStorage). אם מסיבה כלשהי לא הוגדר -
+// ניצור כאן stub בסיסי כדי למנוע ReferenceError.
+if (typeof storage === 'undefined') {
+  /* eslint-disable no-var */
+  var storage = window.storage || window.storageManager || {
+    get: async (key) => {
+      try { const v = localStorage.getItem(key); return v ? JSON.parse(v) : null; } catch { return null; }
+    },
+    set: async (key, value) => {
+      try { localStorage.setItem(key, JSON.stringify(value)); return true; } catch { return false; }
+    },
+    remove: async (key) => { localStorage.removeItem(key); },
+    clearAll: async () => { localStorage.clear(); },
+    exportData: async () => false,
+    importData: async () => ({ success: false }),
+    autoBackup: async () => {},
+    getLastBackupDate: async () => null,
+    syncAllToFirestore: async () => {},
+    syncAllFromFirestore: async () => {}
+  };
+}
+
 const colors = ['#3b82f6', '#ef4444', '#10b981', '#f59e0b', '#8b5cf6', '#ec4899'];
 let subjects = [];
 let homework = [];
