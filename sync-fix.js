@@ -29,9 +29,9 @@ async function manualSync() {
     }
     
     // שימוש ב-storageManager לסנכרון כל הנתונים
-    if (typeof storageManager !== 'undefined') {
+    if (typeof window.storageManager !== 'undefined' && window.storageManager) {
       console.log('🔄 manualSync: Using storageManager.syncAllToFirestore()');
-      await storageManager.syncAllToFirestore();
+      await window.storageManager.syncAllToFirestore();
       
       // הודעת הצלחה
       if (notifications && notifications.showInAppNotification) {
@@ -82,9 +82,9 @@ async function refreshFromFirestore() {
     }
     
     // שימוש ב-storageManager להורדת כל הנתונים
-    if (typeof storageManager !== 'undefined') {
+    if (typeof window.storageManager !== 'undefined' && window.storageManager) {
       console.log('🔄 refreshFromFirestore: Using storageManager.syncAllFromFirestore()');
-      await storageManager.syncAllFromFirestore();
+      await window.storageManager.syncAllFromFirestore();
       
       // טעינה מחדש של הנתונים לאפליקציה
       if (typeof loadData === 'function') {

@@ -851,27 +851,39 @@ function closeSettings() {
 }
 
 async function loadSettingsUI() {
-  document.getElementById('enable-notifications').checked = settings.enableNotifications;
-  document.getElementById('notification-days').value = settings.notificationDays;
-  document.getElementById('notification-time').value = settings.notificationTime;
-  document.getElementById('auto-backup').checked = settings.autoBackup;
-  document.getElementById('dark-mode-toggle').checked = settings.darkMode;
-  document.getElementById('view-mode-toggle').checked = settings.viewMode === 'calendar';
+  const setVal = (id, val) => { const el = document.getElementById(id); if (el) el.checked = val; };
+  const setInput = (id, val) => { const el = document.getElementById(id); if (el) el.value = val; };
   
-  const lastBackup = await storage.getLastBackupDate();
-  const lastBackupInfo = document.getElementById('last-backup-info');
-  if (lastBackup) {
-    lastBackupInfo.textContent = `גיבוי אחרון: ${lastBackup.toLocaleDateString('he-IL')} בשעה ${lastBackup.toLocaleTimeString('he-IL', { hour: '2-digit', minute: '2-digit' })}`;
-  } else {
-    lastBackupInfo.textContent = 'גיבוי אחרון: אף פעם';
+  setVal('enable-notifications', settings.enableNotifications);
+  setInput('notification-days', settings.notificationDays);
+  setInput('notification-time', settings.notificationTime);
+  setVal('auto-backup', settings.autoBackup);
+  setVal('dark-mode-toggle', settings.darkMode);
+  setVal('view-mode-toggle', settings.viewMode === 'calendar');
+  
+  try {
+    const lastBackup = await storage.getLastBackupDate();
+    const lastBackupInfo = document.getElementById('last-backup-info');
+    if (lastBackupInfo) {
+      if (lastBackup) {
+        lastBackupInfo.textContent = `גיבוי אחרון: ${lastBackup.toLocaleDateString('he-IL')} בשעה ${lastBackup.toLocaleTimeString('he-IL', { hour: '2-digit', minute: '2-digit' })}`;
+      } else {
+        lastBackupInfo.textContent = 'גיבוי אחרון: אף פעם';
+      }
+    }
+  } catch (e) {
+    // storage not available yet
   }
 }
 
 async function saveSettings() {
-  settings.enableNotifications = document.getElementById('enable-notifications').checked;
-  settings.notificationDays = parseInt(document.getElementById('notification-days').value);
-  settings.notificationTime = document.getElementById('notification-time').value;
-  settings.autoBackup = document.getElementById('auto-backup').checked;
+  const getChecked = (id) => { const el = document.getElementById(id); return el ? el.checked : false; };
+  const getVal = (id, def) => { const el = document.getElementById(id); return el ? el.value : def; };
+  
+  settings.enableNotifications = getChecked('enable-notifications');
+  settings.notificationDays = parseInt(getVal('notification-days', 1));
+  settings.notificationTime = getVal('notification-time', '09:00');
+  settings.autoBackup = getChecked('auto-backup');
   
   await storage.set('homework-settings', settings);
   

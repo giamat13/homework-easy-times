@@ -14,8 +14,16 @@ class StorageManager {
     console.log(`📥 StorageManager.get: Loading key "${key}"...`);
 
     try {
-      // בדיקה אם משתמש מחובר
-      const user = firebase.auth().currentUser;
+      // בדיקה אם Firebase מאותחל
+      let user = null;
+      try {
+        user = firebase.auth().currentUser;
+      } catch (e) {
+        // Firebase לא מאותחל עדיין - משתמש ב-localStorage
+        console.warn(`⚠️ StorageManager.get: Firebase not ready, using localStorage for "${key}"`);
+        const data = localStorage.getItem(key);
+        return data ? JSON.parse(data) : null;
+      }
 
       if (user) {
         // 🔥 משתמש מחובר - טען מ-Firestore
@@ -92,8 +100,16 @@ class StorageManager {
     console.log(`💾 StorageManager.set: Saving key "${key}"...`);
 
     try {
-      // בדיקה אם משתמש מחובר
-      const user = firebase.auth().currentUser;
+      // בדיקה אם Firebase מאותחל
+      let user = null;
+      try {
+        user = firebase.auth().currentUser;
+      } catch (e) {
+        // Firebase לא מאותחל - שמור ב-localStorage
+        console.warn(`⚠️ StorageManager.set: Firebase not ready, using localStorage for "${key}"`);
+        localStorage.setItem(key, JSON.stringify(value));
+        return true;
+      }
 
       if (user) {
         // 🔥 משתמש מחובר - שמור ב-Firestore
@@ -288,6 +304,78 @@ class StorageManager {
 
     localStorage.clear();
     console.log('✅ Cleared all localStorage data');
+  }
+
+  /**
+   * 💾 AUTO BACKUP
+   */
+  async autoBackup() {
+    try {
+      const now = new Date();
+      localStorage.setItem('last-backup-date', now.toISOString());
+      console.log('✅ autoBackup: Backup timestamp saved');
+    } catch (e) {
+      console.warn('⚠️ autoBackup: Error:', e.message);
+    }
+  }
+
+  /**
+   * 📅 GET LAST BACKUP DATE
+   */
+  async getLastBackupDate() {
+    try {
+      const saved = localStorage.getItem('last-backup-date');
+      return saved ? new Date(saved) : null;
+    } catch (e) {
+      return null;
+    }
+  }
+
+  /**
+   * 📤 EXPORT DATA
+   */
+  async exportData() {
+    try {
+      const subjects = await this.get('homework-subjects') || [];
+      const homework = await this.get('homework-list') || [];
+      const settings = await this.get('homework-settings') || {};
+      const tags = await this.get('homework-tags') || [];
+      
+      const data = { subjects, homework, settings, tags, exportDate: new Date().toISOString() };
+      const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `homework-backup-${new Date().toLocaleDateString('he-IL').replace(/\//g, '-')}.json`;
+      a.click();
+      URL.revokeObjectURL(url);
+      console.log('✅ exportData: Data exported successfully');
+      return true;
+    } catch (e) {
+      console.error('❌ exportData: Error:', e.message);
+      return false;
+    }
+  }
+
+  /**
+   * 📥 IMPORT DATA
+   */
+  async importData(file) {
+    try {
+      const text = await file.text();
+      const data = JSON.parse(text);
+      
+      if (data.subjects) await this.set('homework-subjects', data.subjects);
+      if (data.homework) await this.set('homework-list', data.homework);
+      if (data.settings) await this.set('homework-settings', data.settings);
+      if (data.tags) await this.set('homework-tags', data.tags);
+      
+      console.log('✅ importData: Data imported successfully');
+      return { success: true };
+    } catch (e) {
+      console.error('❌ importData: Error:', e.message);
+      return { success: false, error: e.message };
+    }
   }
 }
 
