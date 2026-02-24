@@ -963,9 +963,14 @@ console.log('✅ Global unified statistics manager created');
 window.addEventListener('DOMContentLoaded', async () => {
   console.log('📊 statistics.js: Initializing...');
   
+  // ממתין לאתחול Auth לפני טעינת סטטיסטיקות
   const panel = document.getElementById('statistics-panel');
   if (panel) {
-    await statistics.renderUnifiedDashboard();
+    try {
+      await statistics.renderUnifiedDashboard();
+    } catch (e) {
+      console.warn('📊 statistics.js: Will retry after auth is ready');
+    }
   }
   
   console.log('✅ statistics.js: Initialized');
