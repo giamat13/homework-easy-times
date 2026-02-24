@@ -2,6 +2,12 @@
 // ⭐ כולל מדי התקדמות להישגים כמותיים
 // ================================================================================
 
+// ── Fallback: ודא ש-storage זמין ──────────────────────────────
+if (typeof storage === 'undefined') {
+  /* eslint-disable no-var */
+  var storage = window.storage || window.storageManager;
+}
+
 class GamificationManager {
   constructor() {
     this.userStats = {

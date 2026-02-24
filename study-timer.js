@@ -1,4 +1,11 @@
 // Study Timer & Pomodoro Manager - מנהל טיימר לימוד ופומודורו
+
+// ── Fallback: ודא ש-storage זמין ──────────────────────────────
+if (typeof storage === 'undefined') {
+  /* eslint-disable no-var */
+  var storage = window.storage || window.storageManager;
+}
+
 class StudyTimerManager {
   constructor() {
     this.isRunning = false;

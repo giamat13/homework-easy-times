@@ -7,6 +7,15 @@ class StorageManager {
     console.log('💾 StorageManager: Initialized, using Claude storage: false');
   }
 
+  // ── פונקציית עזר: האם Firebase מוכן? ──────
+  _getFirebaseUser() {
+    try {
+      return firebase.auth().currentUser;
+    } catch (e) {
+      return null; // Firebase עדיין לא אותחל
+    }
+  }
+
   /**
    * 📥 GET - Load data from Firestore (if logged in) or localStorage (if guest)
    */
@@ -14,21 +23,12 @@ class StorageManager {
     console.log(`📥 StorageManager.get: Loading key "${key}"...`);
 
     try {
-      // בדיקה אם Firebase מאותחל
-      let user = null;
-      try {
-        user = firebase.auth().currentUser;
-      } catch (e) {
-        // Firebase לא מאותחל עדיין - משתמש ב-localStorage
-        console.warn(`⚠️ StorageManager.get: Firebase not ready, using localStorage for "${key}"`);
-        const data = localStorage.getItem(key);
-        return data ? JSON.parse(data) : null;
-      }
+      const user = this._getFirebaseUser();
 
       if (user) {
         // 🔥 משתמש מחובר - טען מ-Firestore
         console.log(`🔥 StorageManager.get: User logged in, loading "${key}" from Firestore`);
-        
+
         try {
           const db = firebase.firestore();
           const docRef = db.collection('users').doc(user.uid).collection('data').doc(key);
@@ -37,50 +37,45 @@ class StorageManager {
           if (doc.exists) {
             const data = doc.data().value;
             console.log(`✅ StorageManager.get: Successfully loaded "${key}" from Firestore:`, data);
-            
+
             // שמור גם ב-localStorage כ-cache
             try {
               localStorage.setItem(key, JSON.stringify(data));
-              console.log(`💾 StorageManager.get: Cached "${key}" to localStorage`);
             } catch (e) {
               console.warn(`⚠️ StorageManager.get: Failed to cache "${key}":`, e.message);
             }
-            
+
             return data;
           } else {
             console.log(`⚠️ StorageManager.get: No data found for "${key}" in Firestore`);
-            
+
             // נסה לטעון מ-localStorage כ-fallback
             const localData = localStorage.getItem(key);
             if (localData) {
-              const parsed = JSON.parse(localData);
-              console.log(`💾 StorageManager.get: Found "${key}" in localStorage cache:`, parsed);
-              return parsed;
+              return JSON.parse(localData);
             }
-            
+
             return null;
           }
         } catch (firestoreError) {
           console.error(`❌ StorageManager.get: Firestore error for "${key}":`, firestoreError.message);
-          
+
           // נסה לטעון מ-localStorage כ-fallback
           const localData = localStorage.getItem(key);
           if (localData) {
-            const parsed = JSON.parse(localData);
-            console.log(`💾 StorageManager.get: Using localStorage fallback for "${key}":`, parsed);
-            return parsed;
+            return JSON.parse(localData);
           }
-          
+
           return null;
         }
       } else {
-        // 👤 אין משתמש - טען מ-localStorage
-        console.log(`📥 StorageManager.get: No user logged in, using localStorage for "${key}"`);
+        // 👤 אין משתמש / Firebase לא מוכן - טען מ-localStorage
+        console.log(`📥 StorageManager.get: No user / Firebase not ready, using localStorage for "${key}"`);
         const data = localStorage.getItem(key);
 
         if (data) {
           const parsed = JSON.parse(data);
-          console.log(`✅ StorageManager.get: Successfully loaded "${key}" from localStorage:`, parsed);
+          console.log(`✅ StorageManager.get: Loaded "${key}" from localStorage:`, parsed);
           return parsed;
         } else {
           console.log(`⚠️ StorageManager.get: No data found for "${key}" in localStorage`);
@@ -100,53 +95,43 @@ class StorageManager {
     console.log(`💾 StorageManager.set: Saving key "${key}"...`);
 
     try {
-      // בדיקה אם Firebase מאותחל
-      let user = null;
-      try {
-        user = firebase.auth().currentUser;
-      } catch (e) {
-        // Firebase לא מאותחל - שמור ב-localStorage
-        console.warn(`⚠️ StorageManager.set: Firebase not ready, using localStorage for "${key}"`);
-        localStorage.setItem(key, JSON.stringify(value));
-        return true;
-      }
+      const user = this._getFirebaseUser();
 
       if (user) {
         // 🔥 משתמש מחובר - שמור ב-Firestore
         console.log(`🔥 StorageManager.set: User logged in, saving "${key}" to Firestore`);
-        
+
         try {
           const db = firebase.firestore();
           const docRef = db.collection('users').doc(user.uid).collection('data').doc(key);
-          
+
           await docRef.set({
             value: value,
             updatedAt: firebase.firestore.FieldValue.serverTimestamp()
           }, { merge: true });
-          
+
           console.log(`✅ StorageManager.set: Successfully saved "${key}" to Firestore`);
-          
+
           // שמור גם ב-localStorage כ-cache
           try {
             localStorage.setItem(key, JSON.stringify(value));
-            console.log(`💾 StorageManager.set: Cached "${key}" to localStorage`);
           } catch (e) {
             console.warn(`⚠️ StorageManager.set: Failed to cache "${key}":`, e.message);
           }
-          
+
           return true;
         } catch (firestoreError) {
           console.error(`❌ StorageManager.set: Firestore error for "${key}":`, firestoreError.message);
-          
+
           // שמור ב-localStorage כ-fallback
           localStorage.setItem(key, JSON.stringify(value));
           console.log(`💾 StorageManager.set: Saved "${key}" to localStorage as fallback`);
-          
+
           return false;
         }
       } else {
-        // 👤 אין משתמש - שמור ב-localStorage
-        console.log(`💾 StorageManager.set: No user logged in, saving "${key}" to localStorage`);
+        // 👤 אין משתמש / Firebase לא מוכן - שמור ב-localStorage
+        console.log(`💾 StorageManager.set: No user / Firebase not ready, saving "${key}" to localStorage`);
         localStorage.setItem(key, JSON.stringify(value));
         console.log(`✅ StorageManager.set: Successfully saved "${key}" to localStorage`);
         return true;
@@ -163,31 +148,23 @@ class StorageManager {
   async remove(key) {
     console.log(`🗑️ StorageManager.remove: Removing key "${key}"...`);
 
-  // מחיקת כל הנתונים
-  async clearAll() {
-    console.log('🗑️ StorageManager.clearAll: Clearing all data...');
     try {
-      const keys = ['homework-subjects', 'homework-list', 'homework-settings', 'homework-last-backup', 'homework-tags'];
-      console.log('🗑️ StorageManager.clearAll: Keys to delete:', keys);
-      
-      for (const key of keys) {
-        console.log(`🗑️ StorageManager.clearAll: Deleting "${key}"...`);
-        await this.delete(key);
+      const user = this._getFirebaseUser();
+
+      if (user) {
+        try {
+          const db = firebase.firestore();
+          await db.collection('users').doc(user.uid).collection('data').doc(key).delete();
+          console.log(`✅ StorageManager.remove: Removed "${key}" from Firestore`);
+        } catch (firestoreError) {
+          console.warn(`⚠️ StorageManager.remove: Firestore error for "${key}":`, firestoreError.message);
+        }
       }
-      
-      console.log('✅ StorageManager.clearAll: All data cleared successfully');
-      return true;
-    } catch (error) {
-      console.error('❌ StorageManager.clearAll: Error clearing data:', error);
-      console.error('❌ StorageManager.clearAll: Error stack:', error.stack);
-      return false;
-    }
-  }
 
       // מחק גם מ-localStorage
       localStorage.removeItem(key);
       console.log(`✅ StorageManager.remove: Removed "${key}" from localStorage`);
-      
+
       return true;
     } catch (error) {
       console.error(`❌ StorageManager.remove: Error removing "${key}":`, error);
@@ -196,12 +173,12 @@ class StorageManager {
   }
 
   /**
-   * 🔄 SYNC ALL - Sync all localStorage data to Firestore when user logs in
+   * 🔄 SYNC ALL TO FIRESTORE - Upload all localStorage data to Firestore
    */
   async syncAllToFirestore() {
     console.log('🔄 StorageManager.syncAllToFirestore: Starting sync...');
-    
-    const user = firebase.auth().currentUser;
+
+    const user = this._getFirebaseUser();
     if (!user) {
       console.log('⚠️ StorageManager.syncAllToFirestore: No user logged in');
       return;
@@ -221,7 +198,7 @@ class StorageManager {
     ];
 
     let syncCount = 0;
-    
+
     for (const key of keysToSync) {
       try {
         const localData = localStorage.getItem(key);
@@ -244,8 +221,8 @@ class StorageManager {
    */
   async syncAllFromFirestore() {
     console.log('📥 StorageManager.syncAllFromFirestore: Starting download...');
-    
-    const user = firebase.auth().currentUser;
+
+    const user = this._getFirebaseUser();
     if (!user) {
       console.log('⚠️ StorageManager.syncAllFromFirestore: No user logged in');
       return;
@@ -254,9 +231,9 @@ class StorageManager {
     try {
       const db = firebase.firestore();
       const snapshot = await db.collection('users').doc(user.uid).collection('data').get();
-      
+
       let downloadCount = 0;
-      
+
       snapshot.forEach(doc => {
         try {
           const key = doc.id;
@@ -278,23 +255,23 @@ class StorageManager {
   }
 
   /**
-   * 🗑️ CLEAR ALL - Clear all data (both Firestore and localStorage)
+   * 🗑️ CLEAR ALL - Clear all data from both Firestore and localStorage
    */
   async clearAll() {
     console.log('🗑️ StorageManager.clearAll: Clearing all data...');
 
-    const user = firebase.auth().currentUser;
-    
+    const user = this._getFirebaseUser();
+
     if (user) {
       try {
         const db = firebase.firestore();
         const snapshot = await db.collection('users').doc(user.uid).collection('data').get();
-        
+
         const batch = db.batch();
         snapshot.forEach(doc => {
           batch.delete(doc.ref);
         });
-        
+
         await batch.commit();
         console.log('✅ Cleared all Firestore data');
       } catch (error) {
@@ -307,7 +284,7 @@ class StorageManager {
   }
 
   /**
-   * 💾 AUTO BACKUP
+   * 💾 AUTO BACKUP - שמירת timestamp של גיבוי
    */
   async autoBackup() {
     try {
@@ -320,7 +297,7 @@ class StorageManager {
   }
 
   /**
-   * 📅 GET LAST BACKUP DATE
+   * 📅 GET LAST BACKUP DATE - קבלת תאריך הגיבוי האחרון
    */
   async getLastBackupDate() {
     try {
@@ -332,7 +309,7 @@ class StorageManager {
   }
 
   /**
-   * 📤 EXPORT DATA
+   * 📤 EXPORT DATA - ייצוא נתונים ל-JSON
    */
   async exportData() {
     try {
@@ -340,7 +317,7 @@ class StorageManager {
       const homework = await this.get('homework-list') || [];
       const settings = await this.get('homework-settings') || {};
       const tags = await this.get('homework-tags') || [];
-      
+
       const data = { subjects, homework, settings, tags, exportDate: new Date().toISOString() };
       const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
       const url = URL.createObjectURL(blob);
@@ -358,18 +335,18 @@ class StorageManager {
   }
 
   /**
-   * 📥 IMPORT DATA
+   * 📥 IMPORT DATA - ייבוא נתונים מ-JSON
    */
   async importData(file) {
     try {
       const text = await file.text();
       const data = JSON.parse(text);
-      
+
       if (data.subjects) await this.set('homework-subjects', data.subjects);
       if (data.homework) await this.set('homework-list', data.homework);
       if (data.settings) await this.set('homework-settings', data.settings);
       if (data.tags) await this.set('homework-tags', data.tags);
-      
+
       console.log('✅ importData: Data imported successfully');
       return { success: true };
     } catch (e) {
