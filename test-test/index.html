@@ -1,0 +1,531 @@
+<!DOCTYPE html>
+<html dir="rtl" lang="he">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>מערכת ניהול שיעורי בית - מאובטח</title>
+  <link rel="icon" href="icon.png" type="image/png">
+  
+  <!-- CSS Files -->
+  <link rel="stylesheet" href="styles.css">
+  <link rel="stylesheet" href="calendar-styles.css">
+  <link rel="stylesheet" href="enhanced-styles.css">
+  <link rel="stylesheet" href="statistics-styles.css">
+  <link rel="stylesheet" href="achievement-progress-styles.css">
+  <link rel="stylesheet" href="auth-styles.css">
+  
+  <!-- External Libraries -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/lucide/0.263.1/umd/lucide.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+  
+  <!-- 🔥 Firebase SDK -->
+  <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-auth-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore-compat.js"></script>
+</head>
+<body>
+  <!-- Auth Container - מסך התחברות -->
+  <div id="auth-container"></div>
+
+  <!-- Main App Container -->
+  <div class="container" style="display: none;">
+    <!-- Email Verification Banner -->
+    <div id="email-verification-banner" class="email-verification-banner hidden">
+      ⚠️ האימייל שלך לא מאומת.
+      <button onclick="authManager.sendVerificationEmail()">שלח אימייל אימות</button>
+    </div>
+
+    <!-- Header with Enhanced Actions -->
+    <div class="header">
+      <div class="header-title">
+        <svg width="32" height="32" style="color: #3b82f6;">
+          <use href="#book-open"></use>
+        </svg>
+        <h1>ניהול שיעורי בית <span style="font-size: 0.5em; color: #8b5cf6;">🔐 מאובטח</span></h1>
+        <div class="header-actions">
+          <!-- User menu button will be added here by auth.js -->
+          <button class="settings-btn" id="quick-search-btn" title="חיפוש מהיר (Ctrl+F)" onclick="smartSearch.openSearchPanel()">
+            <svg width="24" height="24"><use href="#search"></use></svg>
+          </button>
+          <button class="settings-btn" id="theme-selector-btn" title="ערכות נושא" onclick="themeCustomizer.openThemeSelector()">
+            <svg width="24" height="24"><use href="#palette"></use></svg>
+          </button>
+          <button class="settings-btn" id="toggle-dark-mode" title="מצב לילה/יום (Ctrl+D)">
+            <svg width="24" height="24"><use href="#moon"></use></svg>
+          </button>
+          <button class="settings-btn" id="toggle-view-mode" title="החלף תצוגה">
+            <svg width="24" height="24"><use href="#calendar"></use></svg>
+          </button>
+          <button class="settings-btn" id="quick-help-btn" title="עזרה (Shift+H)" onclick="quickActions.showHelpModal()">
+            <svg width="24" height="24"><use href="#help-circle"></use></svg>
+          </button>
+          <button class="settings-btn" id="open-settings" title="הגדרות">
+            <svg width="24" height="24"><use href="#settings"></use></svg>
+          </button>
+        </div>
+      </div>
+      
+      <!-- Stats with XP Bar -->
+      <div class="stats">
+        <div class="stat-card blue">
+          <div class="stat-number blue" id="stat-total">0</div>
+          <div class="stat-label">סך הכל</div>
+        </div>
+        <div class="stat-card green">
+          <div class="stat-number green" id="stat-completed">0</div>
+          <div class="stat-label">הושלמו</div>
+        </div>
+        <div class="stat-card orange">
+          <div class="stat-number orange" id="stat-pending">0</div>
+          <div class="stat-label">ממתינים</div>
+        </div>
+        <div class="stat-card red">
+          <div class="stat-number red" id="stat-urgent">0</div>
+          <div class="stat-label">דחוף</div>
+        </div>
+      </div>
+      
+      <!-- Mini XP Progress -->
+      <div class="xp-progress-container" style="margin-top: 1rem;">
+        <div class="xp-progress-bar">
+          <div class="xp-progress-fill" id="header-xp-progress" style="width: 0%"></div>
+        </div>
+        <div class="xp-progress-text">
+          רמה <span id="header-level">1</span> • <span id="header-xp-text">0 / 100 XP</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="grid">
+      <!-- Study Timer Panel -->
+      <div class="panel" id="timer-panel"></div>
+
+      <!-- Subjects Panel -->
+      <div class="panel">
+        <h2>מקצועות</h2>
+        
+        <button class="btn btn-primary" id="show-add-subject" style="margin-bottom: 1rem;">
+          <svg width="20" height="20"><use href="#plus"></use></svg>
+          הוסף מקצוע
+        </button>
+        
+        <div class="add-form hidden" id="add-subject-form">
+          <input type="text" class="input" id="subject-name" placeholder="שם המקצוע" style="margin-bottom: 0.75rem;">
+          <div id="color-picker"></div>
+          <div class="btn-group">
+            <button class="btn btn-success" id="save-subject">שמור</button>
+            <button class="btn btn-secondary" id="cancel-subject">ביטול</button>
+          </div>
+        </div>
+        
+        <div class="subject-list" id="subject-list"></div>
+      </div>
+
+      <!-- Filters Panel -->
+      <div class="panel">
+        <div id="filters-container"></div>
+      </div>
+
+      <!-- Add Homework Panel -->
+      <div class="panel">
+        <h2>הוסף שיעורי בית</h2>
+        
+        <div class="form-group">
+          <label>מקצוע</label>
+          <select class="select" id="hw-subject">
+            <option value="">בחר מקצוע</option>
+          </select>
+        </div>
+        
+        <div class="form-group">
+          <label>כותרת</label>
+          <input type="text" class="input" id="hw-title" placeholder="למשל: תרגיל 5">
+        </div>
+        
+        <div class="form-group">
+          <label>תיאור</label>
+          <textarea class="textarea" id="hw-desc" placeholder="פרטים נוספים..."></textarea>
+        </div>
+
+        <div class="form-group">
+          <label>קבצים מצורפים</label>
+          <input type="file" class="input" id="hw-files" multiple>
+        </div>
+        
+        <div class="form-group">
+          <label>תאריך הגשה</label>
+          <input type="date" class="input" id="hw-date">
+        </div>
+        
+        <div class="form-group">
+          <label>עדיפות</label>
+          <select class="select" id="hw-priority">
+            <option value="low">נמוכה</option>
+            <option value="medium" selected>בינונית</option>
+            <option value="high">גבוהה</option>
+          </select>
+        </div>
+        
+        <button class="btn btn-primary" id="add-homework">
+          <svg width="20" height="20"><use href="#plus"></use></svg>
+          הוסף משימה
+        </button>
+      </div>
+
+      <!-- Homework List Panel -->
+      <div class="panel homework-panel">
+        <div class="list-header">
+          <h2>רשימת משימות</h2>
+          <button class="archive-btn hidden" id="archive-toggle"></button>
+        </div>
+        
+        <div class="homework-list" id="homework-list"></div>
+      </div>
+
+      <!-- Gamification Panel -->
+      <div class="panel" id="gamification-panel"></div>
+
+      <!-- Statistics & Analytics Panel -->
+      <div class="panel statistics-panel" id="statistics-panel"></div>
+    </div>
+  </div>
+
+  <!-- Settings Modal -->
+  <div class="modal hidden" id="settings-modal">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h2>הגדרות</h2>
+        <button class="close-modal-btn" id="close-settings" title="סגור">
+          <svg width="24" height="24"><use href="#x"></use></svg>
+        </button>
+      </div>
+      
+      <div class="modal-body">
+        <div class="settings-section">
+          <h3>חשבון</h3>
+          <div class="setting-item">
+            <button class="btn btn-secondary" onclick="authManager.showUserMenu(); closeSettings();">
+              👤 ניהול חשבון
+            </button>
+          </div>
+        </div>
+
+        <div class="settings-section">
+          <h3>מראה</h3>
+          <div class="setting-item">
+            <label>
+              <input type="checkbox" id="dark-mode-toggle">
+              מצב לילה
+            </label>
+          </div>
+          <div class="setting-item">
+            <label>
+              <input type="checkbox" id="view-mode-toggle">
+              תצוגת לוח שנה כברירת מחדל
+            </label>
+          </div>
+          <div class="setting-item">
+            <button class="btn btn-secondary" onclick="themeCustomizer.openThemeSelector()">
+              <svg width="20" height="20"><use href="#palette"></use></svg>
+              בחר ערכת נושא
+            </button>
+          </div>
+        </div>
+
+        <div class="settings-section">
+          <h3>התראות</h3>
+          <div class="setting-item">
+            <label>
+              <input type="checkbox" id="enable-notifications">
+              אפשר התראות דפדפן
+            </label>
+          </div>
+          <div class="setting-item">
+            <label>
+              התראה לפני (בימים):
+              <input type="number" id="notification-days" min="0" max="7" value="1" class="input" style="width: 80px; display: inline-block; margin-right: 0.5rem;">
+            </label>
+          </div>
+          <div class="setting-item">
+            <label>
+              שעת התראה יומית:
+              <input type="time" id="notification-time" value="09:00" class="input" style="width: 120px; display: inline-block; margin-right: 0.5rem;">
+            </label>
+          </div>
+        </div>
+
+        <div class="settings-section">
+          <h3>ניהול תגיות</h3>
+          <div id="tag-management"></div>
+        </div>
+
+        <div class="settings-section">
+          <h3>ייבוא/ייצוא נתונים</h3>
+          <div class="setting-item">
+            <button class="btn btn-primary" id="export-data" type="button">
+              <svg width="20" height="20"><use href="#download"></use></svg>
+              ייצא נתונים (JSON)
+            </button>
+          </div>
+          <div class="setting-item">
+            <button class="btn btn-secondary" id="export-pdf" type="button">
+              <svg width="20" height="20"><use href="#file-text"></use></svg>
+              ייצא ל-PDF
+            </button>
+          </div>
+          <div class="setting-item">
+            <button class="btn btn-secondary" id="export-excel" type="button">
+              <svg width="20" height="20"><use href="#table"></use></svg>
+              ייצא ל-Excel
+            </button>
+          </div>
+          <div class="setting-item">
+            <button class="btn btn-secondary" id="import-data" type="button">
+              <svg width="20" height="20"><use href="#upload"></use></svg>
+              ייבא נתונים
+            </button>
+            <input type="file" id="import-file" accept=".json" style="display: none;">
+          </div>
+        </div>
+
+        <div class="settings-section">
+          <h3>סנכרון ענן ☁️</h3>
+          <div class="setting-item">
+            <p style="margin-bottom: 0.75rem; color: #6b7280; font-size: 0.875rem;">
+              הנתונים שלך מסונכרנים אוטומטית ל-Firebase
+            </p>
+            <label>
+              <input type="checkbox" id="auto-backup">
+              גיבוי אוטומטי
+            </label>
+          </div>
+          <div class="setting-item">
+            <p id="last-backup-info" style="color: #6b7280; font-size: 0.875rem;">גיבוי אחרון: אף פעם</p>
+            <button class="btn btn-secondary" onclick="syncAndRefresh()">
+              <svg width="20" height="20"><use href="#cloud"></use></svg>
+              סנכרן עכשיו
+            </button>
+          </div>
+        </div>
+
+        <div class="settings-section">
+          <h3>דיווח על בעיות</h3>
+          <div class="setting-item">
+            <p style="margin-bottom: 0.75rem; color: #6b7280; font-size: 0.875rem;">
+              מצאת באג או שיש לך הצעה לשיפור? נשמח לשמוע ממך!
+            </p>
+            <div class="report-links">
+              <a href="https://github.com/giamat13/homework-easy-times/issues" target="_blank" rel="noopener noreferrer" class="report-link">
+                <svg width="20" height="20"><use href="#github"></use></svg>
+                דווח ב-GitHub Issues
+              </a>
+              <a href="https://forms.gle/WDPPpqAv2mydg4qX7" target="_blank" rel="noopener noreferrer" class="report-link">
+                <svg width="20" height="20"><use href="#message-square"></use></svg>
+                מלא טופס דיווח
+              </a>
+            </div>
+          </div>
+        </div>
+
+        <div class="settings-section" style="border-top: 2px solid #fee; padding-top: 1.5rem; margin-top: 1.5rem;">
+          <h3 style="color: #dc2626;">🗑️ אזור מסוכן</h3>
+          <div class="setting-item">
+            <p style="margin-bottom: 0.75rem; color: #991b1b; font-size: 0.875rem; font-weight: 600;">
+              ⚠️ פעולה זו תמחק לצמיתות את החשבון שלך ואת כל הנתונים!
+            </p>
+            <p style="margin-bottom: 1rem; color: #6b7280; font-size: 0.875rem;">
+              החשבון, כל המקצועות, כל המשימות, הסטטיסטיקות וההישגים - הכל יימחק ללא אפשרות שחזור.
+            </p>
+            <button class="btn" onclick="deleteUserAccount()" style="background-color: #dc2626; color: white;">
+              <svg width="20" height="20"><use href="#trash"></use></svg>
+              מחק חשבון לצמיתות
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- SVG Icons (Extended) -->
+  <svg style="display: none;">
+    <symbol id="book-open" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+      <path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"></path>
+      <path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"></path>
+    </symbol>
+    <symbol id="plus" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+      <line x1="12" y1="5" x2="12" y2="19"></line>
+      <line x1="5" y1="12" x2="19" y2="12"></line>
+    </symbol>
+    <symbol id="trash" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+      <polyline points="3 6 5 6 21 6"></polyline>
+      <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
+    </symbol>
+    <symbol id="calendar" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+      <rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect>
+      <line x1="16" y1="2" x2="16" y2="6"></line>
+      <line x1="8" y1="2" x2="8" y2="6"></line>
+      <line x1="3" y1="10" x2="21" y2="10"></line>
+    </symbol>
+    <symbol id="settings" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+      <circle cx="12" cy="12" r="3"></circle>
+      <path d="M12 1v6m0 6v6m0-6h6M6 12H1"></path>
+      <path d="M19.071 4.929A10 10 0 1 1 4.93 19.07 10 10 0 0 1 19.07 4.93"></path>
+    </symbol>
+    <symbol id="x" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+      <line x1="18" y1="6" x2="6" y2="18"></line>
+      <line x1="6" y1="6" x2="18" y2="18"></line>
+    </symbol>
+    <symbol id="play" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+      <polygon points="5 3 19 12 5 21 5 3"></polygon>
+    </symbol>
+    <symbol id="pause" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+      <rect x="6" y="4" width="4" height="16"></rect>
+      <rect x="14" y="4" width="4" height="16"></rect>
+    </symbol>
+    <symbol id="square" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+      <rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect>
+    </symbol>
+    <symbol id="search" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+      <circle cx="11" cy="11" r="8"></circle>
+      <path d="m21 21-4.35-4.35"></path>
+    </symbol>
+    <symbol id="palette" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+      <circle cx="13.5" cy="6.5" r=".5"></circle>
+      <circle cx="17.5" cy="10.5" r=".5"></circle>
+      <circle cx="8.5" cy="7.5" r=".5"></circle>
+      <circle cx="6.5" cy="12.5" r=".5"></circle>
+      <path d="M12 2C6.5 2 2 6.5 2 12s4.5 10 10 10c.926 0 1.648-.746 1.648-1.688 0-.437-.18-.835-.437-1.125-.29-.289-.438-.652-.438-1.125a1.64 1.64 0 0 1 1.668-1.668h1.996c3.051 0 5.555-2.503 5.555-5.554C21.965 6.012 17.461 2 12 2z"></path>
+    </symbol>
+    <symbol id="help-circle" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+      <circle cx="12" cy="12" r="10"></circle>
+      <path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"></path>
+      <line x1="12" y1="17" x2="12.01" y2="17"></line>
+    </symbol>
+    <symbol id="download" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+      <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+      <polyline points="7 10 12 15 17 10"></polyline>
+      <line x1="12" y1="15" x2="12" y2="3"></line>
+    </symbol>
+    <symbol id="upload" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+      <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+      <polyline points="17 8 12 3 7 8"></polyline>
+      <line x1="12" y1="3" x2="12" y2="15"></line>
+    </symbol>
+    <symbol id="bell" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+      <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"></path>
+      <path d="M13.73 21a2 2 0 0 1-3.46 0"></path>
+    </symbol>
+    <symbol id="moon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+      <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path>
+    </symbol>
+    <symbol id="sun" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+      <circle cx="12" cy="12" r="5"></circle>
+      <line x1="12" y1="1" x2="12" y2="3"></line>
+      <line x1="12" y1="21" x2="12" y2="23"></line>
+      <line x1="4.22" y1="4.22" x2="5.64" y2="5.64"></line>
+      <line x1="18.36" y1="18.36" x2="19.78" y2="19.78"></line>
+      <line x1="1" y1="12" x2="3" y2="12"></line>
+      <line x1="21" y1="12" x2="23" y2="12"></line>
+      <line x1="4.22" y1="19.78" x2="5.64" y2="18.36"></line>
+      <line x1="18.36" y1="5.64" x2="19.78" y2="4.22"></line>
+    </symbol>
+    <symbol id="cloud" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+      <path d="M18 10h-1.26A8 8 0 1 0 9 20h9a5 5 0 0 0 0-10z"></path>
+    </symbol>
+    <symbol id="github" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+      <path d="M9 19c-5 1.5-5-2.5-7-3m14 6v-3.87a3.37 3.37 0 0 0-.94-2.61c3.14-.35 6.44-1.54 6.44-7A5.44 5.44 0 0 0 20 4.77 5.07 5.07 0 0 0 19.91 1S18.73.65 16 2.48a13.38 13.38 0 0 0-7 0C6.27.65 5.09 1 5.09 1A5.07 5.07 0 0 0 5 4.77a5.44 5.44 0 0 0-1.5 3.78c0 5.42 3.3 6.61 6.44 7A3.37 3.37 0 0 0 9 18.13V22"></path>
+    </symbol>
+    <symbol id="message-square" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+      <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path>
+    </symbol>
+    <symbol id="tag" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+      <path d="M20.59 13.41l-7.17 7.17a2 2 0 0 1-2.83 0L2 12V2h10l8.59 8.59a2 2 0 0 1 0 2.82z"></path>
+      <line x1="7" y1="7" x2="7.01" y2="7"></line>
+    </symbol>
+    <symbol id="file-text" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+      <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+      <polyline points="14 2 14 8 20 8"></polyline>
+      <line x1="16" y1="13" x2="8" y2="13"></line>
+      <line x1="16" y1="17" x2="8" y2="17"></line>
+      <polyline points="10 9 9 9 8 9"></polyline>
+    </symbol>
+    <symbol id="table" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+      <path d="M9 3H5a2 2 0 0 0-2 2v4m6-6h10a2 2 0 0 1 2 2v4M9 3v18m0 0h10a2 2 0 0 0 2-2V9M9 21H5a2 2 0 0 1-2-2V9m0 0h18"></path>
+    </symbol>
+    <symbol id="list" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+      <line x1="8" y1="6" x2="21" y2="6"></line>
+      <line x1="8" y1="12" x2="21" y2="12"></line>
+      <line x1="8" y1="18" x2="21" y2="18"></line>
+      <line x1="3" y1="6" x2="3.01" y2="6"></line>
+      <line x1="3" y1="12" x2="3.01" y2="12"></line>
+      <line x1="3" y1="18" x2="3.01" y2="18"></line>
+    </symbol>
+    <symbol id="chevron-left" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+      <polyline points="15 18 9 12 15 6"></polyline>
+    </symbol>
+    <symbol id="chevron-right" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+      <polyline points="9 18 15 12 9 6"></polyline>
+    </symbol>
+  </svg>
+
+  <!-- JavaScript Files - ORDER MATTERS! -->
+  <!-- 1. Firebase Config (FIRST!) -->
+  <script src="firebase-config.js"></script>
+  
+  <!-- Google Analytics (after config) -->
+  <script async src="https://www.googletagmanager.com/gtag/js?id=G-3P7J53MD27"></script>
+  <script>
+    window.dataLayer = window.dataLayer || [];
+    function gtag(){dataLayer.push(arguments);}
+    gtag('js', new Date());
+    gtag('config', window.GA_MEASUREMENT_ID || 'G-3P7J53MD27');
+  </script>
+  
+  <!-- 2. Storage (needs Firebase) -->
+  <script src="storage.js"></script>
+  
+  <!-- 3. Auth -->
+  <script src="auth.js"></script>
+  
+  <!-- 4. Auth Enhancements (needs auth.js) -->
+  <script src="auth-enhancements.js"></script>
+  
+  <!-- 5. Core functionality -->
+  <script src="notifications.js"></script>
+  <script src="calendar.js"></script>
+  <script src="statistics.js"></script>
+  <script src="study-timer.js"></script>
+  <script src="gamification.js"></script>
+  <script src="utilities.js"></script>
+  
+  <!-- 6. Main app (needs all of the above) -->
+  <script src="app.js"></script>
+  
+  <!-- 7. Integration (LAST!) -->
+  <script src="integration.js"></script>
+  
+  <!-- 8. Sync Fix (NEW!) -->
+  <script src="sync-fix.js"></script>
+  
+  <!-- 9. Delete Account (NEW!) -->
+  <script src="delete-account.js"></script>
+  
+  <footer class="footer">
+    <div id="beta-footer-container"></div>
+    <script>
+      const container = document.getElementById('beta-footer-container');
+      const oldDesign = `
+        <div style="margin-bottom: 2rem; padding: 1.5rem; background: rgba(255, 255, 255, 0.5); border-radius: 1rem; border: 1px dashed #3b82f6;">
+          <h3 style="color: #1f2937; margin-bottom: 0.5rem;">🔐 מאובטח עם Firebase</h3>
+          <p style="margin-bottom: 1rem;">✅ התחברות עם Google | ✅ התחברות עם טלפון | ✅ אימייל וסיסמה</p>
+        </div>
+      `;
+      container.innerHTML = oldDesign;
+    </script>
+    <p>2025 giamat13 | 🔐 Protected by Firebase</p>
+    <p>התוכן זמין תחת רישיון <a href="https://creativecommons.org/licenses/by-nc/4.0/deed.he" target="_blank" style="color: #3b82f6; text-decoration: none;">Creative Commons BY-NC 4.0</a></p>
+    <p>(שימוש לא מסחרי עם מתן קרדיט בלבד)</p>
+</footer>
+</body>
+</html>
