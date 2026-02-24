@@ -10,11 +10,20 @@ console.log('🔧 Loading manual sync fix...');
  */
 async function manualSync() {
   console.log('🔄 manualSync: Starting manual sync...');
-  
+
   try {
-    // בדיקה אם משתמש מחובר
-    const user = firebase.auth().currentUser;
-    
+    // בדיקה אם Firebase זמין ומאותחל
+    let user = null;
+    try {
+      user = firebase.auth().currentUser;
+    } catch (e) {
+      console.warn('⚠️ manualSync: Firebase not ready yet');
+      if (notifications && notifications.showInAppNotification) {
+        notifications.showInAppNotification('Firebase לא מוכן עדיין', 'error');
+      }
+      return;
+    }
+
     if (!user) {
       console.warn('⚠️ manualSync: No user logged in');
       if (notifications && notifications.showInAppNotification) {
@@ -22,22 +31,22 @@ async function manualSync() {
       }
       return;
     }
-    
+
     // הצגת הודעת התחלה
     if (notifications && notifications.showInAppNotification) {
       notifications.showInAppNotification('מתחיל סנכרון...', 'info');
     }
-    
+
     // שימוש ב-storageManager לסנכרון כל הנתונים
-    if (typeof storageManager !== 'undefined') {
+    const sm = window.storageManager || window.storage;
+    if (sm) {
       console.log('🔄 manualSync: Using storageManager.syncAllToFirestore()');
-      await storageManager.syncAllToFirestore();
-      
-      // הודעת הצלחה
+      await sm.syncAllToFirestore();
+
       if (notifications && notifications.showInAppNotification) {
         notifications.showInAppNotification('✅ הנתונים סונכרנו בהצלחה!', 'success');
       }
-      
+
       console.log('✅ manualSync: Sync completed successfully');
     } else {
       console.error('❌ manualSync: storageManager not found');
@@ -45,7 +54,7 @@ async function manualSync() {
         notifications.showInAppNotification('שגיאה: מערכת האחסון לא זמינה', 'error');
       }
     }
-    
+
   } catch (error) {
     console.error('❌ manualSync: Error during sync:', error);
     if (notifications && notifications.showInAppNotification) {
@@ -54,59 +63,57 @@ async function manualSync() {
   }
 }
 
-// הפיכת הפונקציה לגלובלית
 window.manualSync = manualSync;
-
 console.log('✅ Manual sync function is ready: window.manualSync()');
-
-// ===================================
-// תיקון נוסף: הוספת כפתור רענון אוטומטי לאחר סנכרון
-// ===================================
 
 /**
  * פונקציה לרענון הנתונים מ-Firestore
  */
 async function refreshFromFirestore() {
   console.log('🔄 refreshFromFirestore: Refreshing data from Firestore...');
-  
+
   try {
-    const user = firebase.auth().currentUser;
-    
+    let user = null;
+    try {
+      user = firebase.auth().currentUser;
+    } catch (e) {
+      console.warn('⚠️ refreshFromFirestore: Firebase not ready yet');
+      return;
+    }
+
     if (!user) {
       console.warn('⚠️ refreshFromFirestore: No user logged in');
       return;
     }
-    
+
     if (notifications && notifications.showInAppNotification) {
       notifications.showInAppNotification('מרענן נתונים...', 'info');
     }
-    
-    // שימוש ב-storageManager להורדת כל הנתונים
-    if (typeof storageManager !== 'undefined') {
+
+    const sm = window.storageManager || window.storage;
+    if (sm) {
       console.log('🔄 refreshFromFirestore: Using storageManager.syncAllFromFirestore()');
-      await storageManager.syncAllFromFirestore();
-      
-      // טעינה מחדש של הנתונים לאפליקציה
+      await sm.syncAllFromFirestore();
+
       if (typeof loadData === 'function') {
         console.log('🔄 refreshFromFirestore: Reloading app data...');
         await loadData();
       }
-      
-      // רינדור מחדש
+
       if (typeof render === 'function') {
         console.log('🔄 refreshFromFirestore: Re-rendering UI...');
         render();
       }
-      
+
       if (notifications && notifications.showInAppNotification) {
         notifications.showInAppNotification('✅ הנתונים רועננו בהצלחה!', 'success');
       }
-      
+
       console.log('✅ refreshFromFirestore: Refresh completed successfully');
     } else {
       console.error('❌ refreshFromFirestore: storageManager not found');
     }
-    
+
   } catch (error) {
     console.error('❌ refreshFromFirestore: Error during refresh:', error);
     if (notifications && notifications.showInAppNotification) {
@@ -115,30 +122,21 @@ async function refreshFromFirestore() {
   }
 }
 
-// הפיכת הפונקציה לגלובלית
 window.refreshFromFirestore = refreshFromFirestore;
-
 console.log('✅ Refresh function is ready: window.refreshFromFirestore()');
-
-// ===================================
-// תיקון נוסף: הוספת פונקציה משולבת
-// ===================================
 
 /**
  * פונקציה משולבת - סנכרון + רענון
  */
 async function syncAndRefresh() {
   console.log('🔄 syncAndRefresh: Starting sync and refresh...');
-  
-  await manualSync(); // העלאה
-  
+  await manualSync();
   setTimeout(async () => {
-    await refreshFromFirestore(); // הורדה
-  }, 1000); // המתנה של שנייה בין ההעלאה להורדה
+    await refreshFromFirestore();
+  }, 1000);
 }
 
 window.syncAndRefresh = syncAndRefresh;
-
 console.log('✅ Combined sync function is ready: window.syncAndRefresh()');
 console.log('');
 console.log('📚 Available sync functions:');
@@ -147,42 +145,30 @@ console.log('  • refreshFromFirestore() - Download all data from Firestore');
 console.log('  • syncAndRefresh() - Upload + Download (recommended)');
 
 // ===================================
-// סנכרון אוטומטי כל 30 שניות
+// סנכרון אוטומטי
 // ===================================
 
 let autoSyncInterval = null;
-let isAutoSyncEnabled = localStorage.getItem('autoSyncEnabled') !== 'false'; // ברירת מחדל: מופעל
+let isAutoSyncEnabled = localStorage.getItem('autoSyncEnabled') !== 'false';
 
-/**
- * פונקציה להפעלת סנכרון אוטומטי
- */
 function startAutoSync() {
   if (autoSyncInterval) {
     console.log('⚠️ Auto-sync is already running');
     return;
   }
-  
+
   console.log('🔄 Starting auto-sync every 30 seconds...');
-  
-  // סנכרון ראשוני
-  setTimeout(() => {
-    syncAndRefresh();
-  }, 5000); // סנכרון ראשון אחרי 5 שניות
-  
-  // סנכרון כל 30 שניות
+
   autoSyncInterval = setInterval(() => {
     console.log('🔄 Auto-sync: Running scheduled sync...');
     syncAndRefresh();
-  }, 30000); // 30,000 מילישניות = 30 שניות
-  
+  }, 30000);
+
   isAutoSyncEnabled = true;
   localStorage.setItem('autoSyncEnabled', 'true');
   console.log('✅ Auto-sync enabled');
 }
 
-/**
- * פונקציה לעצירת סנכרון אוטומטי
- */
 function stopAutoSync() {
   if (autoSyncInterval) {
     clearInterval(autoSyncInterval);
@@ -193,9 +179,6 @@ function stopAutoSync() {
   }
 }
 
-/**
- * פונקציה להחלפת מצב הסנכרון האוטומטי
- */
 function toggleAutoSync() {
   if (isAutoSyncEnabled) {
     stopAutoSync();
@@ -210,59 +193,39 @@ function toggleAutoSync() {
   }
 }
 
-// הפיכת הפונקציות לגלובליות
 window.startAutoSync = startAutoSync;
 window.stopAutoSync = stopAutoSync;
 window.toggleAutoSync = toggleAutoSync;
 
-// הפעלה אוטומטית כשהמשתמש מחובר
-if (isAutoSyncEnabled) {
-  // המתן עד שהאפליקציה תהיה מוכנה
-  window.addEventListener('load', () => {
-    setTimeout(() => {
-      const user = firebase.auth().currentUser;
-      if (user) {
-        console.log('🔄 Page loaded with logged-in user, running immediate sync...');
-        syncAndRefresh();
-        
-        // סנכרון נוסף אחרי שנייה
-        setTimeout(() => {
-          console.log('🔄 Running verification sync (1 second after page load)...');
+// ✅ הפעלה אוטומטית - עטוף ב-DOMContentLoaded כדי שFirebase יהיה מוכן
+window.addEventListener('DOMContentLoaded', () => {
+  // המתן עד שה-auth יאותחל ואז הגדר listener
+  setTimeout(() => {
+    try {
+      firebase.auth().onAuthStateChanged((user) => {
+        if (user && isAutoSyncEnabled && !autoSyncInterval) {
+          console.log('🔄 User logged in, running immediate sync...');
           syncAndRefresh();
-        }, 1000);
-        
-        // הפעלת סנכרון אוטומטי קבוע
-        setTimeout(() => {
-          console.log('🔄 Starting auto-sync interval...');
-          startAutoSync();
-        }, 2000);
-      }
-    }, 1000); // המתן שנייה אחרי טעינת הדף
-  });
-}
 
-// הפעלה אוטומטית גם כשמשתמש מתחבר
-firebase.auth().onAuthStateChanged((user) => {
-  if (user && isAutoSyncEnabled && !autoSyncInterval) {
-    // סנכרון מיידי - מיד אחרי התחברות
-    console.log('🔄 User logged in, running immediate sync...');
-    syncAndRefresh();
-    
-    // סנכרון נוסף אחרי שנייה אחת - לוודא שהכל מסונכרן
-    setTimeout(() => {
-      console.log('🔄 Running verification sync (1 second after login)...');
-      syncAndRefresh();
-    }, 1000);
-    
-    // הפעלת סנכרון אוטומטי קבוע אחרי 2 שניות
-    setTimeout(() => {
-      console.log('🔄 Starting auto-sync interval...');
-      startAutoSync();
-    }, 2000);
-  } else if (!user && autoSyncInterval) {
-    console.log('⏸️ User logged out, stopping auto-sync...');
-    stopAutoSync();
-  }
+          setTimeout(() => {
+            console.log('🔄 Running verification sync (1 second after login)...');
+            syncAndRefresh();
+          }, 1000);
+
+          setTimeout(() => {
+            console.log('🔄 Starting auto-sync interval...');
+            startAutoSync();
+          }, 2000);
+
+        } else if (!user && autoSyncInterval) {
+          console.log('⏸️ User logged out, stopping auto-sync...');
+          stopAutoSync();
+        }
+      });
+    } catch (e) {
+      console.warn('⚠️ sync-fix: Could not set up auth listener:', e.message);
+    }
+  }, 500); // המתן 500ms לאתחול Firebase
 });
 
 console.log('');
@@ -270,4 +233,3 @@ console.log('🤖 Auto-sync functions:');
 console.log('  • startAutoSync() - Start automatic sync every 30 seconds');
 console.log('  • stopAutoSync() - Stop automatic sync');
 console.log('  • toggleAutoSync() - Toggle auto-sync on/off');
-console.log('  • Current status: ' + (isAutoSyncEnabled ? '✅ ENABLED' : '⏸️ DISABLED'));ג
