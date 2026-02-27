@@ -287,7 +287,6 @@ class StorageManager {
    * 💾 AUTO BACKUP - שמירת timestamp של גיבוי
    */
   async autoBackup() {
-    console.log('🔄 StorageManager.autoBackup: Checking auto backup...');
     try {
       const now = new Date();
       localStorage.setItem('last-backup-date', now.toISOString());
@@ -301,7 +300,6 @@ class StorageManager {
    * 📅 GET LAST BACKUP DATE - קבלת תאריך הגיבוי האחרון
    */
   async getLastBackupDate() {
-    console.log('📅 StorageManager.getLastBackupDate: Getting last backup date...');
     try {
       const saved = localStorage.getItem('last-backup-date');
       return saved ? new Date(saved) : null;
