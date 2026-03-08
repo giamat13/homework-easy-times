@@ -442,7 +442,7 @@ function renderSubjects() {
           <div class="subject-color" style="background-color: ${s.color};"></div>
           <span class="subject-name">${s.name}</span>
         </div>
-        <button class="icon-btn" onclick="deleteSubject(${s.id})">
+        <button class="icon-btn" onclick="deleteSubject('${s.id}')">
           <svg width="16" height="16"><use href="#trash"></use></svg>
         </button>
       </div>
@@ -660,7 +660,7 @@ function renderHomework() {
             
             ${availableTags.length > 0 ? `
               <div class="homework-tags-selector">
-                <button class="btn btn-secondary" onclick="toggleTagEditor(${hw.id})" style="padding: 0.25rem 0.5rem; width: auto; font-size: 0.75rem;">
+                <button class="btn btn-secondary" onclick="toggleTagEditor('${hw.id}')" style="padding: 0.25rem 0.5rem; width: auto; font-size: 0.75rem;">
                   <svg width="14" height="14"><use href="#tag"></use></svg>
                   ניהול תגיות
                 </button>
@@ -684,7 +684,7 @@ function renderHomework() {
               ${daysText ? `<span class="days-left ${isOverdue ? 'overdue' : isUrgent ? 'urgent' : ''}">${daysText}</span>` : ''}
             </div>
           </div>
-          <button class="icon-btn" onclick="deleteHomework(${hw.id})">
+          <button class="icon-btn" onclick="deleteHomework('${hw.id}')">
             <svg width="20" height="20"><use href="#trash"></use></svg>
           </button>
         </div>
