@@ -10,9 +10,14 @@ const classroomIntegration = (() => {
     'https://www.googleapis.com/auth/classroom.student-submissions.me.readonly'
   ].join(' ');
 
-  let tokenClient = null;
-  let accessToken = null;
-  let isSyncing = false;
+  let tokenClient  = null;
+  let accessToken  = null;
+  let isSyncing    = false;
+  let cachedCourses = []; // קורסים ששלפנו מ-Classroom
+
+  // מיפוי: courseId → subjectId באפליקציה (או 'new' = צור חדש לפי שם)
+  // נשמר ב-localStorage תחת 'classroom_course_mapping'
+  let courseMapping = {};
 
   // ==================== אתחול ====================
 
@@ -21,6 +26,27 @@ const classroomIntegration = (() => {
     _injectSvgIcons();
     _injectStyles();
 
+    // שחזר טוקן
+    const saved = localStorage.getItem('classroom_token');
+    if (saved) {
+      try {
+        const p = JSON.parse(saved);
+        if (p.expires_at && Date.now() < p.expires_at) {
+          accessToken = p.token;
+          console.log('✅ Classroom: Restored saved token');
+        } else {
+          localStorage.removeItem('classroom_token');
+        }
+      } catch(e) { localStorage.removeItem('classroom_token'); }
+    }
+
+    // שחזר מיפוי קורסים
+    const savedMapping = localStorage.getItem('classroom_course_mapping');
+    if (savedMapping) {
+      try { courseMapping = JSON.parse(savedMapping); } catch(e) {}
+    }
+
+    // טעינת Google Identity Services
     const script = document.createElement('script');
     script.src = 'https://accounts.google.com/gsi/client';
     script.onload = () => {
@@ -28,22 +54,6 @@ const classroomIntegration = (() => {
       _setupTokenClient();
     };
     document.head.appendChild(script);
-
-    // שחזר טוקן שמור
-    const saved = localStorage.getItem('classroom_token');
-    if (saved) {
-      try {
-        const parsed = JSON.parse(saved);
-        if (parsed.expires_at && Date.now() < parsed.expires_at) {
-          accessToken = parsed.token;
-          console.log('✅ Classroom: Restored saved token');
-        } else {
-          localStorage.removeItem('classroom_token');
-        }
-      } catch (e) {
-        localStorage.removeItem('classroom_token');
-      }
-    }
   }
 
   function _setupTokenClient() {
@@ -52,7 +62,7 @@ const classroomIntegration = (() => {
     tokenClient = window.google.accounts.oauth2.initTokenClient({
       client_id: CLIENT_ID,
       scope: SCOPES,
-      callback: (tokenResponse) => {
+      callback: async (tokenResponse) => {
         if (tokenResponse.error) {
           console.error('❌ Classroom: OAuth error:', tokenResponse.error);
           _showError('שגיאה בהתחברות ל-Google Classroom');
@@ -63,10 +73,17 @@ const classroomIntegration = (() => {
         const expires_at = Date.now() + (tokenResponse.expires_in * 1000);
         localStorage.setItem('classroom_token', JSON.stringify({ token: accessToken, expires_at }));
         console.log('✅ Classroom: Got access token');
+
+        // שלוף קורסים ועדכן UI לפני סנכרון
+        await _loadAndRenderCourseMapping();
         _updateSettingsUI();
-        syncHomework();
       }
     });
+
+    // אם כבר מחובר — טען קורסים ברקע
+    if (accessToken) {
+      _loadAndRenderCourseMapping();
+    }
 
     _updateSettingsUI();
     console.log('✅ Classroom: Token client ready');
@@ -90,22 +107,83 @@ const classroomIntegration = (() => {
         console.log('✅ Classroom: Token revoked');
       });
     }
-
-    accessToken = null;
+    accessToken  = null;
+    cachedCourses = [];
     localStorage.removeItem('classroom_token');
     _updateSettingsUI();
     _showNotification('התנתקת מ-Google Classroom', 'info');
   }
 
+  // ==================== מיפוי קורסים ====================
+
+  async function _loadAndRenderCourseMapping() {
+    if (!accessToken) return;
+    try {
+      const res = await _apiCall('https://classroom.googleapis.com/v1/courses?courseStates=ACTIVE');
+      cachedCourses = res.courses || [];
+      _renderCourseMappingTable();
+    } catch(e) {
+      console.warn('⚠️ Classroom: Could not load courses for mapping', e);
+    }
+  }
+
+  function _saveMapping() {
+    localStorage.setItem('classroom_course_mapping', JSON.stringify(courseMapping));
+  }
+
+  function _renderCourseMappingTable() {
+    const container = document.getElementById('classroom-mapping-container');
+    if (!container || !cachedCourses.length) return;
+
+    const rows = cachedCourses.map(course => {
+      const mapped = courseMapping[course.id] || 'new';
+
+      const options = subjects.map(s =>
+        `<option value="${s.id}" ${mapped === s.id ? 'selected' : ''}>${s.name}</option>`
+      ).join('');
+
+      return `
+        <tr>
+          <td style="padding:0.4rem 0.5rem; font-size:0.85rem;">${course.name}</td>
+          <td style="padding:0.4rem 0.5rem;">
+            <select
+              class="input"
+              style="padding:0.25rem 0.5rem; font-size:0.8rem; width:100%;"
+              onchange="classroomIntegration.setCourseMapping('${course.id}', this.value)"
+            >
+              <option value="new" ${mapped === 'new' ? 'selected' : ''}>➕ צור מקצוע חדש</option>
+              ${options}
+            </select>
+          </td>
+        </tr>`;
+    }).join('');
+
+    container.innerHTML = `
+      <p style="font-size:0.8rem; color:#6b7280; margin-bottom:0.5rem;">שייך כל קורס ב-Classroom למקצוע באפליקציה:</p>
+      <table style="width:100%; border-collapse:collapse;">
+        <thead>
+          <tr>
+            <th style="text-align:right; font-size:0.8rem; color:#6b7280; padding:0.25rem 0.5rem; border-bottom:1px solid #e5e7eb;">קורס ב-Classroom</th>
+            <th style="text-align:right; font-size:0.8rem; color:#6b7280; padding:0.25rem 0.5rem; border-bottom:1px solid #e5e7eb;">מקצוע באפליקציה</th>
+          </tr>
+        </thead>
+        <tbody>${rows}</tbody>
+      </table>`;
+  }
+
+  function setCourseMapping(courseId, subjectId) {
+    courseMapping[courseId] = subjectId;
+    _saveMapping();
+    console.log(`🔗 Classroom: Mapped course ${courseId} → subject ${subjectId}`);
+  }
+
   // ==================== סנכרון ====================
 
-  // סנכרון שקט — נקרא מ-syncAndRefresh, לא מבקש login
   async function syncIfConnected() {
     if (!accessToken) return false;
     return await _doSync();
   }
 
-  // סנכרון מלא — מבקש login אם צריך
   async function syncHomework() {
     if (isSyncing) return;
     if (!accessToken) { connect(); return; }
@@ -166,7 +244,8 @@ const classroomIntegration = (() => {
 
   async function _fetchCourses() {
     const res = await _apiCall('https://classroom.googleapis.com/v1/courses?courseStates=ACTIVE');
-    return res.courses || [];
+    cachedCourses = res.courses || [];
+    return cachedCourses;
   }
 
   async function _syncCourseWork(course) {
@@ -179,28 +258,29 @@ const classroomIntegration = (() => {
       const courseWorks = cwRes.courseWork || [];
 
       let submissions = {};
-      try {
-        const subRes = await _apiCall(
-          `https://classroom.googleapis.com/v1/courses/${course.id}/courseWork/-/studentSubmissions?states=CREATED,RECLAIMED_BY_STUDENT,TURNED_IN`
-        );
-        (subRes.studentSubmissions || []).forEach(sub => {
-          submissions[sub.courseWorkId] = sub.state;
-        });
-      } catch (e) {
-        console.warn(`⚠️ Classroom: Could not fetch submissions for ${course.name}`);
+      for (const cw of courseWorks) {
+        try {
+          const subRes = await _apiCall(
+            `https://classroom.googleapis.com/v1/courses/${course.id}/courseWork/${cw.id}/studentSubmissions?states=CREATED,RECLAIMED_BY_STUDENT,TURNED_IN`
+          );
+          (subRes.studentSubmissions || []).forEach(sub => {
+            submissions[sub.courseWorkId] = sub.state;
+          });
+        } catch(e) {
+          // התעלם משגיאות הגשה לכל מטלה בנפרד
+        }
       }
 
       for (const cw of courseWorks) {
-        // ── מניעת כפילויות לפי classroomId ──
+        // מניעת כפילויות לפי classroomId
         const existingIdx = homework.findIndex(h => h.classroomId === cw.id);
 
         if (existingIdx !== -1) {
-          // משימה קיימת — עדכן סטטוס הגשה אם השתנה ולא נערכה ידנית
           const existing = homework[existingIdx];
           const isNowCompleted = submissions[cw.id] === 'TURNED_IN';
           if (!existing._manuallyEdited && existing.completed !== isNowCompleted) {
-            homework[existingIdx].completed    = isNowCompleted;
-            homework[existingIdx].completedAt  = isNowCompleted ? new Date().toISOString() : null;
+            homework[existingIdx].completed   = isNowCompleted;
+            homework[existingIdx].completedAt = isNowCompleted ? new Date().toISOString() : null;
             updated++;
           } else {
             skipped++;
@@ -208,11 +288,10 @@ const classroomIntegration = (() => {
           continue;
         }
 
-        // משימה חדשה
         const hw = _courseWorkToHomework(cw, course, submissions[cw.id]);
         if (hw) { homework.push(hw); imported++; }
       }
-    } catch (err) {
+    } catch(err) {
       console.warn(`⚠️ Classroom: Error syncing course ${course.name}:`, err);
     }
 
@@ -220,16 +299,32 @@ const classroomIntegration = (() => {
   }
 
   function _courseWorkToHomework(cw, course, submissionState) {
-    let subject = subjects.find(s =>
-      s.name.trim().toLowerCase() === course.name.trim().toLowerCase()
-    );
+    // בדוק אם יש מיפוי ידני לקורס זה
+    const mappedSubjectId = courseMapping[course.id];
+    let subject = null;
+
+    if (mappedSubjectId && mappedSubjectId !== 'new') {
+      // השתמש במקצוע שמשתמש בחר
+      subject = subjects.find(s => s.id === mappedSubjectId);
+    }
 
     if (!subject) {
+      // נסה לפי שם
+      subject = subjects.find(s =>
+        s.name.trim().toLowerCase() === course.name.trim().toLowerCase()
+      );
+    }
+
+    if (!subject) {
+      // צור מקצוע חדש
       const palette = ['#3b82f6','#ef4444','#10b981','#f59e0b','#8b5cf6','#ec4899','#06b6d4'];
-      const used = subjects.map(s => s.color);
+      const used  = subjects.map(s => s.color);
       const color = palette.find(c => !used.includes(c)) || palette[subjects.length % palette.length];
       subject = { id: 'classroom_' + course.id, name: course.name, color, fromClassroom: true };
       subjects.push(subject);
+      // שמור את המיפוי האוטומטי
+      courseMapping[course.id] = subject.id;
+      _saveMapping();
       console.log(`➕ Classroom: Created new subject: ${course.name}`);
     }
 
@@ -285,7 +380,7 @@ const classroomIntegration = (() => {
           <span class="classroom-status-dot"></span>
           מחובר ל-Google Classroom
         </div>
-        <div class="setting-item" style="display:flex; gap:0.5rem; flex-wrap:wrap;">
+        <div class="setting-item" style="display:flex; gap:0.5rem; flex-wrap:wrap; margin-bottom:1rem;">
           <button class="btn btn-primary" onclick="classroomIntegration.syncHomework()">
             <svg width="18" height="18"><use href="#classroom-icon"></use></svg>
             סנכרן עכשיו
@@ -293,7 +388,15 @@ const classroomIntegration = (() => {
           <button class="btn btn-secondary" onclick="classroomIntegration.disconnect()" style="color:#dc2626; border-color:#dc2626;">
             התנתק
           </button>
-        </div>`;
+        </div>
+        <div id="classroom-mapping-container" style="margin-top:0.5rem;"></div>`;
+
+      // טען טבלת מיפוי
+      if (cachedCourses.length) {
+        _renderCourseMappingTable();
+      } else {
+        _loadAndRenderCourseMapping();
+      }
     } else {
       container.innerHTML = `
         <div class="classroom-status disconnected">
@@ -339,11 +442,28 @@ const classroomIntegration = (() => {
       .classroom-status.disconnected .classroom-status-dot { background:#9ca3af; }
       .dark-mode .classroom-status.connected { color:#4ade80; }
       .dark-mode .classroom-status.connected .classroom-status-dot { background:#4ade80; }
+      #classroom-mapping-container table { font-size:0.82rem; }
+      #classroom-mapping-container tr:hover td { background: rgba(0,0,0,0.02); }
+      .dark-mode #classroom-mapping-container tr:hover td { background: rgba(255,255,255,0.04); }
     `;
     document.head.appendChild(s);
   }
 
-  return { initialize, syncHomework, syncIfConnected, connect, disconnect, get isConnected() { return !!accessToken; } };
+  return {
+    initialize,
+    syncHomework,
+    syncIfConnected,
+    connect,
+    disconnect,
+    setCourseMapping,
+    refreshSettingsUI: () => {
+      _updateSettingsUI();
+      if (accessToken && cachedCourses.length === 0) {
+        _loadAndRenderCourseMapping();
+      }
+    },
+    get isConnected() { return !!accessToken; }
+  };
 
 })();
 

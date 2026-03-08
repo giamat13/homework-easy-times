@@ -867,6 +867,10 @@ function openSettings() {
   if (!modal) return;
   modal.classList.remove('hidden');
   loadSettingsUI();
+  // עדכן UI של Classroom
+  if (typeof classroomIntegration !== 'undefined') {
+    classroomIntegration.refreshSettingsUI();
+  }
 }
 
 function closeSettings() {
