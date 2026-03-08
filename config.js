@@ -10,6 +10,22 @@ if (typeof window !== 'undefined') {
 }
 
 // ========================================
+// Google Classroom Integration
+// ========================================
+// כדי להפעיל סנכרון עם Google Classroom:
+// 1. היכנס ל-console.cloud.google.com
+// 2. צור פרויקט חדש (או בחר קיים)
+// 3. הפעל את "Google Classroom API"
+// 4. צור OAuth 2.0 Client ID (Web application)
+// 5. הוסף את הדומיין שלך ל-Authorized JavaScript origins
+// 6. הדבק את ה-Client ID כאן:
+const GOOGLE_CLIENT_ID = '344316429906-ieeddq7bufco57vg80hnq06p3v38u3ac.apps.googleusercontent.com';
+
+if (typeof window !== 'undefined') {
+  window.GOOGLE_CLIENT_ID = GOOGLE_CLIENT_ID;
+}
+
+// ========================================
 // Beta Banner Configuration
 // ========================================
 // הגדר true אם יש עדכון גדול, false אם לא
