@@ -130,6 +130,14 @@ console.log('✅ Refresh function is ready: window.refreshFromFirestore()');
  */
 async function syncAndRefresh() {
   console.log('🔄 syncAndRefresh: Starting sync and refresh...');
+
+  // 1. סנכרן מ-Google Classroom קודם (אם מחובר)
+  if (typeof classroomIntegration !== 'undefined' && classroomIntegration.isConnected) {
+    console.log('📚 syncAndRefresh: Syncing Classroom first...');
+    await classroomIntegration.syncIfConnected();
+  }
+
+  // 2. סנכרן לענן
   await manualSync();
   setTimeout(async () => {
     await refreshFromFirestore();

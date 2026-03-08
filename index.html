@@ -290,6 +290,16 @@
         </div>
 
         <div class="settings-section">
+          <h3>📚 Google Classroom</h3>
+          <div id="classroom-settings-container">
+            <div class="classroom-status disconnected">
+              <span class="classroom-status-dot"></span>
+              טוען...
+            </div>
+          </div>
+        </div>
+
+        <div class="settings-section">
           <h3>סנכרון ענן ☁️</h3>
           <div class="setting-item">
             <p style="margin-bottom: 0.75rem; color: #6b7280; font-size: 0.875rem;">
@@ -471,6 +481,7 @@
 
   <!-- JavaScript Files - ORDER MATTERS! -->
   <!-- 1. Firebase Config (FIRST!) -->
+  <script src="config.js"></script>
   <script src="firebase-config.js"></script>
   
   <!-- Google Analytics (after config) -->
@@ -510,6 +521,9 @@
   
   <!-- 9. Delete Account (NEW!) -->
   <script src="delete-account.js"></script>
+  
+  <!-- 10. Google Classroom Integration -->
+  <script src="classroom-integration.js"></script>
   
   <footer class="footer">
     <div id="beta-footer-container"></div>
