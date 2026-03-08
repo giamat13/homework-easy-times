@@ -1,0 +1,303 @@
+{
+  "achievements": [
+    {
+      "id": "first-task",
+      "name": "צעד ראשון",
+      "description": "השלם את המשימה הראשונה שלך",
+      "icon": "🎯",
+      "xp": 10,
+      "category": "tasks",
+      "maxUnlocks": 1,
+      "condition": {
+        "type": "totalTasksCompleted",
+        "value": 1
+      }
+    },
+    {
+      "id": "task-master-10",
+      "name": "מתחיל מבטיח",
+      "description": "השלם 10 משימות",
+      "icon": "⭐",
+      "xp": 50,
+      "category": "tasks",
+      "maxUnlocks": 1,
+      "condition": {
+        "type": "totalTasksCompleted",
+        "value": 10
+      }
+    },
+    {
+      "id": "task-master-50",
+      "name": "מומחה משימות",
+      "description": "השלם 50 משימות",
+      "icon": "🌟",
+      "xp": 200,
+      "category": "tasks",
+      "maxUnlocks": 1,
+      "condition": {
+        "type": "totalTasksCompleted",
+        "value": 50
+      }
+    },
+    {
+      "id": "task-master-100",
+      "name": "אלוף המשימות",
+      "description": "השלם 100 משימות",
+      "icon": "🏅",
+      "xp": 500,
+      "category": "tasks",
+      "maxUnlocks": 1,
+      "condition": {
+        "type": "totalTasksCompleted",
+        "value": 100
+      }
+    },
+    {
+      "id": "streak-3",
+      "name": "מתחמם",
+      "description": "השלם משימות 3 ימים ברצף",
+      "icon": "🔥",
+      "xp": 30,
+      "category": "streaks",
+      "maxUnlocks": "infinity",
+      "condition": {
+        "type": "streak",
+        "value": 3
+      }
+    },
+    {
+      "id": "streak-7",
+      "name": "שבוע מושלם",
+      "description": "השלם משימות 7 ימים ברצף",
+      "icon": "🔥🔥",
+      "xp": 100,
+      "category": "streaks",
+      "maxUnlocks": "infinity",
+      "condition": {
+        "type": "streak",
+        "value": 7
+      }
+    },
+    {
+      "id": "streak-30",
+      "name": "חודש של מצוינות",
+      "description": "השלם משימות 30 ימים ברצף",
+      "icon": "🔥🔥🔥",
+      "xp": 500,
+      "category": "streaks",
+      "maxUnlocks": "infinity",
+      "condition": {
+        "type": "streak",
+        "value": 30
+      }
+    },
+    {
+      "id": "study-1h",
+      "name": "שעה ראשונה",
+      "description": "למד שעה אחת",
+      "icon": "⏰",
+      "xp": 20,
+      "category": "study",
+      "maxUnlocks": 1000,
+      "condition": {
+        "type": "totalStudyTime",
+        "value": 60
+      }
+    },
+    {
+      "id": "study-10h",
+      "name": "סטודנט מסור",
+      "description": "למד 10 שעות",
+      "icon": "📚",
+      "xp": 100,
+      "category": "study",
+      "maxUnlocks": 100,
+      "condition": {
+        "type": "totalStudyTime",
+        "value": 600
+      }
+    },
+    {
+      "id": "study-50h",
+      "name": "מלומד",
+      "description": "למד 50 שעות",
+      "icon": "🎓",
+      "xp": 300,
+      "category": "study",
+      "maxUnlocks": 1000,
+      "condition": {
+        "type": "totalStudyTime",
+        "value": 3000
+      }
+    },
+    {
+      "id": "study-100h",
+      "name": "חכם על",
+      "description": "למד 100 שעות",
+      "icon": "🧠",
+      "xp": 10000,
+      "category": "study",
+      "maxUnlocks": 1,
+      "condition": {
+        "type": "totalStudyTime",
+        "value": 6000
+      }
+    },
+    {
+      "id": "perfect-day-1",
+      "name": "יום מושלם",
+      "description": "השלם את כל המשימות של היום",
+      "icon": "✨",
+      "xp": 50,
+      "category": "perfect",
+      "maxUnlocks": "infinity",
+      "condition": {
+        "type": "perfectDays",
+        "value": 1
+      }
+    },
+    {
+      "id": "perfect-day-7",
+      "name": "שבוע מצטיין",
+      "description": "7 ימים מושלמים",
+      "icon": "⭐✨",
+      "xp": 200,
+      "category": "perfect",
+      "maxUnlocks": 1,
+      "condition": {
+        "type": "perfectDays",
+        "value": 7
+      }
+    },
+    {
+      "id": "perfect-day-30",
+      "name": "חודש של שלמות",
+      "description": "30 ימים מושלמים",
+      "icon": "🌟✨",
+      "xp": 1000,
+      "category": "perfect",
+      "maxUnlocks": 1,
+      "condition": {
+        "type": "perfectDays",
+        "value": 30
+      }
+    },
+    {
+      "id": "early-bird",
+      "name": "ציפור מוקדמת",
+      "description": "השלם משימה לפני השעה 8:00",
+      "icon": "🌅",
+      "xp": 25,
+      "category": "special",
+      "maxUnlocks": "infinity",
+      "condition": {
+        "type": "special",
+        "check": "earlyBird"
+      }
+    },
+    {
+      "id": "night-owl",
+      "name": "ינשוף לילה",
+      "description": "השלם משימה אחרי 22:00",
+      "icon": "🦉",
+      "xp": 25,
+      "category": "special",
+      "maxUnlocks": "infinity",
+      "condition": {
+        "type": "special",
+        "check": "nightOwl"
+      }
+    },
+    {
+      "id": "speed-demon",
+      "name": "שד המהירות",
+      "description": "השלם 5 משימות ביום אחד",
+      "icon": "⚡",
+      "xp": 75,
+      "category": "special",
+      "maxUnlocks": "infinity",
+      "condition": {
+        "type": "special",
+        "check": "speedDemon"
+      }
+    },
+    {
+      "id": "color-master",
+      "name": "אמן הצבעים",
+      "description": "השתמש ב-10 צבעים שונים למקצועות",
+      "icon": "🎨",
+      "xp": 50,
+      "category": "creative",
+      "maxUnlocks": 1,
+      "condition": {
+        "type": "special",
+        "check": "colorMaster"
+      }
+    },
+    {
+      "id": "organizer",
+      "name": "מאורגן מקצועי",
+      "description": "צור 5 תגיות שונות",
+      "icon": "🏷️",
+      "xp": 30,
+      "category": "creative",
+      "maxUnlocks": 1,
+      "condition": {
+        "type": "special",
+        "check": "organizer"
+      }
+    },
+    {
+      "id": "comeback",
+      "name": "חזרה מנצחת",
+      "description": "חזור למערכת אחרי הפסקה של שבוע",
+      "icon": "💪",
+      "xp": 100,
+      "category": "special",
+      "maxUnlocks": "infinity",
+      "condition": {
+        "type": "special",
+        "check": "comeback"
+      }
+    },
+    {
+      "id": "zero-hero",
+      "name": "גיבור האפס",
+      "description": "השלם את כל המשימות הממתינות",
+      "icon": "🎊",
+      "xp": 150,
+      "category": "special",
+      "maxUnlocks": "infinity",
+      "condition": {
+        "type": "special",
+        "check": "zeroHero"
+      }
+    }
+  ],
+  "categories": {
+    "tasks": {
+      "name": "משימות",
+      "icon": "🎯"
+    },
+    "streaks": {
+      "name": "רצפים",
+      "icon": "🔥"
+    },
+    "study": {
+      "name": "לימוד",
+      "icon": "📚"
+    },
+    "perfect": {
+      "name": "ימים מושלמים",
+      "icon": "✨"
+    },
+    "special": {
+      "name": "מיוחדים",
+      "icon": "🌟"
+    },
+    "creative": {
+      "name": "יצירתיות",
+      "icon": "🎨"
+    }
+  }
+}

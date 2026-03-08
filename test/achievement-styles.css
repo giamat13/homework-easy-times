@@ -1,0 +1,151 @@
+/* תוספות CSS להישגים עם מידע על התקדמות */
+
+/* Achievement Progress */
+.achievement-progress {
+  font-size: 0.7rem;
+  color: var(--text-secondary);
+  margin-top: 0.25rem;
+  font-weight: 600;
+}
+
+.achievement-card.locked .achievement-progress {
+  color: #6366f1;
+  background: rgba(99, 102, 241, 0.1);
+  padding: 0.25rem 0.5rem;
+  border-radius: 0.25rem;
+  margin-top: 0.5rem;
+}
+
+/* Achievement Times Unlocked */
+.achievement-times {
+  position: absolute;
+  top: 0.5rem;
+  left: 0.5rem;
+  background: #3b82f6;
+  color: white;
+  font-size: 0.75rem;
+  font-weight: bold;
+  padding: 0.25rem 0.5rem;
+  border-radius: 0.375rem;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+}
+
+.achievement-card.unlocked .achievement-times {
+  background: #10b981;
+}
+
+/* Enhanced Achievement Cards */
+.achievement-card {
+  position: relative;
+  transition: all 0.3s ease;
+}
+
+.achievement-card:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 6px 16px rgba(0,0,0,0.15);
+}
+
+.achievement-card.locked {
+  position: relative;
+  overflow: hidden;
+}
+
+.achievement-card.locked::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: linear-gradient(135deg, transparent 0%, rgba(0,0,0,0.05) 100%);
+  pointer-events: none;
+}
+
+.achievement-card.unlocked {
+  background: linear-gradient(135deg, #dcfce7 0%, #dbeafe 100%);
+  border-color: #10b981;
+}
+
+body.dark-mode .achievement-card.unlocked {
+  background: linear-gradient(135deg, #14532d 0%, #1e3a8a 100%);
+}
+
+/* Progress Bar for Achievements */
+.achievement-card.locked .achievement-progress::after {
+  content: '';
+  display: block;
+  width: 100%;
+  height: 4px;
+  background: var(--border-color);
+  border-radius: 2px;
+  margin-top: 0.25rem;
+  overflow: hidden;
+  position: relative;
+}
+
+.achievement-card.locked .achievement-progress::before {
+  content: '';
+  position: absolute;
+  bottom: -4px;
+  left: 0;
+  height: 4px;
+  background: linear-gradient(90deg, #3b82f6, #8b5cf6);
+  border-radius: 2px;
+  width: var(--progress, 0%);
+  transition: width 0.5s ease;
+}
+
+/* Animation for newly unlocked achievements */
+@keyframes achievement-unlock {
+  0% {
+    transform: scale(0.8);
+    opacity: 0;
+  }
+  50% {
+    transform: scale(1.1);
+  }
+  100% {
+    transform: scale(1);
+    opacity: 1;
+  }
+}
+
+.achievement-card.newly-unlocked {
+  animation: achievement-unlock 0.6s ease-out;
+}
+
+/* Tooltip for achievement details */
+.achievement-card {
+  cursor: help;
+}
+
+.achievement-card:hover .achievement-desc {
+  color: var(--text-primary);
+  font-weight: 500;
+}
+
+/* Category Headers */
+.achievement-category h4 {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0.75rem 1rem;
+  background: linear-gradient(135deg, var(--border-color) 0%, transparent 100%);
+  border-radius: 0.5rem;
+}
+
+body.dark-mode .achievement-category h4 {
+  background: linear-gradient(135deg, #334155 0%, transparent 100%);
+}
+
+/* Responsive improvements */
+@media (max-width: 768px) {
+  .achievement-times {
+    font-size: 0.65rem;
+    padding: 0.2rem 0.4rem;
+  }
+  
+  .achievement-progress {
+    font-size: 0.65rem;
+  }
+}
