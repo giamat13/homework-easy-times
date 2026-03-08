@@ -7,17 +7,23 @@ const classroomIntegration = (() => {
   const SCOPES = [
     'https://www.googleapis.com/auth/classroom.coursework.me.readonly',
     'https://www.googleapis.com/auth/classroom.courses.readonly',
-    'https://www.googleapis.com/auth/classroom.student-submissions.me.readonly'
+    'https://www.googleapis.com/auth/classroom.student-submissions.me.readonly',
+    'https://www.googleapis.com/auth/classroom.topics.readonly'
   ].join(' ');
 
-  let tokenClient  = null;
-  let accessToken  = null;
-  let isSyncing    = false;
-  let cachedCourses = []; // קורסים ששלפנו מ-Classroom
+  let tokenClient   = null;
+  let accessToken   = null;
+  let isSyncing     = false;
+  let cachedCourses = [];
+  // cachedTopics: { [courseId]: [ {topicId, name}, ... ] }
+  let cachedTopics  = {};
 
-  // מיפוי: courseId → subjectId באפליקציה (או 'new' = צור חדש לפי שם)
-  // נשמר ב-localStorage תחת 'classroom_course_mapping'
-  let courseMapping = {};
+  // מיפוי: key → subjectId
+  // key יכול להיות:
+  //   "course:{courseId}"         — כל הקורס
+  //   "topic:{courseId}:{topicId}" — topic ספציפי
+  // topic גובר על קורס
+  let mapping = {};
 
   // ==================== אתחול ====================
 
@@ -26,7 +32,6 @@ const classroomIntegration = (() => {
     _injectSvgIcons();
     _injectStyles();
 
-    // שחזר טוקן
     const saved = localStorage.getItem('classroom_token');
     if (saved) {
       try {
@@ -34,19 +39,27 @@ const classroomIntegration = (() => {
         if (p.expires_at && Date.now() < p.expires_at) {
           accessToken = p.token;
           console.log('✅ Classroom: Restored saved token');
-        } else {
-          localStorage.removeItem('classroom_token');
-        }
+        } else { localStorage.removeItem('classroom_token'); }
       } catch(e) { localStorage.removeItem('classroom_token'); }
     }
 
-    // שחזר מיפוי קורסים
-    const savedMapping = localStorage.getItem('classroom_course_mapping');
+    const savedMapping = localStorage.getItem('classroom_mapping');
     if (savedMapping) {
-      try { courseMapping = JSON.parse(savedMapping); } catch(e) {}
+      try {
+        mapping = JSON.parse(savedMapping) || {};
+        // remove topics under any ignored course
+        Object.keys(mapping).forEach(k => {
+          if (k.startsWith('course:') && mapping[k] === 'ignore') {
+            const courseId = k.split(':')[1];
+            const prefix = `topic:${courseId}:`;
+            Object.keys(mapping).forEach(tk => {
+              if (tk.startsWith(prefix)) delete mapping[tk];
+            });
+          }
+        });
+      } catch(e) {}
     }
 
-    // טעינת Google Identity Services
     const script = document.createElement('script');
     script.src = 'https://accounts.google.com/gsi/client';
     script.onload = () => {
@@ -73,18 +86,12 @@ const classroomIntegration = (() => {
         const expires_at = Date.now() + (tokenResponse.expires_in * 1000);
         localStorage.setItem('classroom_token', JSON.stringify({ token: accessToken, expires_at }));
         console.log('✅ Classroom: Got access token');
-
-        // שלוף קורסים ועדכן UI לפני סנכרון
-        await _loadAndRenderCourseMapping();
+        await _loadCoursesAndTopics();
         _updateSettingsUI();
       }
     });
 
-    // אם כבר מחובר — טען קורסים ברקע
-    if (accessToken) {
-      _loadAndRenderCourseMapping();
-    }
-
+    if (accessToken) _loadCoursesAndTopics();
     _updateSettingsUI();
     console.log('✅ Classroom: Token client ready');
   }
@@ -92,89 +99,174 @@ const classroomIntegration = (() => {
   // ==================== חיבור / ניתוק ====================
 
   function connect() {
-    if (!tokenClient) {
-      _showError('Google Classroom לא מאותחל. נסה שוב בעוד רגע.');
-      return;
-    }
+    if (!tokenClient) { _showError('Google Classroom לא מאותחל. נסה שוב בעוד רגע.'); return; }
     tokenClient.requestAccessToken({ prompt: 'select_account' });
   }
 
   function disconnect() {
     if (!confirm('להתנתק מ-Google Classroom?\nהמשימות שיובאו ישארו, אך לא יסונכרנו יותר אוטומטית.')) return;
-
     if (accessToken && window.google && window.google.accounts) {
-      window.google.accounts.oauth2.revoke(accessToken, () => {
-        console.log('✅ Classroom: Token revoked');
-      });
+      window.google.accounts.oauth2.revoke(accessToken, () => console.log('✅ Classroom: Token revoked'));
     }
-    accessToken  = null;
+    accessToken = null;
     cachedCourses = [];
+    cachedTopics = {};
     localStorage.removeItem('classroom_token');
     _updateSettingsUI();
     _showNotification('התנתקת מ-Google Classroom', 'info');
   }
 
-  // ==================== מיפוי קורסים ====================
+  // ==================== טעינת קורסים + topics ====================
 
-  async function _loadAndRenderCourseMapping() {
+  async function _loadCoursesAndTopics() {
     if (!accessToken) return;
+
+    const mapContainer = document.getElementById('classroom-mapping-container');
+    if (mapContainer) mapContainer.innerHTML = `<p style="font-size:0.8rem; color:#6b7280;">טוען קורסים ונושאים...</p>`;
+
     try {
       const res = await _apiCall('https://classroom.googleapis.com/v1/courses?courseStates=ACTIVE');
       cachedCourses = res.courses || [];
-      _renderCourseMappingTable();
+
+      // טען topics לכל קורס
+      for (const course of cachedCourses) {
+        try {
+          // topics may be paginated; gather all pages
+          let allTopics = [];
+          let pageToken = '';
+          do {
+            const url = `https://classroom.googleapis.com/v1/courses/${course.id}/topics?pageSize=100${pageToken ? `&pageToken=${pageToken}` : ''}`;
+            const tRes = await _apiCall(url);
+            allTopics = allTopics.concat(tRes.topics || []);
+            pageToken = tRes.nextPageToken || '';
+          } while (pageToken);
+          cachedTopics[course.id] = allTopics.map(t => ({ topicId: t.topicId, name: t.name }));
+          console.log(`📚 Classroom: Course "${course.name}" has ${cachedTopics[course.id].length} topics`);
+        } catch(e) {
+          console.warn(`⚠️ Classroom: Could not load topics for ${course.name}:`, e.message);
+          cachedTopics[course.id] = [];
+        }
+      }
+
+      _renderMappingTable();
     } catch(e) {
-      console.warn('⚠️ Classroom: Could not load courses for mapping', e);
+      console.warn('⚠️ Classroom: Could not load courses/topics', e);
+      if (mapContainer) mapContainer.innerHTML = `<p style="font-size:0.8rem; color:#dc2626;">שגיאה בטעינת קורסים. נסה להתנתק ולהתחבר מחדש.</p>`;
     }
   }
 
+  // ==================== שמירת מיפוי ====================
+
   function _saveMapping() {
-    localStorage.setItem('classroom_course_mapping', JSON.stringify(courseMapping));
+    localStorage.setItem('classroom_mapping', JSON.stringify(mapping));
   }
 
-  function _renderCourseMappingTable() {
+  function setCourseMapping(courseId, subjectId) {
+    // if ignoring a course, clear topic mappings underneath to avoid confusion
+    if (subjectId === 'ignore') {
+      const prefix = `topic:${courseId}:`;
+      Object.keys(mapping).forEach(k => {
+        if (k.startsWith(prefix)) delete mapping[k];
+      });
+    }
+    mapping['course:' + courseId] = subjectId;
+    _saveMapping();
+  }
+
+  function setTopicMapping(courseId, topicId, subjectId) {
+    const key = `topic:${courseId}:${topicId}`;
+    if (subjectId === 'inherit') {
+      delete mapping[key]; // חזור לברירת מחדל של הקורס
+    } else {
+      mapping[key] = subjectId;
+    }
+    _saveMapping();
+  }
+
+  // ==================== טבלת מיפוי ====================
+
+  function _renderMappingTable() {
     const container = document.getElementById('classroom-mapping-container');
     if (!container || !cachedCourses.length) return;
 
-    const rows = cachedCourses.map(course => {
-      const mapped = courseMapping[course.id] || 'new';
-
-      const options = subjects.map(s =>
-        `<option value="${s.id}" ${mapped === s.id ? 'selected' : ''}>${s.name}</option>`
+    const subjectOptions = (selected, includeInherit = false, inheritLabel = '', includeIgnore = false) => {
+      let ignoreOpt = '';
+      if (includeIgnore) {
+        ignoreOpt = `<option value="ignore" ${selected === 'ignore' ? 'selected' : ''}>🚫 התעלם מכיתה זו</option>`;
+      }
+      const inherit = includeInherit
+        ? `<option value="inherit" ${selected === 'inherit' || !selected ? 'selected' : ''}>${inheritLabel}</option>`
+        : `<option value="new" ${selected === 'new' || !selected ? 'selected' : ''}>➕ צור מקצוע חדש</option>`;
+      return ignoreOpt + inherit + subjects.map(s =>
+        `<option value="${s.id}" ${selected === s.id ? 'selected' : ''}>${s.name}</option>`
       ).join('');
+    };
 
-      return `
-        <tr>
-          <td style="padding:0.4rem 0.5rem; font-size:0.85rem;">${course.name}</td>
+    const rows = cachedCourses.map(course => {
+      const courseKey    = 'course:' + course.id;
+      const courseMapped = mapping[courseKey] || 'new';
+      const topics       = cachedTopics[course.id] || [];
+
+      // שורת קורס
+      let html = `
+        <tr style="background:rgba(59,130,246,0.05);">
+          <td style="padding:0.4rem 0.5rem; font-size:0.85rem; font-weight:600;">
+            📚 ${course.name}
+          </td>
           <td style="padding:0.4rem 0.5rem;">
-            <select
-              class="input"
-              style="padding:0.25rem 0.5rem; font-size:0.8rem; width:100%;"
-              onchange="classroomIntegration.setCourseMapping('${course.id}', this.value)"
-            >
-              <option value="new" ${mapped === 'new' ? 'selected' : ''}>➕ צור מקצוע חדש</option>
-              ${options}
+            <select class="input" style="padding:0.25rem 0.5rem; font-size:0.8rem; width:100%;"
+              onchange="classroomIntegration.setCourseMapping('${course.id}', this.value)">
+              ${subjectOptions(courseMapped, false, '', true)}
             </select>
           </td>
         </tr>`;
+
+      // שורות topics – בדרך כלל, אלא אם משתמש בחר להתעלם מהקורס
+      if (courseMapped !== 'ignore') {
+        topics.forEach(t => {
+          const topicKey    = `topic:${course.id}:${t.topicId}`;
+          const topicMapped = mapping[topicKey] || 'inherit';
+          const inheritName = subjects.find(s => s.id === courseMapped)?.name || 'כמו הקורס';
+
+          html += `
+            <tr>
+              <td style="padding:0.3rem 0.5rem 0.3rem 1.5rem; font-size:0.8rem; color:#6b7280;">
+                ↳ ${t.name}
+              </td>
+              <td style="padding:0.3rem 0.5rem;">
+                <select class="input" style="padding:0.2rem 0.4rem; font-size:0.78rem; width:100%;"
+                  onchange="classroomIntegration.setTopicMapping('${course.id}', '${t.topicId}', this.value)">
+                  ${subjectOptions(topicMapped, true, `↑ כמו הקורס (${inheritName})`, true)}
+                </select>
+              </td>
+            </tr>`;
+        });
+      } else {
+        // show a small note row indicating topics are ignored
+        html += `
+          <tr>
+            <td colspan="2" style="padding:0.3rem 0.5rem; font-size:0.75rem; color:#9ca3af;">
+              נושאים לא יוצגו כאשר הכיתה מואנשת.
+            </td>
+          </tr>`;
+      }
+
+      return html;
     }).join('');
 
     container.innerHTML = `
-      <p style="font-size:0.8rem; color:#6b7280; margin-bottom:0.5rem;">שייך כל קורס ב-Classroom למקצוע באפליקציה:</p>
+      <p style="font-size:0.8rem; color:#6b7280; margin-bottom:0.5rem;">
+        שייך קורסים ו/או נושאים למקצועות. נושא גובר על הקורס.
+      </p>
       <table style="width:100%; border-collapse:collapse;">
         <thead>
           <tr>
-            <th style="text-align:right; font-size:0.8rem; color:#6b7280; padding:0.25rem 0.5rem; border-bottom:1px solid #e5e7eb;">קורס ב-Classroom</th>
-            <th style="text-align:right; font-size:0.8rem; color:#6b7280; padding:0.25rem 0.5rem; border-bottom:1px solid #e5e7eb;">מקצוע באפליקציה</th>
+            <th style="text-align:right; font-size:0.8rem; color:#6b7280; padding:0.25rem 0.5rem; border-bottom:1px solid #e5e7eb;">קורס / נושא</th>
+            <th style="text-align:right; font-size:0.8rem; color:#6b7280; padding:0.25rem 0.5rem; border-bottom:1px solid #e5e7eb;">מקצוע</th>
           </tr>
         </thead>
         <tbody>${rows}</tbody>
       </table>`;
-  }
-
-  function setCourseMapping(courseId, subjectId) {
-    courseMapping[courseId] = subjectId;
-    _saveMapping();
-    console.log(`🔗 Classroom: Mapped course ${courseId} → subject ${subjectId}`);
   }
 
   // ==================== סנכרון ====================
@@ -196,15 +288,29 @@ const classroomIntegration = (() => {
     console.log('🔄 Classroom: Starting sync...');
 
     try {
-      const courses = await _fetchCourses();
-      if (!courses.length) {
+      const courses = await _apiCall('https://classroom.googleapis.com/v1/courses?courseStates=ACTIVE');
+      cachedCourses = courses.courses || [];
+      if (!cachedCourses.length) {
         _showNotification('לא נמצאו קורסים ב-Google Classroom', 'info');
         return true;
       }
 
       let totalImported = 0, totalSkipped = 0, totalUpdated = 0;
+      for (const course of cachedCourses) {
+        // עדכן topics תוך כדי סנכרון
+        try {
+          // paginate topics during sync as well
+          let allTopics = [];
+          let pageToken = '';
+          do {
+            const url = `https://classroom.googleapis.com/v1/courses/${course.id}/topics?pageSize=100${pageToken ? `&pageToken=${pageToken}` : ''}`;
+            const tRes = await _apiCall(url);
+            allTopics = allTopics.concat(tRes.topics || []);
+            pageToken = tRes.nextPageToken || '';
+          } while (pageToken);
+          cachedTopics[course.id] = allTopics.map(t => ({ topicId: t.topicId, name: t.name }));
+        } catch(e) { cachedTopics[course.id] = cachedTopics[course.id] || []; }
 
-      for (const course of courses) {
         const r = await _syncCourseWork(course);
         totalImported += r.imported;
         totalSkipped  += r.skipped;
@@ -226,7 +332,7 @@ const classroomIntegration = (() => {
       );
       return true;
 
-    } catch (err) {
+    } catch(err) {
       console.error('❌ Classroom: Sync failed:', err);
       if (err.status === 401) {
         accessToken = null;
@@ -242,14 +348,15 @@ const classroomIntegration = (() => {
     }
   }
 
-  async function _fetchCourses() {
-    const res = await _apiCall('https://classroom.googleapis.com/v1/courses?courseStates=ACTIVE');
-    cachedCourses = res.courses || [];
-    return cachedCourses;
-  }
-
   async function _syncCourseWork(course) {
     let imported = 0, skipped = 0, updated = 0;
+
+    // if the entire course is ignored, bail out early
+    const courseKey = 'course:' + course.id;
+    if (mapping[courseKey] === 'ignore') {
+      console.log(`🔕 Classroom: skipping ignored course ${course.name}`);
+      return { imported: 0, skipped: 0, updated: 0 };
+    }
 
     try {
       const cwRes = await _apiCall(
@@ -257,39 +364,40 @@ const classroomIntegration = (() => {
       );
       const courseWorks = cwRes.courseWork || [];
 
+      // שלוף הגשות לכל מטלה
       let submissions = {};
       for (const cw of courseWorks) {
         try {
           const subRes = await _apiCall(
-            `https://classroom.googleapis.com/v1/courses/${course.id}/courseWork/${cw.id}/studentSubmissions?states=CREATED,RECLAIMED_BY_STUDENT,TURNED_IN`
+            `https://classroom.googleapis.com/v1/courses/${course.id}/courseWork/${cw.id}/studentSubmissions`
           );
           (subRes.studentSubmissions || []).forEach(sub => {
             submissions[sub.courseWorkId] = sub.state;
           });
-        } catch(e) {
-          // התעלם משגיאות הגשה לכל מטלה בנפרד
-        }
+        } catch(e) {}
       }
 
       for (const cw of courseWorks) {
-        // מניעת כפילויות לפי classroomId
         const existingIdx = homework.findIndex(h => h.classroomId === cw.id);
 
         if (existingIdx !== -1) {
-          const existing = homework[existingIdx];
+          const existing      = homework[existingIdx];
           const isNowCompleted = submissions[cw.id] === 'TURNED_IN';
           if (!existing._manuallyEdited && existing.completed !== isNowCompleted) {
             homework[existingIdx].completed   = isNowCompleted;
             homework[existingIdx].completedAt = isNowCompleted ? new Date().toISOString() : null;
             updated++;
-          } else {
-            skipped++;
-          }
+          } else { skipped++; }
           continue;
         }
 
-        const hw = _courseWorkToHomework(cw, course, submissions[cw.id]);
-        if (hw) { homework.push(hw); imported++; }
+        const hw = await _courseWorkToHomework(cw, course, submissions[cw.id]);
+        if (hw) {
+          homework.push(hw);
+          imported++;
+        } else {
+          skipped++;
+        }
       }
     } catch(err) {
       console.warn(`⚠️ Classroom: Error syncing course ${course.name}:`, err);
@@ -298,35 +406,123 @@ const classroomIntegration = (() => {
     return { imported, skipped, updated };
   }
 
-  function _courseWorkToHomework(cw, course, submissionState) {
-    // בדוק אם יש מיפוי ידני לקורס זה
-    const mappedSubjectId = courseMapping[course.id];
-    let subject = null;
-
-    if (mappedSubjectId && mappedSubjectId !== 'new') {
-      // השתמש במקצוע שמשתמש בחר
-      subject = subjects.find(s => s.id === mappedSubjectId);
-    }
-
-    if (!subject) {
-      // נסה לפי שם
-      subject = subjects.find(s =>
-        s.name.trim().toLowerCase() === course.name.trim().toLowerCase()
+  // course: Classroom course resource
+  // topicId: id from coursework
+  // topicName: optional name guess (e.g. from homework data or fetched single-topic request)
+  function _resolveSubject(course, topicId, topicName) {
+    console.log('🔍 resolveSubject', { courseId: course.id, topicId, topicName });
+    // 0. אם קיבלנו שם גלוי, נסה אותו לפני הכול
+    if (topicName) {
+      const byTopicName = subjects.find(s =>
+        s.name.trim().toLowerCase() === topicName.trim().toLowerCase()
       );
+      console.log('🔤 resolveSubject check name fallback', topicName, '->', byTopicName && byTopicName.id);
+      if (byTopicName) return byTopicName;
     }
 
-    if (!subject) {
-      // צור מקצוע חדש
-      const palette = ['#3b82f6','#ef4444','#10b981','#f59e0b','#8b5cf6','#ec4899','#06b6d4'];
-      const used  = subjects.map(s => s.color);
-      const color = palette.find(c => !used.includes(c)) || palette[subjects.length % palette.length];
-      subject = { id: 'classroom_' + course.id, name: course.name, color, fromClassroom: true };
-      subjects.push(subject);
-      // שמור את המיפוי האוטומטי
-      courseMapping[course.id] = subject.id;
-      _saveMapping();
-      console.log(`➕ Classroom: Created new subject: ${course.name}`);
+    // 1. נסה topic ספציפי במיפוי
+    if (topicId) {
+      const topicKey = `topic:${course.id}:${topicId}`;
+      const topicMapped = mapping[topicKey];
+      if (topicMapped) {
+        if (topicMapped === 'ignore') return null;
+        if (topicMapped !== 'inherit') {
+          const s = subjects.find(s => s.id === topicMapped);
+          if (s) return s;
+        }
+      }
     }
+
+    // 2. נסה מיפוי קורס
+    const courseKey    = 'course:' + course.id;
+    const courseMapped = mapping[courseKey];
+    if (courseMapped) {
+      if (courseMapped === 'ignore') return null;
+      if (courseMapped !== 'new') {
+        const s = subjects.find(s => s.id === courseMapped);
+        if (s) return s;
+      }
+    }
+
+    // 3. נסה לפי שם קורס
+    const byName = subjects.find(s =>
+      s.name.trim().toLowerCase() === course.name.trim().toLowerCase()
+    );
+    if (byName) return byName;
+
+    // 4. נסה לפי שם topic מקוטלג
+    if (topicId) {
+      const topicData = (cachedTopics[course.id] || []).find(t => t.topicId === topicId);
+      if (topicData) {
+        const byTopicName2 = subjects.find(s =>
+          s.name.trim().toLowerCase() === topicData.name.trim().toLowerCase()
+        );
+        if (byTopicName2) return byTopicName2;
+      }
+    }
+
+    // 5. צור חדש — לפי שם topic אם יש, אחרת לפי שם קורס
+    const topicData = topicId && (cachedTopics[course.id] || []).find(t => t.topicId === topicId);
+    const newName   = topicData ? topicData.name : (topicName || course.name);
+    const newId     = topicData ? `classroom_topic_${topicId}` : `classroom_${course.id}`;
+
+    const palette = ['#3b82f6','#ef4444','#10b981','#f59e0b','#8b5cf6','#ec4899','#06b6d4'];
+    const used    = subjects.map(s => s.color);
+    const color   = palette.find(c => !used.includes(c)) || palette[subjects.length % palette.length];
+
+    const newSubject = { id: newId, name: newName, color, fromClassroom: true };
+    subjects.push(newSubject);
+
+    // שמור מיפוי אוטומטי
+    if (topicData) {
+      mapping[`topic:${course.id}:${topicId}`] = newId;
+    } else {
+      mapping['course:' + course.id] = newId;
+    }
+    _saveMapping();
+    console.log(`➕ Classroom: Created new subject: ${newName}`);
+    return newSubject;
+  }
+
+  async function _courseWorkToHomework(cw, course, submissionState) {
+    console.log('🔄 Classroom: converting coursework', cw.id, 'course', course.id, 'topicId', cw.topicId, 'topic', cw.topic);
+    // pull any topic name already included in the coursework payload
+    const cwTopicName = cw.topic && cw.topic.name ? cw.topic.name : null;
+    if (cwTopicName) console.log('🔤 Classroom: coursework provided topic name', cwTopicName);
+
+    // initial resolution; provide cwTopicName if available
+    let subject = _resolveSubject(course, cw.topicId, cwTopicName);
+    console.log('🧠 Classroom: subject after initial resolve', subject && subject.id);
+
+    // if we couldn't resolve and there is a topicId, try fetching the single topic entry
+    if (!subject && cw.topicId) {
+      try {
+        const tRes = await _apiCall(
+          `https://classroom.googleapis.com/v1/courses/${course.id}/topics/${cw.topicId}`
+        );
+        if (tRes && tRes.name) {
+          // cache result
+          cachedTopics[course.id] = cachedTopics[course.id] || [];
+          if (!cachedTopics[course.id].some(t => t.topicId === cw.topicId)) {
+            cachedTopics[course.id].push({ topicId: cw.topicId, name: tRes.name });
+          }
+          // retry resolution now that we know the name
+          subject = _resolveSubject(course, cw.topicId, tRes.name);
+        }
+      } catch(e) {
+        // ignore permission errors or other failures
+      }
+    }
+
+    // fallback: match subject name to topicId string itself
+    if (!subject && cw.topicId) {
+      const byIdName = subjects.find(s =>
+        s.name.trim().toLowerCase() === cw.topicId.trim().toLowerCase()
+      );
+      if (byIdName) subject = byIdName;
+    }
+
+    if (!subject) return null; // nothing to do (either ignored or unresolvable)
 
     let dueDate = '';
     if (cw.dueDate) {
@@ -340,6 +536,7 @@ const classroomIntegration = (() => {
       id: Date.now() + '_' + Math.random().toString(36).substr(2, 9),
       classroomId: cw.id,
       courseId: course.id,
+      topicId: cw.topicId || null,
       subject: subject.id,
       title: cw.title || 'מטלה ללא שם',
       description: cw.description || '',
@@ -368,7 +565,7 @@ const classroomIntegration = (() => {
     return res.json();
   }
 
-  // ==================== UI בהגדרות ====================
+  // ==================== UI ====================
 
   function _updateSettingsUI() {
     const container = document.getElementById('classroom-settings-container');
@@ -389,13 +586,14 @@ const classroomIntegration = (() => {
             התנתק
           </button>
         </div>
-        <div id="classroom-mapping-container" style="margin-top:0.5rem;"></div>`;
+        <div id="classroom-mapping-container"></div>`;
 
-      // טען טבלת מיפוי
       if (cachedCourses.length) {
-        _renderCourseMappingTable();
+        _renderMappingTable();
       } else {
-        _loadAndRenderCourseMapping();
+        document.getElementById('classroom-mapping-container').innerHTML =
+          `<p style="font-size:0.8rem; color:#6b7280;">טוען קורסים...</p>`;
+        _loadCoursesAndTopics();
       }
     } else {
       container.innerHTML = `
@@ -443,8 +641,8 @@ const classroomIntegration = (() => {
       .dark-mode .classroom-status.connected { color:#4ade80; }
       .dark-mode .classroom-status.connected .classroom-status-dot { background:#4ade80; }
       #classroom-mapping-container table { font-size:0.82rem; }
-      #classroom-mapping-container tr:hover td { background: rgba(0,0,0,0.02); }
-      .dark-mode #classroom-mapping-container tr:hover td { background: rgba(255,255,255,0.04); }
+      #classroom-mapping-container tbody tr:hover td { background:rgba(0,0,0,0.02); }
+      .dark-mode #classroom-mapping-container tbody tr:hover td { background:rgba(255,255,255,0.04); }
     `;
     document.head.appendChild(s);
   }
@@ -456,11 +654,10 @@ const classroomIntegration = (() => {
     connect,
     disconnect,
     setCourseMapping,
+    setTopicMapping,
     refreshSettingsUI: () => {
       _updateSettingsUI();
-      if (accessToken && cachedCourses.length === 0) {
-        _loadAndRenderCourseMapping();
-      }
+      if (accessToken && !cachedCourses.length) _loadCoursesAndTopics();
     },
     get isConnected() { return !!accessToken; }
   };
