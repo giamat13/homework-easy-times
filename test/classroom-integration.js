@@ -265,12 +265,12 @@ const classroomIntegration = (() => {
 
     container.innerHTML = `
       <p style="font-size:0.8rem; color:#6b7280; margin-bottom:0.5rem;">
-        שייך קורסים ו/או נושאים למקצועות. נושא גובר על הקורס.
+        שייך קורסים למקצועות.
       </p>
       <table style="width:100%; border-collapse:collapse;">
         <thead>
           <tr>
-            <th style="text-align:right; font-size:0.8rem; color:#6b7280; padding:0.25rem 0.5rem; border-bottom:1px solid #e5e7eb;">קורס / נושא</th>
+            <th style="text-align:right; font-size:0.8rem; color:#6b7280; padding:0.25rem 0.5rem; border-bottom:1px solid #e5e7eb;">קורס</th>
             <th style="text-align:right; font-size:0.8rem; color:#6b7280; padding:0.25rem 0.5rem; border-bottom:1px solid #e5e7eb;">מקצוע</th>
           </tr>
         </thead>
