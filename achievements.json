@@ -1,303 +1,166 @@
 {
   "achievements": [
     {
-      "id": "first-task",
+      "id": "first_task",
       "name": "צעד ראשון",
-      "description": "השלם את המשימה הראשונה שלך",
+      "description": "השלמת המשימה הראשונה שלך",
       "icon": "🎯",
-      "xp": 10,
-      "category": "tasks",
-      "maxUnlocks": 1,
-      "condition": {
-        "type": "totalTasksCompleted",
-        "value": 1
-      }
+      "points": 10,
+      "category": "completion",
+      "target": 1,
+      "targetLabel": "משימות"
     },
     {
-      "id": "task-master-10",
+      "id": "task_master_10",
       "name": "מתחיל מבטיח",
       "description": "השלם 10 משימות",
       "icon": "⭐",
-      "xp": 50,
-      "category": "tasks",
-      "maxUnlocks": 1,
-      "condition": {
-        "type": "totalTasksCompleted",
-        "value": 10
-      }
+      "points": 50,
+      "category": "completion",
+      "target": 10,
+      "targetLabel": "משימות"
     },
     {
-      "id": "task-master-50",
-      "name": "מומחה משימות",
+      "id": "task_master_50",
+      "name": "גיבור על",
       "description": "השלם 50 משימות",
-      "icon": "🌟",
-      "xp": 200,
-      "category": "tasks",
-      "maxUnlocks": 1,
-      "condition": {
-        "type": "totalTasksCompleted",
-        "value": 50
-      }
+      "icon": "🦸",
+      "points": 200,
+      "category": "completion",
+      "target": 50,
+      "targetLabel": "משימות"
     },
     {
-      "id": "task-master-100",
-      "name": "אלוף המשימות",
+      "id": "task_master_100",
+      "name": "אגדה",
       "description": "השלם 100 משימות",
-      "icon": "🏅",
-      "xp": 500,
-      "category": "tasks",
-      "maxUnlocks": 1,
-      "condition": {
-        "type": "totalTasksCompleted",
-        "value": 100
-      }
+      "icon": "👑",
+      "points": 500,
+      "category": "completion",
+      "target": 100,
+      "targetLabel": "משימות"
     },
     {
-      "id": "streak-3",
+      "id": "streak_3",
       "name": "מתחמם",
-      "description": "השלם משימות 3 ימים ברצף",
+      "description": "3 ימים רצופים של השלמת משימות",
       "icon": "🔥",
-      "xp": 30,
-      "category": "streaks",
-      "maxUnlocks": "infinity",
-      "condition": {
-        "type": "streak",
-        "value": 3
-      }
+      "points": 30,
+      "category": "streak",
+      "target": 3,
+      "targetLabel": "ימים"
     },
     {
-      "id": "streak-7",
+      "id": "streak_7",
       "name": "שבוע מושלם",
-      "description": "השלם משימות 7 ימים ברצף",
-      "icon": "🔥🔥",
-      "xp": 100,
-      "category": "streaks",
-      "maxUnlocks": "infinity",
-      "condition": {
-        "type": "streak",
-        "value": 7
-      }
+      "description": "7 ימים רצופים של השלמת משימות",
+      "icon": "💪",
+      "points": 100,
+      "category": "streak",
+      "target": 7,
+      "targetLabel": "ימים"
     },
     {
-      "id": "streak-30",
-      "name": "חודש של מצוינות",
-      "description": "השלם משימות 30 ימים ברצף",
-      "icon": "🔥🔥🔥",
-      "xp": 500,
-      "category": "streaks",
-      "maxUnlocks": "infinity",
-      "condition": {
-        "type": "streak",
-        "value": 30
-      }
+      "id": "streak_30",
+      "name": "מכונת הישגים",
+      "description": "30 ימים רצופים של השלמת משימות",
+      "icon": "🏆",
+      "points": 500,
+      "category": "streak",
+      "target": 30,
+      "targetLabel": "ימים"
     },
     {
-      "id": "study-1h",
-      "name": "שעה ראשונה",
-      "description": "למד שעה אחת",
-      "icon": "⏰",
-      "xp": 20,
-      "category": "study",
-      "maxUnlocks": 1000,
-      "condition": {
-        "type": "totalStudyTime",
-        "value": 60
-      }
+      "id": "no_overdue",
+      "name": "לא נופלים מאחור",
+      "description": "אין לך משימות באיחור",
+      "icon": "✅",
+      "points": 20,
+      "category": "urgency",
+      "target": 0,
+      "targetLabel": "משימות באיחור"
     },
     {
-      "id": "study-10h",
-      "name": "סטודנט מסור",
-      "description": "למד 10 שעות",
-      "icon": "📚",
-      "xp": 100,
-      "category": "study",
-      "maxUnlocks": 100,
-      "condition": {
-        "type": "totalStudyTime",
-        "value": 600
-      }
-    },
-    {
-      "id": "study-50h",
-      "name": "מלומד",
-      "description": "למד 50 שעות",
-      "icon": "🎓",
-      "xp": 300,
-      "category": "study",
-      "maxUnlocks": 1000,
-      "condition": {
-        "type": "totalStudyTime",
-        "value": 3000
-      }
-    },
-    {
-      "id": "study-100h",
-      "name": "חכם על",
-      "description": "למד 100 שעות",
-      "icon": "🧠",
-      "xp": 10000,
-      "category": "study",
-      "maxUnlocks": 1,
-      "condition": {
-        "type": "totalStudyTime",
-        "value": 6000
-      }
-    },
-    {
-      "id": "perfect-day-1",
-      "name": "יום מושלם",
-      "description": "השלם את כל המשימות של היום",
-      "icon": "✨",
-      "xp": 50,
-      "category": "perfect",
-      "maxUnlocks": "infinity",
-      "condition": {
-        "type": "perfectDays",
-        "value": 1
-      }
-    },
-    {
-      "id": "perfect-day-7",
-      "name": "שבוע מצטיין",
-      "description": "7 ימים מושלמים",
-      "icon": "⭐✨",
-      "xp": 200,
-      "category": "perfect",
-      "maxUnlocks": 1,
-      "condition": {
-        "type": "perfectDays",
-        "value": 7
-      }
-    },
-    {
-      "id": "perfect-day-30",
-      "name": "חודש של שלמות",
-      "description": "30 ימים מושלמים",
-      "icon": "🌟✨",
-      "xp": 1000,
-      "category": "perfect",
-      "maxUnlocks": 1,
-      "condition": {
-        "type": "perfectDays",
-        "value": 30
-      }
-    },
-    {
-      "id": "early-bird",
+      "id": "early_bird",
       "name": "ציפור מוקדמת",
-      "description": "השלם משימה לפני השעה 8:00",
-      "icon": "🌅",
-      "xp": 25,
-      "category": "special",
-      "maxUnlocks": "infinity",
-      "condition": {
-        "type": "special",
-        "check": "earlyBird"
-      }
+      "description": "השלם 10 משימות לפני המועד",
+      "icon": "🐦",
+      "points": 75,
+      "category": "urgency",
+      "target": 10,
+      "targetLabel": "השלמות מוקדמות"
     },
     {
-      "id": "night-owl",
+      "id": "multi_subject",
+      "name": "רב תחומי",
+      "description": "משימות ב-3 מקצועות שונים או יותר",
+      "icon": "📚",
+      "points": 40,
+      "category": "subjects",
+      "target": 3,
+      "targetLabel": "מקצועות"
+    },
+    {
+      "id": "subject_master",
+      "name": "אמן מקצוע",
+      "description": "20 משימות באותו מקצוע",
+      "icon": "🎓",
+      "points": 100,
+      "category": "subjects",
+      "target": 20,
+      "targetLabel": "משימות"
+    },
+    {
+      "id": "perfectionist",
+      "name": "פרפקציוניסט",
+      "description": "100% השלמה - כל המשימות הושלמו",
+      "icon": "💯",
+      "points": 150,
+      "category": "special",
+      "target": 100,
+      "targetLabel": "%"
+    },
+    {
+      "id": "organized",
+      "name": "מאורגן",
+      "description": "שימוש ב-5 תגיות שונות",
+      "icon": "🏷️",
+      "points": 50,
+      "category": "special",
+      "target": 5,
+      "targetLabel": "תגיות"
+    },
+    {
+      "id": "night_owl",
       "name": "ינשוף לילה",
-      "description": "השלם משימה אחרי 22:00",
+      "description": "השלמת משימה בשעה 22:00-06:00",
       "icon": "🦉",
-      "xp": 25,
+      "points": 25,
       "category": "special",
-      "maxUnlocks": "infinity",
-      "condition": {
-        "type": "special",
-        "check": "nightOwl"
-      }
+      "target": 1,
+      "targetLabel": "השלמות לילה"
     },
     {
-      "id": "speed-demon",
+      "id": "speed_demon",
       "name": "שד המהירות",
       "description": "השלם 5 משימות ביום אחד",
       "icon": "⚡",
-      "xp": 75,
+      "points": 75,
       "category": "special",
-      "maxUnlocks": "infinity",
-      "condition": {
-        "type": "special",
-        "check": "speedDemon"
-      }
-    },
-    {
-      "id": "color-master",
-      "name": "אמן הצבעים",
-      "description": "השתמש ב-10 צבעים שונים למקצועות",
-      "icon": "🎨",
-      "xp": 50,
-      "category": "creative",
-      "maxUnlocks": 1,
-      "condition": {
-        "type": "special",
-        "check": "colorMaster"
-      }
-    },
-    {
-      "id": "organizer",
-      "name": "מאורגן מקצועי",
-      "description": "צור 5 תגיות שונות",
-      "icon": "🏷️",
-      "xp": 30,
-      "category": "creative",
-      "maxUnlocks": 1,
-      "condition": {
-        "type": "special",
-        "check": "organizer"
-      }
-    },
-    {
-      "id": "comeback",
-      "name": "חזרה מנצחת",
-      "description": "חזור למערכת אחרי הפסקה של שבוע",
-      "icon": "💪",
-      "xp": 100,
-      "category": "special",
-      "maxUnlocks": "infinity",
-      "condition": {
-        "type": "special",
-        "check": "comeback"
-      }
-    },
-    {
-      "id": "zero-hero",
-      "name": "גיבור האפס",
-      "description": "השלם את כל המשימות הממתינות",
-      "icon": "🎊",
-      "xp": 150,
-      "category": "special",
-      "maxUnlocks": "infinity",
-      "condition": {
-        "type": "special",
-        "check": "zeroHero"
-      }
+      "target": 5,
+      "targetLabel": "משימות ביום"
     }
   ],
-  "categories": {
-    "tasks": {
-      "name": "משימות",
-      "icon": "🎯"
-    },
-    "streaks": {
-      "name": "רצפים",
-      "icon": "🔥"
-    },
-    "study": {
-      "name": "לימוד",
-      "icon": "📚"
-    },
-    "perfect": {
-      "name": "ימים מושלמים",
-      "icon": "✨"
-    },
-    "special": {
-      "name": "מיוחדים",
-      "icon": "🌟"
-    },
-    "creative": {
-      "name": "יצירתיות",
-      "icon": "🎨"
-    }
-  }
+  "levels": [
+    { "level": 1, "name": "מתחיל", "minPoints": 0, "icon": "🌱" },
+    { "level": 2, "name": "תלמיד", "minPoints": 100, "icon": "📖" },
+    { "level": 3, "name": "סטודנט", "minPoints": 300, "icon": "🎓" },
+    { "level": 4, "name": "חכם", "minPoints": 600, "icon": "🧠" },
+    { "level": 5, "name": "מומחה", "minPoints": 1000, "icon": "⭐" },
+    { "level": 6, "name": "מאסטר", "minPoints": 1500, "icon": "🏆" },
+    { "level": 7, "name": "גאון", "minPoints": 2500, "icon": "💎" },
+    { "level": 8, "name": "אגדה", "minPoints": 4000, "icon": "👑" },
+    { "level": 9, "name": "מיתוס", "minPoints": 6000, "icon": "🌟" },
+    { "level": 10, "name": "אלמוות", "minPoints": 10000, "icon": "✨" }
+  ]
 }

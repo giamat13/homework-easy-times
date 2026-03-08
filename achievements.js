@@ -1,152 +1,19 @@
 // Achievements & Gamification System - מערכת הישגים וגיימיפיקציה
 class AchievementsManager {
-  constructor() {
-    this.achievements = [
-      // 🎯 הישגי השלמה
-      {
-        id: 'first_task',
-        name: 'צעד ראשון',
-        description: 'השלמת המשימה הראשונה שלך',
-        icon: '🎯',
-        points: 10,
-        category: 'completion',
-        condition: (stats) => stats.completed >= 1
-      },
-      {
-        id: 'task_master_10',
-        name: 'מאסטר משימות',
-        description: 'השלמת 10 משימות',
-        icon: '⭐',
-        points: 50,
-        category: 'completion',
-        condition: (stats) => stats.completed >= 10
-      },
-      {
-        id: 'task_master_50',
-        name: 'גיבור על',
-        description: 'השלמת 50 משימות',
-        icon: '🦸',
-        points: 200,
-        category: 'completion',
-        condition: (stats) => stats.completed >= 50
-      },
-      {
-        id: 'task_master_100',
-        name: 'אגדה',
-        description: 'השלמת 100 משימות',
-        icon: '👑',
-        points: 500,
-        category: 'completion',
-        condition: (stats) => stats.completed >= 100
-      },
-
-      // 🔥 הישגי רצף (Streak)
-      {
-        id: 'streak_3',
-        name: 'מתחמם',
-        description: '3 ימים רצופים של השלמת משימות',
-        icon: '🔥',
-        points: 30,
-        category: 'streak',
-        condition: (stats) => stats.currentStreak >= 3
-      },
-      {
-        id: 'streak_7',
-        name: 'שבוע מושלם',
-        description: '7 ימים רצופים של השלמת משימות',
-        icon: '💪',
-        points: 100,
-        category: 'streak',
-        condition: (stats) => stats.currentStreak >= 7
-      },
-      {
-        id: 'streak_30',
-        name: 'מכונת הישגים',
-        description: '30 ימים רצופים של השלמת משימות',
-        icon: '🏆',
-        points: 500,
-        category: 'streak',
-        condition: (stats) => stats.currentStreak >= 30
-      },
-
-      // ⏰ הישגי דחיפות
-      {
-        id: 'no_overdue',
-        name: 'לא נופלים מאחור',
-        description: 'אין לך משימות באיחור',
-        icon: '✅',
-        points: 20,
-        category: 'urgency',
-        condition: (stats) => stats.overdue === 0 && stats.total > 0
-      },
-      {
-        id: 'early_bird',
-        name: 'ציפור מוקדמת',
-        description: 'השלמת 10 משימות לפני המועד',
-        icon: '🐦',
-        points: 75,
-        category: 'urgency',
-        condition: (stats) => stats.earlyCompletions >= 10
-      },
-
-      // 📚 הישגי מקצועות
-      {
-        id: 'multi_subject',
-        name: 'רב תחומי',
-        description: 'משימות ב-3 מקצועות שונים או יותר',
-        icon: '📚',
-        points: 40,
-        category: 'subjects',
-        condition: (stats) => stats.subjectsCount >= 3
-      },
-      {
-        id: 'subject_master',
-        name: 'אמן מקצוע',
-        description: '20 משימות באותו מקצוע',
-        icon: '🎓',
-        points: 100,
-        category: 'subjects',
-        condition: (stats) => stats.maxSubjectTasks >= 20
-      },
-
-      // 🌟 הישגי מיוחדים
-      {
-        id: 'perfectionist',
-        name: 'פרפקציוניסט',
-        description: '100% השלמה - כל המשימות הושלמו',
-        icon: '💯',
-        points: 150,
-        category: 'special',
-        condition: (stats) => stats.completionRate === 100 && stats.total >= 5
-      },
-      {
-        id: 'organized',
-        name: 'מאורגן',
-        description: 'שימוש ב-5 תגיות שונות',
-        icon: '🏷️',
-        points: 50,
-        category: 'special',
-        condition: (stats) => stats.tagsUsed >= 5
-      },
-      {
-        id: 'night_owl',
-        name: 'ינשוף לילה',
-        description: 'השלמת משימה בשעה 22:00-06:00',
-        icon: '🦉',
-        points: 25,
-        category: 'special',
-        condition: (stats) => stats.nightCompletions >= 1
-      },
-      {
-        id: 'speed_demon',
-        name: 'שד המהירות',
-        description: 'השלמת 5 משימות ביום אחד',
-        icon: '⚡',
-        points: 75,
-        category: 'special',
-        condition: (stats) => stats.maxDailyCompletions >= 5
-      }
-    ];
+  constructor(achievementsData) {
+    // load achievements from external JSON data
+    if (achievementsData && achievementsData.achievements) {
+      // build conditions from JSON definitions
+      this.achievements = achievementsData.achievements.map(ach => ({
+        ...ach,
+        condition: (stats) => this._evaluateCondition(ach, stats)
+      }));
+      this.levels = achievementsData.levels || [];
+    } else {
+      this.achievements = [];
+      this.levels = [];
+      console.warn('⚠️ AchievementsManager: No achievements data provided');
+    }
 
     this.userProgress = {
       points: 0,
@@ -161,20 +28,87 @@ class AchievementsManager {
       dailyCompletions: {}
     };
 
-    this.levels = [
-      { level: 1, name: 'מתחיל', minPoints: 0, icon: '🌱' },
-      { level: 2, name: 'תלמיד', minPoints: 100, icon: '📖' },
-      { level: 3, name: 'סטודנט', minPoints: 300, icon: '🎓' },
-      { level: 4, name: 'חכם', minPoints: 600, icon: '🧠' },
-      { level: 5, name: 'מומחה', minPoints: 1000, icon: '⭐' },
-      { level: 6, name: 'מאסטר', minPoints: 1500, icon: '🏆' },
-      { level: 7, name: 'גאון', minPoints: 2500, icon: '💎' },
-      { level: 8, name: 'אגדה', minPoints: 4000, icon: '👑' },
-      { level: 9, name: 'מיתוס', minPoints: 6000, icon: '🌟' },
-      { level: 10, name: 'אלמוות', minPoints: 10000, icon: '✨' }
-    ];
+    console.log('🏆 AchievementsManager: Initialized with', this.achievements.length, 'achievements');
+  }
 
-    console.log('🏆 AchievementsManager: Initialized');
+  // evaluate achievement conditions based on stats
+  _evaluateCondition(achievement, stats) {
+    const target = achievement.target || 1;
+    
+    // completion category
+    if (achievement.category === 'completion') {
+      if (achievement.id === 'first_task') return stats.completed >= target;
+      if (achievement.id === 'task_master_10') return stats.completed >= target;
+      if (achievement.id === 'task_master_50') return stats.completed >= target;
+      if (achievement.id === 'task_master_100') return stats.completed >= target;
+    }
+    // streak category
+    if (achievement.category === 'streak') {
+      if (achievement.id === 'streak_3') return stats.currentStreak >= target;
+      if (achievement.id === 'streak_7') return stats.currentStreak >= target;
+      if (achievement.id === 'streak_30') return stats.currentStreak >= target;
+    }
+    // urgency category
+    if (achievement.category === 'urgency') {
+      if (achievement.id === 'no_overdue') return stats.overdue === 0 && stats.total > 0;
+      if (achievement.id === 'early_bird') return stats.earlyCompletions >= target;
+    }
+    // subjects category
+    if (achievement.category === 'subjects') {
+      if (achievement.id === 'multi_subject') return (stats.subjectsCount || 0) >= target;
+      if (achievement.id === 'subject_master') return (stats.maxSubjectTasks || 0) >= target;
+    }
+    // special category
+    if (achievement.category === 'special') {
+      if (achievement.id === 'perfectionist') return (stats.completionRate || 0) === 100 && stats.total >= 5;
+      if (achievement.id === 'organized') return (stats.tagsUsed || 0) >= target;
+      if (achievement.id === 'night_owl') return (stats.nightCompletions || 0) >= target;
+      if (achievement.id === 'speed_demon') return (stats.maxDailyCompletions || 0) >= target;
+    }
+    return false;
+  }
+
+  // get progress for an achievement
+  _getProgress(achievement, stats) {
+    const target = achievement.target || 1;
+    
+    // completion - based on completed tasks
+    if (achievement.category === 'completion') {
+      return Math.min(stats.completed, target);
+    }
+    // streak - based on current streak
+    if (achievement.category === 'streak') {
+      return Math.min(stats.currentStreak, target);
+    }
+    // urgency - based on early completions or no overdue tasks
+    if (achievement.id === 'early_bird') {
+      return Math.min(stats.earlyCompletions, target);
+    }
+    if (achievement.id === 'no_overdue') {
+      return stats.overdue === 0 && stats.total > 0 ? target : 0;
+    }
+    // subjects - based on count or max tasks per subject
+    if (achievement.id === 'multi_subject') {
+      return Math.min(stats.subjectsCount || 0, target);
+    }
+    if (achievement.id === 'subject_master') {
+      return Math.min(stats.maxSubjectTasks || 0, target);
+    }
+    // special achievements
+    if (achievement.id === 'perfectionist') {
+      return stats.completionRate || 0;
+    }
+    if (achievement.id === 'organized') {
+      return Math.min(stats.tagsUsed || 0, target);
+    }
+    if (achievement.id === 'night_owl') {
+      return Math.min(stats.nightCompletions || 0, target);
+    }
+    if (achievement.id === 'speed_demon') {
+      return Math.min(stats.maxDailyCompletions || 0, target);
+    }
+    
+    return 0;
   }
 
   // טעינת התקדמות המשתמש
@@ -504,6 +438,47 @@ class AchievementsManager {
 
       for (const achievement of catAchievements) {
         const unlocked = this.userProgress.unlockedAchievements.includes(achievement.id);
+        const target = achievement.target || 1;
+        const targetLabel = achievement.targetLabel || 'משימות';
+        
+        // Calculate progress for this achievement
+        let progressText = '';
+        let progressPercent = 0;
+        
+        if (achievement.category === 'completion') {
+          const progress = Math.min(this.userProgress.points ? Math.floor(this.userProgress.points / 10) : 0, target);
+          progressPercent = Math.round((progress / target) * 100);
+          progressText = `השלמתי ${progress} מתוך ${target} ${targetLabel}`;
+        } else if (achievement.category === 'streak') {
+          const progress = this.userProgress.currentStreak;
+          progressPercent = Math.round((progress / target) * 100);
+          progressText = `${progress}/${target} ${targetLabel}`;
+        } else if (achievement.category === 'urgency') {
+          if (achievement.id === 'no_overdue') {
+            progressPercent = this.userProgress.points ? 100 : 0;
+            progressText = `אין משימות באיחור`;
+          } else if (achievement.id === 'early_bird') {
+            progressPercent = Math.round((this.userProgress.earlyCompletions / target) * 100);
+            progressText = `${this.userProgress.earlyCompletions}/${target} ${targetLabel}`;
+          }
+        } else if (achievement.category === 'subjects') {
+          progressPercent = 50; // placeholder
+          progressText = `${target} ${targetLabel}`;
+        } else if (achievement.category === 'special') {
+          if (achievement.id === 'perfectionist') {
+            progressPercent = this.userProgress.points ? 100 : 0;
+            progressText = `100% השלמה`;
+          } else if (achievement.id === 'organized') {
+            progressPercent = 50; // placeholder for tags
+            progressText = `${target} ${targetLabel}`;
+          } else if (achievement.id === 'night_owl') {
+            progressPercent = this.userProgress.nightCompletions ? 100 : 0;
+            progressText = `${this.userProgress.nightCompletions}/${target} ${targetLabel}`;
+          } else if (achievement.id === 'speed_demon') {
+            progressPercent = Math.round((this.userProgress.maxDailyCompletions / target) * 100);
+            progressText = `${this.userProgress.maxDailyCompletions}/${target} ${targetLabel}`;
+          }
+        }
         
         html += `
           <div class="achievement-item ${unlocked ? 'unlocked' : 'locked'}">
@@ -511,7 +486,16 @@ class AchievementsManager {
             <div class="achievement-details">
               <div class="achievement-name">${achievement.name}</div>
               <div class="achievement-description">${achievement.description}</div>
-              <div class="achievement-points-badge">${achievement.points} נקודות</div>
+              <div class="achievement-progress-section">
+                <div class="achievement-progress-text">${progressText}</div>
+                <div class="achievement-progress-bar">
+                  <div class="achievement-progress-fill" style="width: ${progressPercent}%"></div>
+                </div>
+                <div class="achievement-progress-percent">${progressPercent}%</div>
+              </div>
+              <div class="achievement-points-badge">
+                <span class="points-icon">⭐</span> ${achievement.points} XP
+              </div>
             </div>
             ${unlocked ? '<div class="achievement-check">✓</div>' : ''}
           </div>
@@ -550,5 +534,29 @@ class AchievementsManager {
 
 // יצירת אובייקט גלובלי
 console.log('🏆 Creating global achievements manager...');
-const achievementsManager = new AchievementsManager();
-console.log('✅ Global achievements manager created');
+let achievementsManager = null;
+
+// טעינה של נתונים מ-JSON חיצוני
+async function initAchievementsManager() {
+  try {
+    const response = await fetch('./achievements.json');
+    if (!response.ok) throw new Error(`Failed to load achievements.json: ${response.statusText}`);
+    
+    const achievementsData = await response.json();
+    achievementsManager = new AchievementsManager(achievementsData);
+    console.log('✅ Global achievements manager created with data from achievements.json');
+    return achievementsManager;
+  } catch (error) {
+    console.error('❌ Error loading achievements data:', error);
+    // Fallback: create with empty data if JSON fails
+    achievementsManager = new AchievementsManager({
+      achievements: [],
+      levels: []
+    });
+    console.warn('⚠️ Initialized achievements manager with empty data');
+    return achievementsManager;
+  }
+}
+
+// קריאה אתחול
+initAchievementsManager();
