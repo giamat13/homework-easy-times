@@ -4,10 +4,13 @@
 const classroomIntegration = (() => {
 
   const CLIENT_ID = window.GOOGLE_CLIENT_ID || '';
+  // feature toggle: set to false to hide/disable all topic-related functionality
+  const ENABLE_TOPICS = false;
   const SCOPES = [
     'https://www.googleapis.com/auth/classroom.coursework.me.readonly',
     'https://www.googleapis.com/auth/classroom.courses.readonly',
     'https://www.googleapis.com/auth/classroom.student-submissions.me.readonly',
+    // still request topics scope even if disabled so future enabling is easy
     'https://www.googleapis.com/auth/classroom.topics.readonly'
   ].join(' ');
 
@@ -58,6 +61,9 @@ const classroomIntegration = (() => {
           }
         });
       } catch(e) {}
+    }
+    if (!ENABLE_TOPICS) {
+      console.log('📌 Classroom: topic support is currently disabled');
     }
 
     const script = document.createElement('script');
@@ -174,6 +180,7 @@ const classroomIntegration = (() => {
   }
 
   function setTopicMapping(courseId, topicId, subjectId) {
+    if (!ENABLE_TOPICS) return; // feature disabled
     const key = `topic:${courseId}:${topicId}`;
     if (subjectId === 'inherit') {
       delete mapping[key]; // חזור לברירת מחדל של הקורס
@@ -221,34 +228,36 @@ const classroomIntegration = (() => {
           </td>
         </tr>`;
 
-      // שורות topics – בדרך כלל, אלא אם משתמש בחר להתעלם מהקורס
-      if (courseMapped !== 'ignore') {
-        topics.forEach(t => {
-          const topicKey    = `topic:${course.id}:${t.topicId}`;
-          const topicMapped = mapping[topicKey] || 'inherit';
-          const inheritName = subjects.find(s => s.id === courseMapped)?.name || 'כמו הקורס';
+      if (ENABLE_TOPICS) {
+        // שורות topics – בדרך כלל, אלא אם משתמש בחר להתעלם מהקורס
+        if (courseMapped !== 'ignore') {
+          topics.forEach(t => {
+            const topicKey    = `topic:${course.id}:${t.topicId}`;
+            const topicMapped = mapping[topicKey] || 'inherit';
+            const inheritName = subjects.find(s => s.id === courseMapped)?.name || 'כמו הקורס';
 
+            html += `
+              <tr>
+                <td style="padding:0.3rem 0.5rem 0.3rem 1.5rem; font-size:0.8rem; color:#6b7280;">
+                  ↳ ${t.name}
+                </td>
+                <td style="padding:0.3rem 0.5rem;">
+                  <select class="input" style="padding:0.2rem 0.4rem; font-size:0.78rem; width:100%;"
+                    onchange="classroomIntegration.setTopicMapping('${course.id}', '${t.topicId}', this.value)">
+                    ${subjectOptions(topicMapped, true, `↑ כמו הקורס (${inheritName})`, true)}
+                  </select>
+                </td>
+              </tr>`;
+          });
+        } else {
+          // show a small note row indicating topics are ignored
           html += `
             <tr>
-              <td style="padding:0.3rem 0.5rem 0.3rem 1.5rem; font-size:0.8rem; color:#6b7280;">
-                ↳ ${t.name}
-              </td>
-              <td style="padding:0.3rem 0.5rem;">
-                <select class="input" style="padding:0.2rem 0.4rem; font-size:0.78rem; width:100%;"
-                  onchange="classroomIntegration.setTopicMapping('${course.id}', '${t.topicId}', this.value)">
-                  ${subjectOptions(topicMapped, true, `↑ כמו הקורס (${inheritName})`, true)}
-                </select>
+              <td colspan="2" style="padding:0.3rem 0.5rem; font-size:0.75rem; color:#9ca3af;">
+                נושאים לא יוצגו כאשר הכיתה מואנשת.
               </td>
             </tr>`;
-        });
-      } else {
-        // show a small note row indicating topics are ignored
-        html += `
-          <tr>
-            <td colspan="2" style="padding:0.3rem 0.5rem; font-size:0.75rem; color:#9ca3af;">
-              נושאים לא יוצגו כאשר הכיתה מואנשת.
-            </td>
-          </tr>`;
+        }
       }
 
       return html;
@@ -420,8 +429,8 @@ const classroomIntegration = (() => {
       if (byTopicName) return byTopicName;
     }
 
-    // 1. נסה topic ספציפי במיפוי
-    if (topicId) {
+    // 1. נסה topic ספציפי במיפוי (ידולג אם לא מפעילים נושאים)
+    if (ENABLE_TOPICS && topicId) {
       const topicKey = `topic:${course.id}:${topicId}`;
       const topicMapped = mapping[topicKey];
       if (topicMapped) {
@@ -450,8 +459,8 @@ const classroomIntegration = (() => {
     );
     if (byName) return byName;
 
-    // 4. נסה לפי שם topic מקוטלג
-    if (topicId) {
+    // 4. נסה לפי שם topic מקוטלג (אם נושאים פעילים)
+    if (ENABLE_TOPICS && topicId) {
       const topicData = (cachedTopics[course.id] || []).find(t => t.topicId === topicId);
       if (topicData) {
         const byTopicName2 = subjects.find(s =>
@@ -494,8 +503,8 @@ const classroomIntegration = (() => {
     let subject = _resolveSubject(course, cw.topicId, cwTopicName);
     console.log('🧠 Classroom: subject after initial resolve', subject && subject.id);
 
-    // if we couldn't resolve and there is a topicId, try fetching the single topic entry
-    if (!subject && cw.topicId) {
+    // if we couldn't resolve and there is a topicId, try fetching the single topic entry (only when topics enabled)
+    if (ENABLE_TOPICS && !subject && cw.topicId) {
       try {
         const tRes = await _apiCall(
           `https://classroom.googleapis.com/v1/courses/${course.id}/topics/${cw.topicId}`
@@ -515,7 +524,7 @@ const classroomIntegration = (() => {
     }
 
     // fallback: match subject name to topicId string itself
-    if (!subject && cw.topicId) {
+    if (ENABLE_TOPICS && !subject && cw.topicId) {
       const byIdName = subjects.find(s =>
         s.name.trim().toLowerCase() === cw.topicId.trim().toLowerCase()
       );
