@@ -1079,7 +1079,7 @@ async function exportToPDF() {
       </table>
       
       <div style="margin-top: 40px; text-align: center; color: #6b7280; font-size: 12px; border-top: 1px solid #e5e7eb; padding-top: 20px;">
-        <p>מערכת ניהול שיעורי בית</p>
+        <p>מערכת ניהול משימות</p>
         <p>© ${new Date().getFullYear()} - נוצר ב-${new Date().toLocaleString('he-IL')}</p>
       </div>
     `;
