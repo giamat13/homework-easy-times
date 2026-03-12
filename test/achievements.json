@@ -1,0 +1,166 @@
+{
+  "achievements": [
+    {
+      "id": "first_task",
+      "name": "צעד ראשון",
+      "description": "השלמת המשימה הראשונה שלך",
+      "icon": "🎯",
+      "points": 10,
+      "category": "completion",
+      "target": 1,
+      "targetLabel": "משימות"
+    },
+    {
+      "id": "task_master_10",
+      "name": "מתחיל מבטיח",
+      "description": "השלם 10 משימות",
+      "icon": "⭐",
+      "points": 50,
+      "category": "completion",
+      "target": 10,
+      "targetLabel": "משימות"
+    },
+    {
+      "id": "task_master_50",
+      "name": "גיבור על",
+      "description": "השלם 50 משימות",
+      "icon": "🦸",
+      "points": 200,
+      "category": "completion",
+      "target": 50,
+      "targetLabel": "משימות"
+    },
+    {
+      "id": "task_master_100",
+      "name": "אגדה",
+      "description": "השלם 100 משימות",
+      "icon": "👑",
+      "points": 500,
+      "category": "completion",
+      "target": 100,
+      "targetLabel": "משימות"
+    },
+    {
+      "id": "streak_3",
+      "name": "מתחמם",
+      "description": "3 ימים רצופים של השלמת משימות",
+      "icon": "🔥",
+      "points": 30,
+      "category": "streak",
+      "target": 3,
+      "targetLabel": "ימים"
+    },
+    {
+      "id": "streak_7",
+      "name": "שבוע מושלם",
+      "description": "7 ימים רצופים של השלמת משימות",
+      "icon": "💪",
+      "points": 100,
+      "category": "streak",
+      "target": 7,
+      "targetLabel": "ימים"
+    },
+    {
+      "id": "streak_30",
+      "name": "מכונת הישגים",
+      "description": "30 ימים רצופים של השלמת משימות",
+      "icon": "🏆",
+      "points": 500,
+      "category": "streak",
+      "target": 30,
+      "targetLabel": "ימים"
+    },
+    {
+      "id": "no_overdue",
+      "name": "לא נופלים מאחור",
+      "description": "אין לך משימות באיחור",
+      "icon": "✅",
+      "points": 20,
+      "category": "urgency",
+      "target": 0,
+      "targetLabel": "משימות באיחור"
+    },
+    {
+      "id": "early_bird",
+      "name": "ציפור מוקדמת",
+      "description": "השלם 10 משימות לפני המועד",
+      "icon": "🐦",
+      "points": 75,
+      "category": "urgency",
+      "target": 10,
+      "targetLabel": "השלמות מוקדמות"
+    },
+    {
+      "id": "multi_subject",
+      "name": "רב תחומי",
+      "description": "משימות ב-3 מקצועות שונים או יותר",
+      "icon": "📚",
+      "points": 40,
+      "category": "subjects",
+      "target": 3,
+      "targetLabel": "מקצועות"
+    },
+    {
+      "id": "subject_master",
+      "name": "אמן מקצוע",
+      "description": "20 משימות באותו מקצוע",
+      "icon": "🎓",
+      "points": 100,
+      "category": "subjects",
+      "target": 20,
+      "targetLabel": "משימות"
+    },
+    {
+      "id": "perfectionist",
+      "name": "פרפקציוניסט",
+      "description": "100% השלמה - כל המשימות הושלמו",
+      "icon": "💯",
+      "points": 150,
+      "category": "special",
+      "target": 100,
+      "targetLabel": "%"
+    },
+    {
+      "id": "organized",
+      "name": "מאורגן",
+      "description": "שימוש ב-5 תגיות שונות",
+      "icon": "🏷️",
+      "points": 50,
+      "category": "special",
+      "target": 5,
+      "targetLabel": "תגיות"
+    },
+    {
+      "id": "night_owl",
+      "name": "ינשוף לילה",
+      "description": "השלמת משימה בשעה 22:00-06:00",
+      "icon": "🦉",
+      "points": 25,
+      "category": "special",
+      "target": 1,
+      "targetLabel": "השלמות לילה"
+    },
+    {
+      "id": "speed_demon",
+      "name": "שד המהירות",
+      "description": "השלם 5 משימות ביום אחד",
+      "icon": "⚡",
+      "points": 75,
+      "category": "special",
+      "target": 5,
+      "targetLabel": "משימות ביום"
+    }
+  ],
+  "levels": [
+    { "level": 1, "name": "מתחיל", "minPoints": 0, "icon": "🌱" },
+    { "level": 2, "name": "תלמיד", "minPoints": 100, "icon": "📖" },
+    { "level": 3, "name": "סטודנט", "minPoints": 300, "icon": "🎓" },
+    { "level": 4, "name": "חכם", "minPoints": 600, "icon": "🧠" },
+    { "level": 5, "name": "מומחה", "minPoints": 1000, "icon": "⭐" },
+    { "level": 6, "name": "מאסטר", "minPoints": 1500, "icon": "🏆" },
+    { "level": 7, "name": "גאון", "minPoints": 2500, "icon": "💎" },
+    { "level": 8, "name": "אגדה", "minPoints": 4000, "icon": "👑" },
+    { "level": 9, "name": "מיתוס", "minPoints": 6000, "icon": "🌟" },
+    { "level": 10, "name": "אלמוות", "minPoints": 10000, "icon": "✨" }
+  ]
+}
