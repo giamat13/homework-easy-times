@@ -5,36 +5,30 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Dashboard</title>
   <link rel="stylesheet" href="dashboard.css" />
-
-  <!-- Firebase v8 compat -->
   <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
   <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-auth.js"></script>
   <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-firestore.js"></script>
-
-  <!-- Google Identity Services (Calendar + Classroom) -->
   <script src="https://accounts.google.com/gsi/client" async defer></script>
 </head>
 <body>
 
-<!-- ── Auth Screen ─────────────────────────── -->
+<!-- Auth Screen -->
 <div id="auth-screen" class="auth-screen">
   <div class="auth-card">
-    <div class="auth-title">ה<span>דשבורד</span></div>
-    <p class="auth-sub">הדשבורד האישי שלך</p>
+    <div class="auth-title">📚 הדשבורד האישי</div>
+    <p class="auth-sub">משימות, שיעורי בית ויומן במקום אחד</p>
 
-    <!-- Tabs -->
     <div class="auth-tabs">
       <button class="auth-tab active" data-tab="google" onclick="showAuthTab('google')">Google</button>
       <button class="auth-tab" data-tab="email" onclick="showAuthTab('email')">מייל</button>
     </div>
 
-    <!-- Error -->
     <div id="auth-error" class="auth-error" style="display:none"></div>
 
     <!-- Google panel -->
-    <div id="auth-panel-google" style="display:flex;flex-direction:column;gap:10px">
+    <div id="auth-panel-google">
       <button class="btn-google" onclick="loginGoogle()">
-        <svg width="16" height="16" viewBox="0 0 24 24">
+        <svg width="18" height="18" viewBox="0 0 24 24">
           <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/>
           <path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/>
           <path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"/>
@@ -42,30 +36,30 @@
         </svg>
         כניסה עם Google
       </button>
-      <button class="btn-guest" onclick="loginGuest()">כניסה כאורח</button>
+      <button class="btn-guest" onclick="loginGuest()">כניסה כאורח (ללא שמירה)</button>
     </div>
 
     <!-- Email panel -->
-    <div id="auth-panel-email" style="display:none;flex-direction:column;gap:10px">
+    <div id="auth-panel-email" style="display:none">
       <input id="input-email" class="auth-input" type="email" placeholder="כתובת מייל" autocomplete="email" />
-      <input id="input-pass"  class="auth-input" type="password" placeholder="סיסמה" autocomplete="current-password" />
-      <div style="display:flex;gap:8px">
-        <button id="btn-email-login"    class="btn-email-action" onclick="loginEmail()">כניסה</button>
+      <input id="input-pass"  class="auth-input" type="password" placeholder="סיסמה (מינימום 6 תווים)" autocomplete="current-password" />
+      <div class="btn-email-row">
+        <button id="btn-email-login"    class="btn-email-action primary"   onclick="loginEmail()">כניסה</button>
         <button id="btn-email-register" class="btn-email-action secondary" onclick="registerEmail()">הרשמה</button>
       </div>
     </div>
-
   </div>
 </div>
 
-<!-- ── App Screen ──────────────────────────── -->
-<div id="app-screen" class="app" style="display:none">
+<!-- App Screen -->
+<div id="app-screen" style="display:none">
+<div class="container">
 
   <!-- Header -->
-  <header class="header">
+  <div class="header">
     <div class="header-left">
-      <h1 id="greeting-word">בוקר טוב</h1>
-      <div class="header-meta" id="header-date">...</div>
+      <h1 id="greeting-word">שלום 👋</h1>
+      <div class="header-meta" id="header-date"></div>
     </div>
     <div class="header-right">
       <div class="user-badge">
@@ -73,24 +67,24 @@
           <img id="user-avatar-img" src="" alt="" style="display:none" />
           <span id="user-initial">?</span>
         </div>
-        <span id="user-name">...</span>
+        <span id="user-name"></span>
       </div>
       <button class="btn-logout" onclick="logout()">יציאה</button>
     </div>
-  </header>
+  </div>
 
-  <!-- Stats row -->
+  <!-- Stats -->
   <div class="stats-row">
-    <div class="stat-card">
-      <div class="stat-value accent" id="stat-pending">—</div>
+    <div class="stat-card blue">
+      <div class="stat-number blue" id="stat-pending">—</div>
       <div class="stat-label">ממתינות</div>
     </div>
-    <div class="stat-card">
-      <div class="stat-value red" id="stat-overdue">—</div>
+    <div class="stat-card orange">
+      <div class="stat-number orange" id="stat-overdue">—</div>
       <div class="stat-label">באיחור</div>
     </div>
-    <div class="stat-card">
-      <div class="stat-value green" id="stat-done">—</div>
+    <div class="stat-card green">
+      <div class="stat-number green" id="stat-done">—</div>
       <div class="stat-label">הושלמו</div>
     </div>
   </div>
@@ -98,35 +92,37 @@
   <!-- Main grid -->
   <div class="main-grid">
 
-    <!-- Left: Tasks -->
-    <div class="card">
-      <div class="card-header">
-        <div class="card-title">משימות ושיעורי בית</div>
-        <div class="card-count" id="task-count">טוען...</div>
-      </div>
+    <!-- Tasks panel -->
+    <div class="panel">
+      <h2>
+        משימות ושיעורי בית
+        <span class="panel-count" id="task-count">טוען...</span>
+      </h2>
+
       <div class="tabs">
         <button class="tab active" data-tab="today" onclick="setTab('today')">היום</button>
         <button class="tab" data-tab="week"  onclick="setTab('week')">השבוע</button>
         <button class="tab" data-tab="all"   onclick="setTab('all')">הכל</button>
       </div>
+
       <div id="task-list" class="task-list"></div>
+
       <a href="./homework/" class="hw-link">
         <span>פתח אפליקציית שיעורי הבית המלאה</span>
         <span>←</span>
       </a>
     </div>
 
-    <!-- Right: Calendar -->
+    <!-- Right col -->
     <div class="right-col">
-      <div class="card">
-        <div class="card-header">
-          <div class="card-title">אירועים קרובים</div>
-        </div>
+      <div class="panel">
+        <h2>אירועים קרובים</h2>
         <div id="cal-content"></div>
       </div>
     </div>
 
   </div>
+</div>
 </div>
 
 <script src="firebase-config.js"></script>
