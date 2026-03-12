@@ -1,6 +1,7 @@
 // ============================================
 //  DASHBOARD WIDGET
 //  Calendar + Google Tasks — משולב ב-homework
+//  חיבור מתמשך — נשמר ב-Firestore
 // ============================================
 
 const dashboardWidget = (() => {
@@ -20,10 +21,11 @@ const dashboardWidget = (() => {
     'https://www.googleapis.com/auth/tasks',
   ].join(' ');
 
-  let _tokenClient = null;
+  const STORAGE_KEY = 'google-widget-connection';
+  let _tokenClient  = null;
 
   // ── Init ──────────────────────────────────────
-  function init() {
+  async function init() {
     _renderShell();
     _initGoogleServices();
   }
@@ -40,7 +42,7 @@ const dashboardWidget = (() => {
         <div class="panel dw-panel">
           <div class="dw-panel-header">
             <h2 class="dw-title">📅 אירועים קרובים</h2>
-            <button id="dw-cal-disconnect" class="dw-disconnect hidden" onclick="dashboardWidget.disconnectCal()">התנתק</button>
+            <button id="dw-cal-disconnect" class="dw-disconnect hidden" onclick="dashboardWidget.disconnectAll()">התנתק</button>
           </div>
           <div id="dw-cal-content">
             <button class="dw-connect-btn" id="dw-cal-btn">
@@ -51,7 +53,7 @@ const dashboardWidget = (() => {
 
       </div>`;
 
-    document.getElementById('dw-cal-btn').onclick = () => _requestToken();
+    document.getElementById('dw-cal-btn').onclick = () => _requestToken(false);
   }
 
   // ── Google token ─────────────────────────────
@@ -67,10 +69,16 @@ const dashboardWidget = (() => {
       client_id: clientId,
       scope: GOOGLE_SCOPES,
       callback: async (resp) => {
-        if (!resp.access_token) return;
+        if (resp.error || !resp.access_token) {
+          // silent re-auth נכשל — נציג כפתור התחברות
+          _updateButtons();
+          return;
+        }
         ds.calToken       = resp.access_token;
         ds.calConnected   = true;
         ds.tasksConnected = true;
+        // שמור ב-Firestore שהמשתמש מחובר
+        await _saveConnectionState(true);
         _updateButtons();
         await Promise.all([
           _loadCalendar(resp.access_token),
@@ -78,10 +86,41 @@ const dashboardWidget = (() => {
         ]);
       },
     });
+
+    // בדוק אם המשתמש היה מחובר קודם — נסה להתחבר בשקט
+    _tryAutoReconnect();
   }
 
-  function _requestToken() {
-    if (_tokenClient) _tokenClient.requestAccessToken();
+  // ── Auto reconnect ────────────────────────────
+  async function _tryAutoReconnect() {
+    try {
+      const saved = await storage.get(STORAGE_KEY);
+      if (saved && saved.connected) {
+        // הצג skeleton בזמן ניסיון ההתחברות השקטה
+        const wrapper = document.getElementById('dw-cal-content');
+        if (wrapper) wrapper.innerHTML = _skeletons(3);
+        // בקש טוקן בשקט (ללא popup אם האישור כבר ניתן)
+        _requestToken(true);
+      }
+    } catch(e) {
+      // אין שמירה — לא מתחברים אוטומטית
+    }
+  }
+
+  function _requestToken(silent = false) {
+    if (!_tokenClient) return;
+    _tokenClient.requestAccessToken({ prompt: silent ? '' : 'consent' });
+  }
+
+  // ── Save / clear connection in Firestore ─────
+  async function _saveConnectionState(connected) {
+    try {
+      if (connected) {
+        await storage.set(STORAGE_KEY, { connected: true, savedAt: new Date().toISOString() });
+      } else {
+        await storage.remove(STORAGE_KEY);
+      }
+    } catch(e) { console.warn('Could not save connection state', e); }
   }
 
   function _updateButtons() {
@@ -90,6 +129,8 @@ const dashboardWidget = (() => {
     // כפתורי Tasks ב-toolbar רשימת המשימות
     _toggle('hw-tasks-connect-btn',    !ds.tasksConnected);
     _toggle('hw-tasks-disconnect-btn',  ds.tasksConnected);
+    // עדכן הגדרות אם פתוח
+    if (typeof updateSettingsTasksStatus === 'function') updateSettingsTasksStatus();
     // רנדר מחדש את הרשימה המאוחדת
     if (typeof renderHomework === 'function') renderHomework();
   }
@@ -97,37 +138,41 @@ const dashboardWidget = (() => {
   function _toggle(id, show) {
     const el = document.getElementById(id);
     if (!el) return;
-    el.classList.toggle('hidden', !show);
+    el.style.display = show ? '' : 'none';
   }
 
   // ── Disconnect ────────────────────────────────
-  function disconnectCal() {
-    ds.calConnected = false;
-    ds.calEvents    = [];
-    if (!ds.tasksConnected && ds.calToken) {
+  async function disconnectAll() {
+    ds.calConnected   = false;
+    ds.tasksConnected = false;
+    ds.calEvents      = [];
+    ds.tasks          = [];
+    ds.taskLists      = [];
+    if (ds.calToken) {
       google.accounts.oauth2.revoke(ds.calToken, () => {});
       ds.calToken = null;
     }
+    await _saveConnectionState(false);
     _updateButtons();
     document.getElementById('dw-cal-content').innerHTML =
-      `<button class="dw-connect-btn" id="dw-cal-btn" onclick="dashboardWidget._requestToken()">התחבר ל-Google Calendar</button>`;
+      `<button class="dw-connect-btn" id="dw-cal-btn" onclick="dashboardWidget._requestToken(false)">התחבר ל-Google Calendar</button>`;
   }
 
+  // שמור תאימות לשמות הישנים
+  function disconnectCal()   { return disconnectAll(); }
   function disconnectTasks() {
     ds.tasksConnected = false;
-    ds.tasks     = [];
-    ds.taskLists = [];
-    if (!ds.calConnected && ds.calToken) {
-      google.accounts.oauth2.revoke(ds.calToken, () => {});
-      ds.calToken = null;
-    }
+    ds.tasks          = [];
+    ds.taskLists      = [];
+    _saveConnectionState(false);
     _updateButtons();
+    if (typeof renderHomework === 'function') renderHomework();
   }
 
   // ── Calendar ──────────────────────────────────
   async function _loadCalendar(token) {
     const wrapper = document.getElementById('dw-cal-content');
-    wrapper.innerHTML = _skeletons(3);
+    if (wrapper) wrapper.innerHTML = _skeletons(3);
     try {
       const now    = new Date().toISOString();
       const future = new Date(Date.now() + 14 * 86400000).toISOString();
@@ -142,6 +187,7 @@ const dashboardWidget = (() => {
 
   function _renderCalendar() {
     const wrapper = document.getElementById('dw-cal-content');
+    if (!wrapper) return;
     if (!ds.calEvents.length) {
       wrapper.innerHTML = `<div class="empty-state" style="padding:2rem;text-align:center;color:var(--text-secondary)">אין אירועים קרובים</div>`;
       return;
@@ -168,8 +214,6 @@ const dashboardWidget = (() => {
 
   // ── Tasks ─────────────────────────────────────
   async function _loadTasks(token) {
-    const wrapper = document.getElementById('dw-tasks-content');
-    wrapper.innerHTML = _skeletons(3);
     try {
       const listsRes = await fetch(
         'https://tasks.googleapis.com/tasks/v1/users/@me/lists?maxResults=10',
@@ -194,48 +238,12 @@ const dashboardWidget = (() => {
         return new Date(a.due) - new Date(b.due);
       });
     } catch(e) { console.error(e); ds.tasks = []; }
-    // רנדר ברשימה המאוחדת
     if (typeof renderHomework === 'function') renderHomework();
-  }
-
-  function _renderTasks() {
-    const wrapper = document.getElementById('dw-tasks-content');
-    if (!ds.tasks.length) {
-      wrapper.innerHTML = `<div class="empty-state" style="padding:2rem;text-align:center;color:var(--text-secondary)">אין משימות פתוחות</div>`;
-      return;
-    }
-    const today = new Date(); today.setHours(0,0,0,0);
-    wrapper.innerHTML = ds.tasks.map(t => {
-      const due  = t.due ? new Date(t.due) : null;
-      const days = due ? Math.round((due - today) / 86400000) : null;
-      let dueLabel = '', dueClass = '';
-      if (due !== null) {
-        if      (days < 0)   { dueLabel = `פג לפני ${Math.abs(days)} ימים`; dueClass = 'overdue'; }
-        else if (days === 0) { dueLabel = 'היום';  dueClass = 'urgent'; }
-        else if (days === 1) { dueLabel = 'מחר';   dueClass = 'urgent'; }
-        else                 { dueLabel = _fmtDate(t.due.split('T')[0]); dueClass = ''; }
-      }
-
-      return `
-        <div class="homework-item ${dueClass}" id="dw-task-${t.id}" style="margin-bottom:0.5rem">
-          <div class="homework-header">
-            <input type="checkbox" class="checkbox" onchange="dashboardWidget.completeTask('${t.id}', '${t.listId}', this)">
-            <div class="homework-content">
-              <div class="homework-badges">
-                <span class="badge" style="background:#6366f1">${_esc(t.listTitle)}</span>
-              </div>
-              <div class="homework-title">${_esc(t.title || 'ללא כותרת')}</div>
-              ${dueLabel ? `<div class="homework-meta"><span class="days-left ${dueClass}">${dueLabel}</span></div>` : ''}
-            </div>
-          </div>
-        </div>`;
-    }).join('');
   }
 
   async function completeTask(taskId, listId, checkbox) {
     checkbox.disabled = true;
     try {
-      // 1. עדכן ב-Google Tasks
       await fetch(
         `https://tasks.googleapis.com/tasks/v1/lists/${listId}/tasks/${taskId}`,
         {
@@ -244,17 +252,12 @@ const dashboardWidget = (() => {
           body: JSON.stringify({ status: 'completed' }),
         }
       );
-
-      // 2. אם קשור ל-homework — עדכן ב-Firestore דרך storage
       const linkedHw = (window.homework || []).find(h => h.googleTaskId === taskId);
       if (linkedHw) {
         linkedHw.completed   = true;
         linkedHw.completedAt = new Date().toISOString();
         if (typeof saveData === 'function') saveData();
-        if (typeof render === 'function')   render();
       }
-
-      // 3. הסר מה-state ורנדר מחדש
       ds.tasks = ds.tasks.filter(t => t.id !== taskId);
       setTimeout(() => { if (typeof renderHomework === 'function') renderHomework(); }, 400);
     } catch(e) {
@@ -280,10 +283,15 @@ const dashboardWidget = (() => {
     return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
   }
 
-  function _fmtDate(d) {
-    return new Date(d + 'T00:00:00').toLocaleDateString('he-IL', { day: 'numeric', month: 'short' });
-  }
-
-  return { init, disconnectCal, disconnectTasks, completeTask, _requestToken, getTasks: () => ds.tasks, isConnected: () => ds.tasksConnected };
+  return {
+    init,
+    disconnectAll,
+    disconnectCal,
+    disconnectTasks,
+    completeTask,
+    _requestToken,
+    getTasks:    () => ds.tasks,
+    isConnected: () => ds.tasksConnected,
+  };
 
 })();
