@@ -34,7 +34,7 @@ const dashboardWidget = (() => {
     if (!el) return;
 
     el.innerHTML = `
-      <div class="dw-grid">
+      <div class="dw-grid" style="grid-template-columns: 1fr;">
 
         <!-- Calendar -->
         <div class="panel dw-panel">
@@ -49,23 +49,9 @@ const dashboardWidget = (() => {
           </div>
         </div>
 
-        <!-- Tasks -->
-        <div class="panel dw-panel">
-          <div class="dw-panel-header">
-            <h2 class="dw-title">✅ Google Tasks</h2>
-            <button id="dw-tasks-disconnect" class="dw-disconnect hidden" onclick="dashboardWidget.disconnectTasks()">התנתק</button>
-          </div>
-          <div id="dw-tasks-content">
-            <button class="dw-connect-btn" id="dw-tasks-btn">
-              התחבר ל-Google Tasks
-            </button>
-          </div>
-        </div>
-
       </div>`;
 
-    document.getElementById('dw-cal-btn').onclick   = () => _requestToken();
-    document.getElementById('dw-tasks-btn').onclick = () => _requestToken();
+    document.getElementById('dw-cal-btn').onclick = () => _requestToken();
   }
 
   // ── Google token ─────────────────────────────
@@ -99,10 +85,13 @@ const dashboardWidget = (() => {
   }
 
   function _updateButtons() {
-    _toggle('dw-cal-disconnect',    ds.calConnected);
-    _toggle('dw-cal-btn',          !ds.calConnected);
-    _toggle('dw-tasks-disconnect',  ds.tasksConnected);
-    _toggle('dw-tasks-btn',        !ds.tasksConnected);
+    _toggle('dw-cal-disconnect', ds.calConnected);
+    _toggle('dw-cal-btn',       !ds.calConnected);
+    // כפתורי Tasks ב-toolbar רשימת המשימות
+    _toggle('hw-tasks-connect-btn',    !ds.tasksConnected);
+    _toggle('hw-tasks-disconnect-btn',  ds.tasksConnected);
+    // רנדר מחדש את הרשימה המאוחדת
+    if (typeof renderHomework === 'function') renderHomework();
   }
 
   function _toggle(id, show) {
@@ -126,15 +115,13 @@ const dashboardWidget = (() => {
 
   function disconnectTasks() {
     ds.tasksConnected = false;
-    ds.tasks    = [];
+    ds.tasks     = [];
     ds.taskLists = [];
     if (!ds.calConnected && ds.calToken) {
       google.accounts.oauth2.revoke(ds.calToken, () => {});
       ds.calToken = null;
     }
     _updateButtons();
-    document.getElementById('dw-tasks-content').innerHTML =
-      `<button class="dw-connect-btn" id="dw-tasks-btn" onclick="dashboardWidget._requestToken()">התחבר ל-Google Tasks</button>`;
   }
 
   // ── Calendar ──────────────────────────────────
@@ -207,7 +194,8 @@ const dashboardWidget = (() => {
         return new Date(a.due) - new Date(b.due);
       });
     } catch(e) { console.error(e); ds.tasks = []; }
-    _renderTasks();
+    // רנדר ברשימה המאוחדת
+    if (typeof renderHomework === 'function') renderHomework();
   }
 
   function _renderTasks() {
@@ -268,7 +256,7 @@ const dashboardWidget = (() => {
 
       // 3. הסר מה-state ורנדר מחדש
       ds.tasks = ds.tasks.filter(t => t.id !== taskId);
-      setTimeout(() => _renderTasks(), 400);
+      setTimeout(() => { if (typeof renderHomework === 'function') renderHomework(); }, 400);
     } catch(e) {
       console.error(e);
       checkbox.checked  = false;
@@ -296,6 +284,6 @@ const dashboardWidget = (() => {
     return new Date(d + 'T00:00:00').toLocaleDateString('he-IL', { day: 'numeric', month: 'short' });
   }
 
-  return { init, disconnectCal, disconnectTasks, completeTask, _requestToken };
+  return { init, disconnectCal, disconnectTasks, completeTask, _requestToken, getTasks: () => ds.tasks, isConnected: () => ds.tasksConnected };
 
 })();

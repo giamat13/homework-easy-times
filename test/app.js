@@ -48,6 +48,41 @@ let availableTags = [];
 
 // =============== טעינה ושמירה ===============
 
+
+// ── Add Task Modal ────────────────────────────
+function initAddTaskModal() {
+  const openBtn  = document.getElementById('open-add-task-modal');
+  const modal    = document.getElementById('add-task-modal');
+  const closeBtn = document.getElementById('close-add-task-modal');
+
+  if (!openBtn || !modal) return;
+
+  openBtn.addEventListener('click', () => {
+    modal.classList.remove('hidden');
+  });
+
+  closeBtn && closeBtn.addEventListener('click', () => {
+    modal.classList.add('hidden');
+  });
+
+  modal.addEventListener('click', (e) => {
+    if (e.target === modal) modal.classList.add('hidden');
+  });
+
+  // סגירה אחרי הוספת משימה
+  const addBtn = document.getElementById('add-homework');
+  if (addBtn) {
+    const origClick = addBtn.onclick;
+    addBtn.addEventListener('click', () => {
+      setTimeout(() => {
+        // רק אם הטופס התנקה (משמעות שהמשימה נשמרה)
+        const title = document.getElementById('hw-title');
+        if (title && title.value === '') modal.classList.add('hidden');
+      }, 100);
+    });
+  }
+}
+
 async function loadData() {
   console.log('🔄 loadData: Starting data load...');
   try {
@@ -121,6 +156,7 @@ async function loadData() {
     if (settings.enableNotifications && notifications.permission === 'granted') {
       console.log('🔔 loadData: Starting periodic notification check...');
       await notifications.startPeriodicCheck(homework, settings);
+    initAddTaskModal();
       console.log('✅ loadData: Notification check started');
     }
     
@@ -429,92 +465,24 @@ function toggleHomeworkTag(homeworkId, tag) {
 // =============== רינדור ===============
 
 function renderSubjects() {
-  const list = document.getElementById('subject-list');
-  const select = document.getElementById('hw-subject');
+  const select       = document.getElementById('hw-subject');
   const filterSelect = document.getElementById('filter-subject');
-  
-  if (subjects.length === 0) {
-    list.innerHTML = '<p class="empty-state">טרם הוספו מקצועות</p>';
-  } else {
-    list.innerHTML = subjects.map(s => `
-      <div class="subject-item" style="border-color: ${s.color};">
-        <div class="subject-info">
-          <div class="subject-color" style="background-color: ${s.color};"></div>
-          <span class="subject-name">${s.name}</span>
-        </div>
-        <button class="icon-btn" onclick="deleteSubject('${s.id}')">
-          <svg width="16" height="16"><use href="#trash"></use></svg>
-        </button>
-      </div>
-    `).join('');
-  }
-  
-  const subjectOptions = '<option value="">בחר מקצוע</option>' + 
+
+  const subjectOptions = '<option value="">בחר מקצוע</option>' +
     subjects.map(s => `<option value="${s.id}">${s.name}</option>`).join('');
-  
   if (select) select.innerHTML = subjectOptions;
-  
+
   if (filterSelect) {
-    filterSelect.innerHTML = '<option value="all">כל המקצועות</option>' + 
+    filterSelect.innerHTML = '<option value="all">כל המקצועות</option>' +
       subjects.map(s => `<option value="${s.id}" ${filters.subject == s.id ? 'selected' : ''}>${s.name}</option>`).join('');
   }
 }
 
 function renderFilters() {
-  const container = document.getElementById('filters-container');
-  if (!container) return;
-  
-  let html = `
-    <div class="filters-panel">
-      <h3>סינון משימות</h3>
-      
-      <div class="filter-group">
-        <label>מקצוע:</label>
-        <select class="select" id="filter-subject" onchange="setFilter('subject', this.value)">
-          <option value="all">כל המקצועות</option>
-        </select>
-      </div>
-      
-      <div class="filter-group">
-        <label>סטטוס:</label>
-        <select class="select" id="filter-status" onchange="setFilter('status', this.value)">
-          <option value="all" ${filters.status === 'all' ? 'selected' : ''}>הכל</option>
-          <option value="pending" ${filters.status === 'pending' ? 'selected' : ''}>ממתין</option>
-          <option value="completed" ${filters.status === 'completed' ? 'selected' : ''}>הושלם</option>
-        </select>
-      </div>
-      
-      <div class="filter-group">
-        <label>דחיפות:</label>
-        <select class="select" id="filter-urgency" onchange="setFilter('urgency', this.value)">
-          <option value="all" ${filters.urgency === 'all' ? 'selected' : ''}>הכל</option>
-          <option value="urgent" ${filters.urgency === 'urgent' ? 'selected' : ''}>דחוף (2 ימים)</option>
-          <option value="overdue" ${filters.urgency === 'overdue' ? 'selected' : ''}>באיחור</option>
-        </select>
-      </div>
-      
-      ${availableTags.length > 0 ? `
-        <div class="filter-group">
-          <label>תגיות:</label>
-          <div class="tags-filter">
-            ${availableTags.map(tag => `
-              <label class="tag-filter-item ${filters.tags.includes(tag) ? 'active' : ''}">
-                <input type="checkbox" ${filters.tags.includes(tag) ? 'checked' : ''} 
-                       onchange="toggleTagFilter('${tag}')">
-                <span>${tag}</span>
-              </label>
-            `).join('')}
-          </div>
-        </div>
-      ` : ''}
-      
-      <button class="btn btn-secondary" onclick="clearFilters()" style="margin-top: 1rem;">
-        נקה סינון
-      </button>
-    </div>
-  `;
-  
-  container.innerHTML = html;
+  const statusEl  = document.getElementById('filter-status');
+  const urgencyEl = document.getElementById('filter-urgency');
+  if (statusEl)  statusEl.value  = filters.status  || 'all';
+  if (urgencyEl) urgencyEl.value = filters.urgency || 'all';
   renderSubjects();
 }
 
@@ -563,19 +531,14 @@ function renderHomework() {
   const list = document.getElementById('homework-list');
   const archiveBtn = document.getElementById('archive-toggle');
 
-  // ⭐ בתצוגת לוח שנה - הסתר את כפתור הארכיון (הכל מוצג תמיד)
   if (settings.viewMode === 'calendar') {
     if (typeof calendar !== 'undefined' && calendar.renderCalendar) {
       calendar.renderCalendar();
-      
-      // הסתר את כפתור הארכיון בלוח שנה
       archiveBtn.classList.add('hidden');
-      
       return;
     }
   }
 
-  // בתצוגת רשימה - הצג את כפתור הארכיון כרגיל
   const activeHomework = homework.filter(h => {
     if (!h.completed) return true;
     return getDaysUntilDue(h.dueDate) >= 0;
@@ -596,8 +559,13 @@ function renderHomework() {
   let displayList = showArchive ? archivedHomework : activeHomework;
   displayList = getFilteredHomework(displayList);
 
-  if (displayList.length === 0) {
-    const message = showArchive ? 'אין פריטים בארכיון' : 'אין שיעורי בית להצגה';
+  // ── Google Tasks — מוסיף לרשימה המאוחדת ──
+  const gTasks = (typeof dashboardWidget !== 'undefined' && dashboardWidget.isConnected())
+    ? dashboardWidget.getTasks()
+    : [];
+
+  if (displayList.length === 0 && gTasks.length === 0) {
+    const message = showArchive ? 'אין פריטים בארכיון' : 'אין משימות להצגה';
     list.innerHTML = `<p class="empty-state">${message}</p>`;
     return;
   }
@@ -606,6 +574,36 @@ function renderHomework() {
     if (a.completed !== b.completed) return a.completed ? 1 : -1;
     return new Date(a.dueDate) - new Date(b.dueDate);
   });
+
+  // בנה HTML ל-Google Tasks
+  const today_gtask = new Date(); today_gtask.setHours(0,0,0,0);
+  const gTasksHTML = gTasks.map(t => {
+    const due  = t.due ? new Date(t.due) : null;
+    const days = due ? Math.round((due - today_gtask) / 86400000) : null;
+    let daysText = '', itemClass = 'homework-item';
+    if (due !== null) {
+      if      (days < 0)   { daysText = `באיחור של ${Math.abs(days)} ימים`; itemClass += ' overdue'; }
+      else if (days === 0) { daysText = 'היום!';       itemClass += ' urgent'; }
+      else if (days === 1) { daysText = 'מחר';         itemClass += ' urgent'; }
+      else if (days === 2) { daysText = 'מחרתיים';     itemClass += ' urgent'; }
+      else                 { daysText = `עוד ${days} ימים`; }
+    }
+    const esc = s => String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+    return `
+      <div class="${itemClass}" id="gtask-${t.id}">
+        <div class="homework-header">
+          <input type="checkbox" class="checkbox" onchange="completeGTask('${t.id}','${t.listId}',this)">
+          <div class="homework-content">
+            <div class="homework-badges">
+              <span class="badge" style="background:#6366f1">${esc(t.listTitle)}</span>
+              <span class="badge" style="background:#0ea5e9">Google Tasks</span>
+            </div>
+            <h3 class="homework-title">${esc(t.title || 'ללא כותרת')}</h3>
+            ${daysText ? `<div class="homework-meta"><span class="days-left ${days !== null && days < 0 ? 'overdue' : days !== null && days <= 2 ? 'urgent' : ''}">${daysText}</span></div>` : ''}
+          </div>
+        </div>
+      </div>`;
+  }).join('');
 
   list.innerHTML = sorted.map(hw => {
     const subject = subjects.find(s => s.id == hw.subject);
@@ -690,7 +688,7 @@ function renderHomework() {
         </div>
       </div>
     `;
-  }).join('');
+  }).join('') + gTasksHTML;
 }
 
 function toggleTagEditor(homeworkId) {
@@ -848,6 +846,18 @@ function toggleComplete(id) {
   }
 }
 
+async function completeGTask(taskId, listId, checkbox) {
+  if (typeof dashboardWidget === 'undefined') return;
+  checkbox.disabled = true;
+  try {
+    await dashboardWidget.completeTask(taskId, listId, checkbox);
+    notifications.showInAppNotification('משימה הושלמה!', 'success');
+  } catch(e) {
+    checkbox.checked  = false;
+    checkbox.disabled = false;
+  }
+}
+
 function deleteHomework(id) {
   const hw = homework.find(h => h.id === id);
   if (!hw) return;
@@ -920,6 +930,7 @@ async function saveSettings() {
     const granted = await notifications.requestPermission();
     if (granted) {
       await notifications.startPeriodicCheck(homework, settings);
+    initAddTaskModal();
       notifications.showInAppNotification('התראות הופעלו בהצלחה', 'success');
     } else {
       notifications.showInAppNotification('לא ניתן להפעיל התראות - ההרשאה נדחתה', 'error');
