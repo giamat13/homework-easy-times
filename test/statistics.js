@@ -634,13 +634,6 @@ class UnifiedStatisticsManager {
         ${this.generateInsights()}
       </div>
 
-      <!-- Export Options -->
-      <div class="export-section">
-        <button class="btn btn-secondary" onclick="statistics.exportStatisticsReport()">
-          <svg width="20" height="20"><use href="#download"></use></svg>
-          ייצא דוח מלא
-        </button>
-      </div>
     `;
 
     // יצירת גרפים
@@ -841,6 +834,8 @@ class UnifiedStatisticsManager {
     try {
       notifications.showInAppNotification('מכין דוח סטטיסטיקות...', 'info');
       
+      await this.collectAllData();
+
       const stats = this.analyticsData.basic;
       const subjects = Object.values(this.analyticsData.subjects);
       const trends = this.analyticsData.trends;
@@ -942,7 +937,19 @@ class UnifiedStatisticsManager {
         pagebreak: { mode: ['avoid-all', 'css', 'legacy'] }
       };
       
-      await html2pdf().set(opt).from(reportContent).save();
+      reportContent.style.position = 'absolute';
+      reportContent.style.top = '0';
+      reportContent.style.left = '-9999px';
+      reportContent.style.width = '794px';
+      reportContent.style.zIndex = '-1';
+      document.body.appendChild(reportContent);
+      await new Promise(r => setTimeout(r, 300));
+
+      try {
+        await html2pdf().set(opt).from(reportContent).save();
+      } finally {
+        document.body.removeChild(reportContent);
+      }
       
       notifications.showInAppNotification('📊 דוח סטטיסטיקות נוצר בהצלחה!', 'success');
       console.log('✅ exportStatisticsReport: Report exported successfully');
