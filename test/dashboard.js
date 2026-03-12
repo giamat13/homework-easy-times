@@ -366,23 +366,23 @@ function renderCalEvents() {
     return;
   }
   const months = ['ינו','פבר','מרץ','אפר','מאי','יוני','יול','אוג','ספט','אוק','נוב','דצמ'];
-  wrapper.innerHTML = events.map(ev => {
+  wrapper.innerHTML = `<div class="cal-events-list">` + events.map(ev => {
     const d       = new Date(ev.start?.dateTime || ev.start?.date);
     const timeStr = ev.start?.dateTime ? d.toLocaleTimeString('he-IL',{hour:'2-digit',minute:'2-digit'}) : 'כל היום';
     return `
       <div class="cal-event">
-        <div class="cal-time-col">
-          <div class="cal-date">${d.getDate()}</div>
-          <div class="cal-month">${months[d.getMonth()]}</div>
+        <div class="cal-date-badge">
+          <div class="cal-date-day">${d.getDate()}</div>
+          <div class="cal-date-month">${months[d.getMonth()]}</div>
         </div>
         <div class="cal-divider"></div>
         <div class="cal-body">
           <div class="cal-title">${escHtml(ev.summary||'ללא כותרת')}</div>
           <div class="cal-time">${timeStr}</div>
         </div>
-        <div class="cal-dot"></div>
+        
       </div>`;
-  }).join('');
+  }).join('') + `</div>`;
 }
 
 // ── Utils ─────────────────────────────────────
