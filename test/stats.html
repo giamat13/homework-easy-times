@@ -74,6 +74,9 @@
       <div class="panel" id="gamification-panel"></div>
       <div class="panel statistics-panel" id="statistics-panel"></div>
     </div>
+
+    <!-- Exam Analytics Panel (student mode) -->
+    <div class="panel" id="exam-analytics-panel" style="margin-top:1.5rem;"></div>
   </div>
 
   <script src="config.js"></script>
@@ -89,23 +92,21 @@
   <script src="integration.js"></script>
   <script src="sync-fix.js"></script>
   <script src="delete-account.js"></script>
+  <script src="exam-analytics.js"></script>
 
   <script>
-    // קריאה לpanels לאחר auth
     document.addEventListener('DOMContentLoaded', () => {
       const observer = new MutationObserver(() => {
         const container = document.querySelector('.container');
         if (container && container.style.display !== 'none') {
           observer.disconnect();
-          // טעינת נתונים והצגת פאנלים
-          if (typeof gamification !== 'undefined') {
-            gamification.renderGamificationPanel();
-          }
+          if (typeof gamification !== 'undefined') gamification.renderGamificationPanel();
           if (typeof unifiedStatistics !== 'undefined') {
             unifiedStatistics.renderStatisticsPanel();
           } else if (typeof statistics !== 'undefined') {
             statistics.renderStatisticsPanel?.();
           }
+          if (typeof examAnalytics !== 'undefined') examAnalytics.render();
         }
       });
       const target = document.querySelector('.container') || document.body;
