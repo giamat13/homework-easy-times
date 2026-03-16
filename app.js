@@ -34,7 +34,8 @@ let settings = {
   autoBackup: false,
   darkMode: false,
   recentColors: [],
-  viewMode: 'list' // תצוגת ברירת מחדל
+  viewMode: 'list',
+  studentMode: true
 };
 let selectedColor = '#3b82f6';
 let showArchive = false;
@@ -45,8 +46,44 @@ let filters = {
   tags: []
 };
 let availableTags = [];
+let exams = [];
 
 // =============== טעינה ושמירה ===============
+
+
+// ── Add Task Modal ────────────────────────────
+function initAddTaskModal() {
+  const openBtn  = document.getElementById('open-add-task-modal');
+  const modal    = document.getElementById('add-task-modal');
+  const closeBtn = document.getElementById('close-add-task-modal');
+
+  if (!openBtn || !modal) return;
+
+  openBtn.addEventListener('click', () => {
+    modal.classList.remove('hidden');
+  });
+
+  closeBtn && closeBtn.addEventListener('click', () => {
+    modal.classList.add('hidden');
+  });
+
+  modal.addEventListener('click', (e) => {
+    if (e.target === modal) modal.classList.add('hidden');
+  });
+
+  // סגירה אחרי הוספת משימה
+  const addBtn = document.getElementById('add-homework');
+  if (addBtn) {
+    const origClick = addBtn.onclick;
+    addBtn.addEventListener('click', () => {
+      setTimeout(() => {
+        // רק אם הטופס התנקה (משמעות שהמשימה נשמרה)
+        const title = document.getElementById('hw-title');
+        if (title && title.value === '') modal.classList.add('hidden');
+      }, 100);
+    });
+  }
+}
 
 async function loadData() {
   console.log('🔄 loadData: Starting data load...');
@@ -62,6 +99,9 @@ async function loadData() {
     console.log('🏷️ loadData: Loading tags...');
     availableTags = await storage.get('homework-tags') || [];
     console.log('✅ loadData: Tags loaded:', availableTags.length, 'items');
+
+    exams = await storage.get('exams-list') || [];
+    console.log('✅ loadData: Exams loaded:', exams.length, 'items');
     
     console.log('⚙️ loadData: Loading settings...');
     settings = await storage.get('homework-settings') || {
@@ -74,6 +114,7 @@ async function loadData() {
       viewMode: 'list'
     };
     console.log('✅ loadData: Settings loaded:', settings);
+    await autoAdvanceGradeLevel();
     
     // החל מצב לילה אם נבחר
     if (settings.darkMode) {
@@ -117,6 +158,11 @@ async function loadData() {
     render();
     console.log('✅ loadData: Render complete');
     
+    // אתחול מודל הוספת משימה
+    initAddTaskModal();
+    initExamModal();
+    applyMode();
+
     // התחל בדיקת התראות אם מופעל
     if (settings.enableNotifications && notifications.permission === 'granted') {
       console.log('🔔 loadData: Starting periodic notification check...');
@@ -147,6 +193,7 @@ async function saveData() {
     await storage.set('homework-list', homework);
     await storage.set('homework-settings', settings);
     await storage.set('homework-tags', availableTags);
+    await storage.set('exams-list', exams);
     console.log('✅✅✅ saveData: הנתונים נשמרו בהצלחה');
   } catch (error) {
     console.error('❌❌❌ saveData: שגיאה בשמירת נתונים:', error);
@@ -429,92 +476,30 @@ function toggleHomeworkTag(homeworkId, tag) {
 // =============== רינדור ===============
 
 function renderSubjects() {
-  const list = document.getElementById('subject-list');
-  const select = document.getElementById('hw-subject');
+  const select       = document.getElementById('hw-subject');
   const filterSelect = document.getElementById('filter-subject');
-  
-  if (subjects.length === 0) {
-    list.innerHTML = '<p class="empty-state">טרם הוספו מקצועות</p>';
-  } else {
-    list.innerHTML = subjects.map(s => `
-      <div class="subject-item" style="border-color: ${s.color};">
-        <div class="subject-info">
-          <div class="subject-color" style="background-color: ${s.color};"></div>
-          <span class="subject-name">${s.name}</span>
-        </div>
-        <button class="icon-btn" onclick="deleteSubject('${s.id}')">
-          <svg width="16" height="16"><use href="#trash"></use></svg>
-        </button>
-      </div>
-    `).join('');
-  }
-  
-  const subjectOptions = '<option value="">בחר מקצוע</option>' + 
+  const examSelect   = document.getElementById('exam-subject');
+
+  const subjectOptions = '<option value="">בחר מקצוע</option>' +
     subjects.map(s => `<option value="${s.id}">${s.name}</option>`).join('');
-  
   if (select) select.innerHTML = subjectOptions;
-  
+  if (examSelect) {
+    const prevVal = examSelect.value;
+    examSelect.innerHTML = subjectOptions;
+    if (prevVal) examSelect.value = prevVal;
+  }
+
   if (filterSelect) {
-    filterSelect.innerHTML = '<option value="all">כל המקצועות</option>' + 
+    filterSelect.innerHTML = '<option value="all">כל המקצועות</option>' +
       subjects.map(s => `<option value="${s.id}" ${filters.subject == s.id ? 'selected' : ''}>${s.name}</option>`).join('');
   }
 }
 
 function renderFilters() {
-  const container = document.getElementById('filters-container');
-  if (!container) return;
-  
-  let html = `
-    <div class="filters-panel">
-      <h3>סינון משימות</h3>
-      
-      <div class="filter-group">
-        <label>מקצוע:</label>
-        <select class="select" id="filter-subject" onchange="setFilter('subject', this.value)">
-          <option value="all">כל המקצועות</option>
-        </select>
-      </div>
-      
-      <div class="filter-group">
-        <label>סטטוס:</label>
-        <select class="select" id="filter-status" onchange="setFilter('status', this.value)">
-          <option value="all" ${filters.status === 'all' ? 'selected' : ''}>הכל</option>
-          <option value="pending" ${filters.status === 'pending' ? 'selected' : ''}>ממתין</option>
-          <option value="completed" ${filters.status === 'completed' ? 'selected' : ''}>הושלם</option>
-        </select>
-      </div>
-      
-      <div class="filter-group">
-        <label>דחיפות:</label>
-        <select class="select" id="filter-urgency" onchange="setFilter('urgency', this.value)">
-          <option value="all" ${filters.urgency === 'all' ? 'selected' : ''}>הכל</option>
-          <option value="urgent" ${filters.urgency === 'urgent' ? 'selected' : ''}>דחוף (2 ימים)</option>
-          <option value="overdue" ${filters.urgency === 'overdue' ? 'selected' : ''}>באיחור</option>
-        </select>
-      </div>
-      
-      ${availableTags.length > 0 ? `
-        <div class="filter-group">
-          <label>תגיות:</label>
-          <div class="tags-filter">
-            ${availableTags.map(tag => `
-              <label class="tag-filter-item ${filters.tags.includes(tag) ? 'active' : ''}">
-                <input type="checkbox" ${filters.tags.includes(tag) ? 'checked' : ''} 
-                       onchange="toggleTagFilter('${tag}')">
-                <span>${tag}</span>
-              </label>
-            `).join('')}
-          </div>
-        </div>
-      ` : ''}
-      
-      <button class="btn btn-secondary" onclick="clearFilters()" style="margin-top: 1rem;">
-        נקה סינון
-      </button>
-    </div>
-  `;
-  
-  container.innerHTML = html;
+  const statusEl  = document.getElementById('filter-status');
+  const urgencyEl = document.getElementById('filter-urgency');
+  if (statusEl)  statusEl.value  = filters.status  || 'all';
+  if (urgencyEl) urgencyEl.value = filters.urgency || 'all';
   renderSubjects();
 }
 
@@ -563,19 +548,14 @@ function renderHomework() {
   const list = document.getElementById('homework-list');
   const archiveBtn = document.getElementById('archive-toggle');
 
-  // ⭐ בתצוגת לוח שנה - הסתר את כפתור הארכיון (הכל מוצג תמיד)
   if (settings.viewMode === 'calendar') {
     if (typeof calendar !== 'undefined' && calendar.renderCalendar) {
       calendar.renderCalendar();
-      
-      // הסתר את כפתור הארכיון בלוח שנה
       archiveBtn.classList.add('hidden');
-      
       return;
     }
   }
 
-  // בתצוגת רשימה - הצג את כפתור הארכיון כרגיל
   const activeHomework = homework.filter(h => {
     if (!h.completed) return true;
     return getDaysUntilDue(h.dueDate) >= 0;
@@ -586,9 +566,13 @@ function renderHomework() {
     return getDaysUntilDue(h.dueDate) < 0;
   });
 
-  if (archivedHomework.length > 0) {
+  // מבחנים בארכיון = הושלמו + תאריך עבר
+  const archivedExams = (exams || []).filter(e => e.completed && getDaysUntilDue(e.date) < 0);
+  const totalArchived = archivedHomework.length + archivedExams.length;
+
+  if (totalArchived > 0) {
     archiveBtn.classList.remove('hidden');
-    archiveBtn.textContent = showArchive ? 'הסתר ארכיון' : `ארכיון (${archivedHomework.length})`;
+    archiveBtn.textContent = showArchive ? 'הסתר ארכיון' : `ארכיון (${totalArchived})`;
   } else {
     archiveBtn.classList.add('hidden');
   }
@@ -596,8 +580,13 @@ function renderHomework() {
   let displayList = showArchive ? archivedHomework : activeHomework;
   displayList = getFilteredHomework(displayList);
 
-  if (displayList.length === 0) {
-    const message = showArchive ? 'אין פריטים בארכיון' : 'אין שיעורי בית להצגה';
+  // ── Google Tasks — מוסיף לרשימה המאוחדת ──
+  const gTasks = (typeof dashboardWidget !== 'undefined' && dashboardWidget.isConnected())
+    ? dashboardWidget.getTasks()
+    : [];
+
+  if (displayList.length === 0 && gTasks.length === 0 && (!showArchive || archivedExams.length === 0)) {
+    const message = showArchive ? 'אין פריטים בארכיון' : 'אין משימות להצגה';
     list.innerHTML = `<p class="empty-state">${message}</p>`;
     return;
   }
@@ -607,7 +596,135 @@ function renderHomework() {
     return new Date(a.dueDate) - new Date(b.dueDate);
   });
 
-  list.innerHTML = sorted.map(hw => {
+  // בנה HTML ל-Google Tasks
+  const today_gtask = new Date(); today_gtask.setHours(0,0,0,0);
+  const gTasksHTML = gTasks.map(t => {
+    const due  = t.due ? new Date(t.due) : null;
+    const days = due ? Math.round((due - today_gtask) / 86400000) : null;
+    let daysText = '', itemClass = 'homework-item';
+    if (due !== null) {
+      if      (days < 0)   { daysText = `באיחור של ${Math.abs(days)} ימים`; itemClass += ' overdue'; }
+      else if (days === 0) { daysText = 'היום!';       itemClass += ' urgent'; }
+      else if (days === 1) { daysText = 'מחר';         itemClass += ' urgent'; }
+      else if (days === 2) { daysText = 'מחרתיים';     itemClass += ' urgent'; }
+      else                 { daysText = `עוד ${days} ימים`; }
+    }
+    const esc = s => String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+    return `
+      <div class="${itemClass}" id="gtask-${t.id}">
+        <div class="homework-header">
+          <input type="checkbox" class="checkbox" onchange="completeGTask('${t.id}','${t.listId}',this)">
+          <div class="homework-content">
+            <div class="homework-badges">
+              <span class="badge" style="background:#6366f1">${esc(t.listTitle)}</span>
+              <span class="badge" style="background:#0ea5e9">Google Tasks</span>
+            </div>
+            <h3 class="homework-title">${esc(t.title || 'ללא כותרת')}</h3>
+            ${daysText ? `<div class="homework-meta"><span class="days-left ${days !== null && days < 0 ? 'overdue' : days !== null && days <= 2 ? 'urgent' : ''}">${daysText}</span></div>` : ''}
+          </div>
+        </div>
+      </div>`;
+  }).join('');
+
+  // מיזוג מבחנים לרשימה המאוחדת
+  const examsToShow = showArchive
+    ? archivedExams
+    : (exams || []).filter(e => !e.completed || getDaysUntilDue(e.date) >= 0);
+  const examItems = examsToShow.map(e => ({ ...e, _type: 'exam', dueDate: e.date }));
+
+  const allItems = [...sorted, ...examItems].sort((a, b) => {
+    if (a.completed !== b.completed) return a.completed ? 1 : -1;
+    return new Date(a.dueDate) - new Date(b.dueDate);
+  });
+
+  list.innerHTML = allItems.map(item => {
+    if (item._type === 'exam') {
+      // ── כרטיס מבחן ──
+      const exam = item;
+      const subject = subjects.find(s => s.id == exam.subject);
+      const daysLeft = getDaysUntilDue(exam.date);
+      const isUrgent  = daysLeft <= 3 && daysLeft >= 0 && !exam.completed;
+      const isOverdue = daysLeft < 0 && !exam.completed;
+
+      let daysText = '';
+      if (!exam.completed) {
+        if (isOverdue)       daysText = `עבר לפני ${Math.abs(daysLeft)} ימים`;
+        else if (daysLeft === 0) daysText = '⚠️ היום!';
+        else if (daysLeft === 1) daysText = '⚠️ מחר!';
+        else                 daysText = `עוד ${daysLeft} ימים`;
+      }
+
+      let borderColor = subject ? subject.color : '#8b5cf6';
+      if (isOverdue) borderColor = '#ef4444';
+      if (isUrgent)  borderColor = '#f59e0b';
+
+      const doneCnt  = (exam.topics || []).filter(t => t.done).length;
+      const totalCnt = (exam.topics || []).length;
+      const pct      = totalCnt ? Math.round((doneCnt / totalCnt) * 100) : null;
+
+      let classes = 'homework-item exam-item';
+      if (exam.completed) classes += ' completed exam-done';
+      if (isOverdue) classes += ' overdue exam-overdue';
+      else if (isUrgent) classes += ' urgent exam-urgent';
+
+      return `
+        <div class="${classes}" style="border-color:${borderColor};">
+          <div class="homework-header">
+            <input type="checkbox" class="checkbox" style="accent-color:#8b5cf6;"
+              ${exam.completed ? 'checked' : ''} onchange="toggleExamDone('${exam.id}')">
+            <div class="homework-content">
+              <div class="homework-badges">
+                <span class="badge exam-type-badge">📝 מבחן</span>
+                ${subject ? `<span class="badge" style="background:${subject.color};">${subject.name}</span>` : ''}
+                ${isOverdue ? '<span class="badge" style="background:#ef4444;">עבר!</span>' : ''}
+                ${isUrgent  ? '<span class="badge" style="background:#f59e0b;">קרוב!</span>' : ''}
+              </div>
+              <h3 class="homework-title ${exam.completed ? 'completed' : ''}">${exam.title}</h3>
+              ${exam.notes ? `<p class="homework-desc">${exam.notes}</p>` : ''}
+
+              ${totalCnt ? `
+                <div class="exam-topics" style="margin-top:0.6rem;">
+                  <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:0.35rem;">
+                    <span style="font-size:0.8rem;font-weight:600;color:#6b7280;">נושאים ללימוד</span>
+                    <span style="font-size:0.8rem;color:#8b5cf6;font-weight:600;">${doneCnt}/${totalCnt} (${pct}%)</span>
+                  </div>
+                  <div class="exam-progress-bar"><div class="exam-progress-fill" style="width:${pct}%;"></div></div>
+                  <div style="margin-top:0.45rem;">
+                    ${(exam.topics || []).map((t, i) => `
+                      <label class="exam-topic-check">
+                        <input type="checkbox" ${t.done ? 'checked' : ''} onchange="toggleExamTopic('${exam.id}', ${i})">
+                        <span style="${t.done ? 'text-decoration:line-through;color:#9ca3af;' : ''}">${t.name}</span>
+                      </label>`).join('')}
+                  </div>
+                </div>
+              ` : ''}
+
+              <div class="homework-meta" style="margin-top:0.5rem;">
+                <span>
+                  <svg width="16" height="16" style="display:inline;vertical-align:middle;"><use href="#calendar"></use></svg>
+                  ${new Date(exam.date).toLocaleDateString('he-IL')}
+                </span>
+                ${daysText ? `<span class="days-left ${isOverdue ? 'overdue' : isUrgent ? 'urgent' : ''}">${daysText}</span>` : ''}
+                ${exam.gradeFinal !== null && exam.gradeFinal !== undefined ? `
+                  <span class="exam-grade-badge" style="color:${exam.gradePct >= 90 ? '#16a34a' : exam.gradePct >= 75 ? '#2563eb' : exam.gradePct >= 55 ? '#d97706' : '#dc2626'};">
+                    🎯 ${exam.gradeFinal}${exam.gradeMax && exam.gradeMax !== 100 ? '/'+exam.gradeMax : ''} (${exam.gradePct}%)
+                  </span>` : ''}
+              </div>
+            </div>
+            <div style="display:flex;flex-direction:column;gap:0.35rem;align-items:center;">
+              <button class="icon-btn" onclick="openExamEditModal('${exam.id}')" title="עריכה" style="color:#7c3aed;">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+              </button>
+              <button class="icon-btn" onclick="deleteExam('${exam.id}')" title="מחיקה">
+                <svg width="18" height="18"><use href="#trash"></use></svg>
+              </button>
+            </div>
+          </div>
+        </div>`;
+    }
+
+    // ── כרטיס משימה ──
+    const hw = item;
     const subject = subjects.find(s => s.id == hw.subject);
     const daysLeft = getDaysUntilDue(hw.dueDate);
     const isUrgent = daysLeft <= 2 && !hw.completed;
@@ -630,7 +747,7 @@ function renderHomework() {
     return `
       <div class="${classes}" ${!hw.completed && !isOverdue && !isUrgent && subject ? `style="border-color: ${subject.color};"` : ''}>
         <div class="homework-header">
-          <input type="checkbox" class="checkbox" ${hw.completed ? 'checked' : ''} 
+          <input type="checkbox" class="checkbox" ${hw.completed ? 'checked' : ''}
                  onchange="toggleComplete(${hw.id})">
           <div class="homework-content">
             <div class="homework-badges">
@@ -650,14 +767,14 @@ function renderHomework() {
                 <ul>
                   ${hw.files.map(f => `
                     <li>
-                      ${f.name} 
+                      ${f.name}
                       <button onclick="downloadFile('${f.name}', '${f.data}')" class="btn btn-secondary" style="margin-left:0.5rem; padding: 0.25rem 0.5rem; width: auto; font-size: 0.75rem;">הורד</button>
                     </li>
                   `).join('')}
                 </ul>
               </div>
             ` : ''}
-            
+
             ${availableTags.length > 0 ? `
               <div class="homework-tags-selector">
                 <button class="btn btn-secondary" onclick="toggleTagEditor('${hw.id}')" style="padding: 0.25rem 0.5rem; width: auto; font-size: 0.75rem;">
@@ -667,7 +784,7 @@ function renderHomework() {
                 <div class="tags-editor hidden" id="tags-editor-${hw.id}">
                   ${availableTags.map(tag => `
                     <label class="tag-checkbox">
-                      <input type="checkbox" ${hw.tags && hw.tags.includes(tag) ? 'checked' : ''} 
+                      <input type="checkbox" ${hw.tags && hw.tags.includes(tag) ? 'checked' : ''}
                              onchange="toggleHomeworkTag(${hw.id}, '${tag}')">
                       ${tag}
                     </label>
@@ -690,7 +807,7 @@ function renderHomework() {
         </div>
       </div>
     `;
-  }).join('');
+  }).join('') + gTasksHTML;
 }
 
 function toggleTagEditor(homeworkId) {
@@ -703,12 +820,32 @@ function updateStats() {
   const completed = homework.filter(h => h.completed).length;
   const pending = homework.filter(h => !h.completed).length;
   const urgent = homework.filter(h => !h.completed && getDaysUntilDue(h.dueDate) <= 2).length;
-  
+
   document.getElementById('stat-total').textContent = total;
   document.getElementById('stat-completed').textContent = completed;
   document.getElementById('stat-pending').textContent = pending;
   document.getElementById('stat-urgent').textContent = urgent;
-  
+
+  // סטטיסטיקות מבחנים (מצב תלמיד)
+  if (settings.studentMode !== false) {
+    const examTotal    = (exams || []).length;
+    const examUpcoming = (exams || []).filter(e => !e.completed && getDaysUntilDue(e.date) >= 0).length;
+    const examSoon     = (exams || []).filter(e => !e.completed && getDaysUntilDue(e.date) >= 0 && getDaysUntilDue(e.date) <= 7).length;
+    const examDone     = (exams || []).filter(e => e.completed).length;
+
+    const el = id => document.getElementById(id);
+    if (el('stat-exam-total'))    el('stat-exam-total').textContent    = examTotal;
+    if (el('stat-exam-upcoming')) el('stat-exam-upcoming').textContent = examUpcoming;
+    if (el('stat-exam-soon'))     el('stat-exam-soon').textContent     = examSoon;
+    if (el('stat-exam-done'))     el('stat-exam-done').textContent     = examDone;
+
+    const examStatsRow = document.getElementById('exam-stats-row');
+    if (examStatsRow) examStatsRow.style.display = '';
+  } else {
+    const examStatsRow = document.getElementById('exam-stats-row');
+    if (examStatsRow) examStatsRow.style.display = 'none';
+  }
+
   if (typeof updateCharts === 'function') {
     updateCharts();
   }
@@ -720,6 +857,38 @@ function render() {
   renderFilters();
   renderTagSelector();
   updateStats();
+  applyMode();
+}
+
+function applyMode() {
+  const isStudent = settings.studentMode !== false;
+
+  // כותרת הרשימה
+  const listTitle = document.getElementById('list-panel-title');
+  if (listTitle) listTitle.textContent = isStudent ? 'רשימת משימות' : 'רשימת מטלות';
+
+  // כפתור הוסף מבחן
+  const examBtn = document.getElementById('open-add-exam-modal');
+  if (examBtn) examBtn.style.display = isStudent ? '' : 'none';
+
+  // סינון מקצוע
+  const subjectFilter = document.getElementById('filter-subject');
+  if (subjectFilter) subjectFilter.style.display = isStudent ? '' : 'none';
+
+  // שדה מקצוע + כפתור מקצוע חדש במודל
+  const subjectFormGroup = document.getElementById('hw-subject-group');
+  if (subjectFormGroup) subjectFormGroup.style.display = isStudent ? '' : 'none';
+
+  // Google Classroom בכותרת
+  const classroomSection = document.querySelector('.settings-section.classroom-section');
+  if (classroomSection) classroomSection.style.display = isStudent ? '' : 'none';
+
+  // הוסף/הסר class ל-body
+  // שדה שכבה ברירת מחדל בהגדרות
+  const defaultGradeSetting = document.getElementById('default-grade-setting');
+  if (defaultGradeSetting) defaultGradeSetting.style.display = isStudent ? '' : 'none';
+
+  document.body.classList.toggle('non-student-mode', !isStudent);
 }
 
 // =============== פעולות על מקצועות ===============
@@ -848,12 +1017,26 @@ function toggleComplete(id) {
   }
 }
 
+async function completeGTask(taskId, listId, checkbox) {
+  if (typeof dashboardWidget === 'undefined') return;
+  checkbox.disabled = true;
+  try {
+    await dashboardWidget.completeTask(taskId, listId, checkbox);
+    notifications.showInAppNotification('משימה הושלמה!', 'success');
+  } catch(e) {
+    checkbox.checked  = false;
+    checkbox.disabled = false;
+  }
+}
+
 function deleteHomework(id) {
-  const hw = homework.find(h => h.id === id);
+  // id can arrive as string from onclick attribute, convert to match stored type
+  const numId = Number(id);
+  const hw = homework.find(h => h.id === numId || h.id === id);
   if (!hw) return;
   
   if (confirm(`האם אתה בטוח שברצונך למחוק את המשימה "${hw.title}"?\n\n⚠️ פעולה זו לא ניתנת לביטול!`)) {
-    homework = homework.filter(h => h.id !== id);
+    homework = homework.filter(h => h.id !== numId && h.id !== id);
     saveData();
     render();
     notifications.showInAppNotification('המשימה נמחקה', 'success');
@@ -889,6 +1072,10 @@ async function loadSettingsUI() {
   setVal('auto-backup', settings.autoBackup);
   setVal('dark-mode-toggle', settings.darkMode);
   setVal('view-mode-toggle', settings.viewMode === 'calendar');
+  setVal('student-mode-toggle', settings.studentMode !== false);
+  if (typeof window.updateModeCards === 'function') window.updateModeCards();
+  const defaultGradeEl = document.getElementById('default-grade-level');
+  if (defaultGradeEl) defaultGradeEl.value = settings.defaultGradeLevel || '';
   
   try {
     const lastBackup = await storage.getLastBackupDate();
@@ -913,6 +1100,9 @@ async function saveSettings() {
   settings.notificationDays = parseInt(getVal('notification-days', 1));
   settings.notificationTime = getVal('notification-time', '09:00');
   settings.autoBackup = getChecked('auto-backup');
+  settings.studentMode = getChecked('student-mode-toggle');
+  settings.defaultGradeLevel = (document.getElementById('default-grade-level')?.value || '').trim();
+  applyMode();
   
   await storage.set('homework-settings', settings);
   
@@ -1066,9 +1256,67 @@ async function exportToPDF() {
           }).join('')}
         </tbody>
       </table>
-      
+
+      ${(exams && exams.length > 0 && settings.studentMode !== false) ? `
+      <h2 style="color: #7c3aed; font-size: 20px; margin: 30px 0 15px 0; border-bottom: 2px solid #ede9fe; padding-bottom: 8px;">
+        📝 מבחנים (${exams.length})
+      </h2>
+      <div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; margin-bottom: 20px;">
+        <div style="background: #f5f3ff; padding: 12px; border-radius: 8px; text-align: center; border: 1px solid #ede9fe;">
+          <div style="font-size: 28px; font-weight: bold; color: #7c3aed;">${exams.length}</div>
+          <div style="color: #6b7280; font-size: 13px; margin-top: 4px;">סך הכל</div>
+        </div>
+        <div style="background: #ecfdf5; padding: 12px; border-radius: 8px; text-align: center; border: 1px solid #bbf7d0;">
+          <div style="font-size: 28px; font-weight: bold; color: #059669;">${exams.filter(e => !e.completed && getDaysUntilDue(e.date) >= 0).length}</div>
+          <div style="color: #6b7280; font-size: 13px; margin-top: 4px;">קרובים</div>
+        </div>
+        <div style="background: #fffbeb; padding: 12px; border-radius: 8px; text-align: center; border: 1px solid #fde68a;">
+          <div style="font-size: 28px; font-weight: bold; color: #d97706;">${exams.filter(e => !e.completed && getDaysUntilDue(e.date) >= 0 && getDaysUntilDue(e.date) <= 7).length}</div>
+          <div style="color: #6b7280; font-size: 13px; margin-top: 4px;">השבוע</div>
+        </div>
+        <div style="background: #f0fdf4; padding: 12px; border-radius: 8px; text-align: center; border: 1px solid #bbf7d0;">
+          <div style="font-size: 28px; font-weight: bold; color: #16a34a;">${exams.filter(e => e.completed).length}</div>
+          <div style="color: #6b7280; font-size: 13px; margin-top: 4px;">הסתיימו</div>
+        </div>
+      </div>
+      <table style="width: 100%; border-collapse: collapse; margin-bottom: 30px;">
+        <thead>
+          <tr style="background: #7c3aed; color: white;">
+            <th style="padding: 12px; text-align: right; border: 1px solid #6d28d9;">שם המבחן</th>
+            <th style="padding: 12px; text-align: right; border: 1px solid #6d28d9;">מקצוע</th>
+            <th style="padding: 12px; text-align: right; border: 1px solid #6d28d9;">תאריך</th>
+            <th style="padding: 12px; text-align: right; border: 1px solid #6d28d9;">סטטוס</th>
+            <th style="padding: 12px; text-align: right; border: 1px solid #6d28d9;">נושאים</th>
+          </tr>
+        </thead>
+        <tbody>
+          ${[...exams].sort((a,b) => new Date(a.date) - new Date(b.date)).map((exam, idx) => {
+            const subject = subjects.find(s => s.id == exam.subject);
+            const daysLeft = getDaysUntilDue(exam.date);
+            const isOverdue = daysLeft < 0 && !exam.completed;
+            const isSoon = daysLeft >= 0 && daysLeft <= 7 && !exam.completed;
+            let status = exam.completed ? '✅ הסתיים' : (isOverdue ? '⚠️ עבר' : (isSoon ? '🔥 קרוב' : '📅 קרוב'));
+            let bg = idx % 2 === 0 ? '#f9fafb' : 'white';
+            if (isOverdue) bg = '#fef2f2';
+            if (isSoon && !isOverdue) bg = '#fffbeb';
+            const doneCnt = (exam.topics || []).filter(t => t.done).length;
+            const totalCnt = (exam.topics || []).length;
+            return `
+              <tr style="background: ${bg};">
+                <td style="padding: 10px; border: 1px solid #e5e7eb; ${exam.completed ? 'text-decoration:line-through;color:#9ca3af;' : ''}">${exam.title}</td>
+                <td style="padding: 10px; border: 1px solid #e5e7eb;">
+                  ${subject ? `<span style="display:inline-block;padding:3px 8px;background:${subject.color};color:white;border-radius:4px;font-size:12px;">${subject.name}</span>` : '-'}
+                </td>
+                <td style="padding: 10px; border: 1px solid #e5e7eb;">${new Date(exam.date).toLocaleDateString('he-IL')}</td>
+                <td style="padding: 10px; border: 1px solid #e5e7eb;">${status}</td>
+                <td style="padding: 10px; border: 1px solid #e5e7eb;">${totalCnt ? `${doneCnt}/${totalCnt} נלמדו` : '-'}</td>
+              </tr>`;
+          }).join('')}
+        </tbody>
+      </table>` : ''}
+
       <div style="margin-top: 40px; text-align: center; color: #6b7280; font-size: 12px; border-top: 1px solid #e5e7eb; padding-top: 20px;">
-        <p>מערכת ניהול שיעורי בית</p>
+        <p>מערכת ניהול משימות</p>
         <p>© ${new Date().getFullYear()} - נוצר ב-${new Date().toLocaleString('he-IL')}</p>
       </div>
     `;
@@ -1120,6 +1368,13 @@ async function exportToExcel() {
     csvContent += 'סטטיסטיקות\n';
     csvContent += 'סך הכל,הושלמו,ממתינים,דחופים\n';
     csvContent += `${homework.length},${homework.filter(h => h.completed).length},${homework.filter(h => !h.completed).length},${homework.filter(h => !h.completed && getDaysUntilDue(h.dueDate) <= 2).length}\n\n`;
+
+    // סטטיסטיקות מבחנים
+    if (settings.studentMode !== false && exams && exams.length > 0) {
+      csvContent += 'סטטיסטיקות מבחנים\n';
+      csvContent += 'סך הכל,קרובים,השבוע,הסתיימו\n';
+      csvContent += `${exams.length},${exams.filter(e => !e.completed && getDaysUntilDue(e.date) >= 0).length},${exams.filter(e => !e.completed && getDaysUntilDue(e.date) >= 0 && getDaysUntilDue(e.date) <= 7).length},${exams.filter(e => e.completed).length}\n\n`;
+    }
     
     // מקצועות
     csvContent += 'מקצועות\n';
@@ -1153,6 +1408,22 @@ async function exportToExcel() {
       csvContent += `"${hw.title}","${subject ? subject.name : '-'}","${description}",${new Date(hw.dueDate).toLocaleDateString('he-IL')},${hw.priority},${status},${daysText},"${tags}"\n`;
     });
     
+    // מבחנים
+    if (settings.studentMode !== false && exams && exams.length > 0) {
+      csvContent += 'מבחנים\n';
+      csvContent += 'שם המבחן,מקצוע,תאריך,סטטוס,נושאים שנלמדו,סה"כ נושאים\n';
+      [...exams].sort((a, b) => new Date(a.date) - new Date(b.date)).forEach(exam => {
+        const subject = subjects.find(s => s.id == exam.subject);
+        const daysLeft = getDaysUntilDue(exam.date);
+        let status = exam.completed ? 'הסתיים' : (daysLeft < 0 ? 'עבר' : (daysLeft <= 7 ? 'קרוב' : 'מתוכנן'));
+        const doneCnt  = (exam.topics || []).filter(t => t.done).length;
+        const totalCnt = (exam.topics || []).length;
+        const notes = exam.notes ? exam.notes.replace(/,/g, '،').replace(/\n/g, ' ') : '';
+        csvContent += `"${exam.title}","${subject ? subject.name : '-'}",${new Date(exam.date).toLocaleDateString('he-IL')},${status},${doneCnt},${totalCnt},"${notes}"\n`;
+      });
+      csvContent += '\n';
+    }
+
     // יצירת Blob והורדה
     const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
     const url = URL.createObjectURL(blob);
@@ -1330,6 +1601,31 @@ function initializeEventListeners() {
   const autoBackup = document.getElementById('auto-backup');
   if (autoBackup) autoBackup.addEventListener('change', saveSettings);
 
+  const studentModeToggle = document.getElementById('student-mode-toggle');
+  if (studentModeToggle) studentModeToggle.addEventListener('change', saveSettings);
+
+  const defaultGradeLevelInput = document.getElementById('default-grade-level');
+  if (defaultGradeLevelInput) defaultGradeLevelInput.addEventListener('change', saveSettings);
+
+  // כרטיסי מצב שימוש
+  const modeStudentCard = document.getElementById('mode-student-card');
+  const modeOtherCard   = document.getElementById('mode-other-card');
+  window.updateModeCards = function() {
+    const toggle = document.getElementById('student-mode-toggle');
+    const isStudent = toggle ? toggle.checked : true;
+    if (modeStudentCard) modeStudentCard.classList.toggle('active', isStudent);
+    if (modeOtherCard)   modeOtherCard.classList.toggle('active', !isStudent);
+  };
+  if (modeStudentCard) modeStudentCard.addEventListener('click', () => {
+    const toggle = document.getElementById('student-mode-toggle');
+    if (toggle) { toggle.checked = true; window.updateModeCards(); saveSettings(); }
+  });
+  if (modeOtherCard) modeOtherCard.addEventListener('click', () => {
+    const toggle = document.getElementById('student-mode-toggle');
+    if (toggle) { toggle.checked = false; window.updateModeCards(); saveSettings(); }
+  });
+  window.openSettings = function() { origOpenSettings && origOpenSettings(); window.updateModeCards(); };
+
   // ייבוא/ייצוא
   const exportDataBtn = document.getElementById('export-data');
   if (exportDataBtn) exportDataBtn.addEventListener('click', exportData);
@@ -1352,7 +1648,557 @@ function initializeEventListeners() {
   console.log('✅ initializeEventListeners: Complete');
 }
 
+// =============== מבחנים ===============
+
+function initExamModal() {
+  const openBtn  = document.getElementById('open-add-exam-modal');
+  const modal    = document.getElementById('add-exam-modal');
+  const closeBtn = document.getElementById('close-add-exam-modal');
+  if (!openBtn || !modal) return;
+
+  openBtn.addEventListener('click', () => {
+    modal.classList.remove('hidden');
+    // מלא שכבה ברירת מחדל
+    const classEl = document.getElementById('exam-class');
+    if (classEl && !classEl.value && settings.defaultGradeLevel) {
+      classEl.value = settings.defaultGradeLevel;
+    }
+    renderExamTopicsEditor();
+  });
+  closeBtn && closeBtn.addEventListener('click', () => modal.classList.add('hidden'));
+  modal.addEventListener('click', e => { if (e.target === modal) modal.classList.add('hidden'); });
+
+  const saveBtn = document.getElementById('save-exam-btn');
+  if (saveBtn) saveBtn.onclick = addExam;
+
+  const addTopicBtn = document.getElementById('add-exam-topic-btn');
+  if (addTopicBtn) addTopicBtn.addEventListener('click', addExamTopic);
+
+  const topicInput = document.getElementById('new-exam-topic');
+  if (topicInput) topicInput.addEventListener('keydown', e => { if (e.key === 'Enter') { e.preventDefault(); addExamTopic(); } });
+
+  // אתחול מודל ציון
+  const gradeModal    = document.getElementById('grade-modal');
+  const closeGradeBtn = document.getElementById('close-grade-modal');
+  if (closeGradeBtn && gradeModal) {
+    closeGradeBtn.addEventListener('click', () => gradeModal.classList.add('hidden'));
+    gradeModal.addEventListener('click', e => { if (e.target === gradeModal) gradeModal.classList.add('hidden'); });
+  }
+
+  // חישוב אוטומטי בטופס עריכה
+  function recalcEditGrade() {
+    const grade      = parseFloat(document.getElementById('exam-grade')?.value);
+    const bonus      = parseFloat(document.getElementById('exam-grade-bonus')?.value) || 0;
+    const correction = parseFloat(document.getElementById('exam-grade-correction')?.value);
+    const max        = parseFloat(document.getElementById('exam-grade-max')?.value) || 100;
+    const finalEl    = document.getElementById('exam-grade-final-display');
+    const pctEl      = document.getElementById('exam-grade-pct-display');
+    const finalGrade = !isNaN(correction) ? correction : (!isNaN(grade) ? Math.min(grade + bonus, max) : null);
+    if (finalEl) {
+      finalEl.textContent = finalGrade !== null ? finalGrade : '—';
+      finalEl.style.color = finalGrade !== null
+        ? (finalGrade/max >= 0.9 ? '#16a34a' : finalGrade/max >= 0.75 ? '#2563eb' : finalGrade/max >= 0.55 ? '#d97706' : '#dc2626')
+        : '#7c3aed';
+    }
+    if (pctEl) pctEl.textContent = finalGrade !== null ? Math.round((finalGrade/max)*100)+'%' : '';
+  }
+  ['exam-grade','exam-grade-bonus','exam-grade-correction','exam-grade-max'].forEach(id => {
+    const el = document.getElementById(id);
+    if (el) el.addEventListener('input', recalcEditGrade);
+  });
+}
+
+function renderExamTopicsEditor(topics) {
+  const list = document.getElementById('exam-topics-list');
+  if (!list) return;
+  const arr = topics || window._examTopicsTemp || [];
+  window._examTopicsTemp = arr;
+  list.innerHTML = arr.length === 0 ? '<p style="color:#9ca3af;font-size:0.85rem;">טרם הוספת נושאים</p>' :
+    arr.map((t, i) => `
+      <div class="exam-topic-row" style="display:flex;align-items:center;gap:0.5rem;margin-bottom:0.4rem;">
+        <input type="checkbox" class="checkbox" style="width:1.2rem;height:1.2rem;margin-top:0;" ${t.done ? 'checked' : ''}
+          onchange="updateTempTopic(${i}, 'done', this.checked)">
+        <span style="flex:1;${t.done ? 'text-decoration:line-through;color:#9ca3af;' : ''}">${t.name}</span>
+        <button onclick="removeTempTopic(${i})" style="background:none;border:none;cursor:pointer;color:#ef4444;font-size:1.1rem;padding:0 0.25rem;">×</button>
+      </div>`).join('');
+}
+
+function addExamTopic() {
+  const input = document.getElementById('new-exam-topic');
+  const val = input.value.trim();
+  if (!val) return;
+  window._examTopicsTemp = window._examTopicsTemp || [];
+  window._examTopicsTemp.push({ name: val, done: false });
+  input.value = '';
+  renderExamTopicsEditor();
+}
+
+function removeTempTopic(i) {
+  window._examTopicsTemp.splice(i, 1);
+  renderExamTopicsEditor();
+}
+
+function updateTempTopic(i, key, val) {
+  if (window._examTopicsTemp && window._examTopicsTemp[i]) {
+    window._examTopicsTemp[i][key] = val;
+    renderExamTopicsEditor();
+  }
+}
+
+function onExamTypeChange() {
+  const type = document.getElementById('exam-type')?.value;
+  const otherEl = document.getElementById('exam-type-other');
+  if (otherEl) otherEl.style.display = (type === 'other') ? '' : 'none';
+}
+
+function onExamTermChange() {
+  const term = (document.getElementById('exam-term')?.value || '');
+  const rowB = document.getElementById('exam-date-b-row');
+  const rowC = document.getElementById('exam-date-c-row');
+  if (rowB) rowB.style.display = (term === 'ב' || term === 'ג') ? '' : 'none';
+  if (rowC) rowC.style.display = (term === 'ג') ? '' : 'none';
+}
+
+function calcFinalGrade(grade, bonus, correction, max, mode) {
+  const base = grade !== null ? Math.min(grade + (bonus || 0), max) : null;
+  if (correction === null) return base;
+  if (mode === 'highest') return base !== null ? Math.max(base, correction) : correction;
+  return correction; // replace (default)
+}
+
+function addExam() {
+  const g = id => { const el = document.getElementById(id); return el ? el.value : ''; };
+  const gNum = id => { const v = parseFloat(g(id)); return isNaN(v) ? null : v; };
+
+  const subject  = g('exam-subject');
+  const title    = g('exam-title').trim();
+  const date     = g('exam-date');
+  const dateB    = g('exam-date-b');
+  const dateC    = g('exam-date-c');
+
+  const termVal = g('exam-term');
+  const rowBVisible = document.getElementById('exam-date-b-row')?.style.display !== 'none';
+  const rowCVisible = document.getElementById('exam-date-c-row')?.style.display !== 'none';
+  if (!subject || !date) {
+    notifications.showInAppNotification('נא למלא מקצוע ותאריך', 'error');
+    return;
+  }
+  if (rowBVisible && !dateB) {
+    notifications.showInAppNotification('נא למלא תאריך מועד ב׳', 'error');
+    return;
+  }
+  if (rowCVisible && !dateC) {
+    notifications.showInAppNotification('נא למלא תאריך מועד ג׳', 'error');
+    return;
+  }
+
+  const grade         = gNum('exam-grade');
+  const gradeBonus    = gNum('exam-grade-bonus') || 0;
+  const gradeCorrection = gNum('exam-grade-correction');
+  const gradeMax      = gNum('exam-grade-max') || 100;
+
+  const correctionMode = g('exam-correction-mode') || 'replace';
+  const gradeFinal = calcFinalGrade(grade, gradeBonus, gradeCorrection, gradeMax, correctionMode);
+
+  const pct = (gradeFinal !== null) ? Math.round((gradeFinal / gradeMax) * 100) : null;
+
+  const newExam = {
+    id: Date.now(),
+    subject,
+    title,
+    date,
+    class: g('exam-class').trim(),
+    type: g('exam-type') || 'exam',
+    typeOther: g('exam-type') === 'other' ? (document.getElementById('exam-type-other')?.value.trim() || '') : '',
+    term: g('exam-term'),
+    semester: g('exam-semester'),
+    dateB,
+    dateC,
+    gradeExpected: gNum('exam-grade-expected'),
+    grade,
+    gradeBonus,
+    gradeCorrection,
+    correctionMode,
+    gradeFinal,
+    gradeMax,
+    gradePct: pct,
+    weight: gNum('exam-weight'),
+    link: g('exam-link').trim(),
+    notes: g('exam-notes').trim(),
+    topics: window._examTopicsTemp || [],
+    completed: false
+  };
+
+  exams.push(newExam);
+  window._examTopicsTemp = [];
+
+  if (typeof gamification !== 'undefined') gamification.onExamAdded(newExam);
+
+  // ניקוי שדות
+  ['exam-subject','exam-title','exam-date','exam-date-b','exam-date-c','exam-class','exam-term','exam-semester','exam-type-other','exam-correction-mode',
+   'exam-grade-expected','exam-grade','exam-grade-max','exam-grade-bonus',
+   'exam-grade-correction','exam-grade-final','exam-weight','exam-link','exam-notes'
+  ].forEach(id => { const el = document.getElementById(id); if (el) el.value = ''; });
+  const pctEl = document.getElementById('exam-pct-text');
+  if (pctEl) pctEl.textContent = '—';
+
+  saveData();
+  render();
+  document.getElementById('add-exam-modal').classList.add('hidden');
+  notifications.showInAppNotification(`המבחן "${title}" נוסף בהצלחה 📝`, 'success');
+}
+
+function deleteExam(id) {
+  const numId = Number(id);
+  const exam = exams.find(e => e.id === numId || e.id === id);
+  if (!exam) return;
+  if (confirm(`למחוק את המבחן "${exam.title}"?`)) {
+    exams = exams.filter(e => e.id !== numId && e.id !== id);
+    saveData();
+    render();
+    notifications.showInAppNotification('המבחן נמחק', 'success');
+  }
+}
+
+function toggleExamDone(id) {
+  const numId = Number(id);
+  const exam = exams.find(e => e.id === numId || e.id === id);
+  if (!exam) return;
+
+  if (!exam.completed) {
+    // סימון הסתיים → פתח מודל ציון
+    openGradeModal(exam);
+  } else {
+    // ביטול הסתיים
+    exam.completed = false;
+    saveData();
+    render();
+  }
+}
+
+function openGradeModal(exam) {
+  const modal = document.getElementById('grade-modal');
+  if (!modal) return;
+
+  document.getElementById('grade-modal-title').textContent = `🎯 ${exam.title} — הזנת ציון`;
+  document.getElementById('grade-exam-id').value = exam.id;
+
+  // מלא ערכים קיימים
+  const set = (id, val) => { const el = document.getElementById(id); if (el) el.value = val ?? ''; };
+  set('grade-max',        exam.gradeMax || 100);
+  set('grade-value',      exam.grade ?? '');
+  set('grade-bonus',      exam.gradeBonus || '');
+  set('grade-correction',      exam.gradeCorrection ?? '');
+  set('grade-correction-mode', exam.correctionMode || 'replace');
+  set('grade-expected',   exam.gradeExpected ?? '');
+
+  recalcGradeModal();
+  modal.classList.remove('hidden');
+}
+
+function recalcGradeModal() {
+  const grade      = parseFloat(document.getElementById('grade-value')?.value);
+  const bonus      = parseFloat(document.getElementById('grade-bonus')?.value) || 0;
+  const correction = parseFloat(document.getElementById('grade-correction')?.value);
+  const max        = parseFloat(document.getElementById('grade-max')?.value) || 100;
+  const finalEl    = document.getElementById('grade-final-display');
+  const pctEl      = document.getElementById('grade-pct-display');
+
+  const corrMode = document.getElementById('grade-correction-mode')?.value || 'replace';
+  const gradeVal = !isNaN(grade) ? grade : null;
+  const corrVal  = !isNaN(correction) ? correction : null;
+  const finalGrade = calcFinalGrade(gradeVal, bonus, corrVal, max, corrMode);
+
+  if (finalEl) {
+    finalEl.textContent = finalGrade !== null ? finalGrade : '—';
+    finalEl.style.color = finalGrade !== null
+      ? (finalGrade/max >= 0.9 ? '#16a34a' : finalGrade/max >= 0.75 ? '#2563eb' : finalGrade/max >= 0.55 ? '#d97706' : '#dc2626')
+      : '#9ca3af';
+  }
+  if (pctEl && finalGrade !== null) {
+    const pct = Math.round((finalGrade / max) * 100);
+    pctEl.textContent = pct + '%';
+    pctEl.style.color = pct >= 90 ? '#16a34a' : pct >= 75 ? '#2563eb' : pct >= 55 ? '#d97706' : '#dc2626';
+  } else if (pctEl) {
+    pctEl.textContent = '—';
+    pctEl.style.color = '#9ca3af';
+  }
+}
+
+function saveGrade() {
+  const id   = Number(document.getElementById('grade-exam-id').value);
+  const exam = exams.find(e => e.id === id);
+  if (!exam) return;
+
+  const gNum = elId => { const v = parseFloat(document.getElementById(elId)?.value); return isNaN(v) ? null : v; };
+  exam.grade           = gNum('grade-value');
+  exam.gradeBonus      = gNum('grade-bonus') || 0;
+  exam.gradeCorrection = gNum('grade-correction');
+  exam.gradeMax        = gNum('grade-max') || 100;
+  exam.gradeExpected   = gNum('grade-expected');
+
+  exam.correctionMode = document.getElementById('grade-correction-mode')?.value || 'replace';
+  const finalGrade = calcFinalGrade(exam.grade, exam.gradeBonus, exam.gradeCorrection, exam.gradeMax, exam.correctionMode);
+  exam.gradeFinal = finalGrade;
+  exam.gradePct   = finalGrade !== null ? Math.round((finalGrade / exam.gradeMax) * 100) : null;
+
+  exam.completed = true;
+  if (typeof gamification !== 'undefined') gamification.onExamCompleted(exam);
+
+  saveData();
+  render();
+  document.getElementById('grade-modal').classList.add('hidden');
+  notifications.showInAppNotification(
+    finalGrade !== null ? `✅ המבחן הסתיים — ציון: ${finalGrade}` : '✅ המבחן סומן כהסתיים',
+    'success'
+  );
+}
+
+function openExamEditModal(id) {
+  const numId = Number(id);
+  const exam  = exams.find(e => e.id === numId || e.id === id);
+  if (!exam) return;
+
+  // עדכן כותרת
+  document.getElementById('add-exam-modal').querySelector('h2').textContent = '✏️ עריכת מבחן';
+  document.getElementById('save-exam-btn').textContent = 'שמור שינויים';
+  document.getElementById('save-exam-btn').onclick = () => saveExamEdit(exam.id);
+
+  const set = (elId, val) => { const el = document.getElementById(elId); if (el) el.value = val ?? ''; };
+  set('exam-subject',          exam.subject);
+  set('exam-title',            exam.title);
+  set('exam-date',             exam.date);
+  set('exam-class',            exam.class || '');
+  set('exam-type',             exam.type || 'exam');
+  const typeOtherEl = document.getElementById('exam-type-other');
+  if (typeOtherEl) { typeOtherEl.value = exam.typeOther || ''; typeOtherEl.style.display = exam.type === 'other' ? '' : 'none'; }
+  set('exam-term',             exam.term || '');
+  set('exam-semester',         exam.semester || '');
+  set('exam-date-b',           exam.dateB || '');
+  set('exam-date-c',           exam.dateC || '');
+  onExamTermChange();
+  set('exam-grade-expected',   exam.gradeExpected ?? '');
+  set('exam-grade',            exam.grade ?? '');
+  set('exam-grade-max',        exam.gradeMax || 100);
+  set('exam-grade-bonus',      exam.gradeBonus || '');
+  set('exam-grade-correction', exam.gradeCorrection ?? '');
+  set('exam-correction-mode',   exam.correctionMode || 'replace');
+  set('exam-weight',           exam.weight ?? '');
+  set('exam-link',             exam.link || '');
+  set('exam-notes',            exam.notes || '');
+
+  window._examTopicsTemp = (exam.topics || []).map(t => ({ ...t }));
+  renderExamTopicsEditor();
+
+  // הצג שדות ציון בעריכה
+  const gradeSection = document.getElementById('exam-grade-section');
+  if (gradeSection) gradeSection.style.display = '';
+
+  document.getElementById('add-exam-modal').classList.remove('hidden');
+}
+
+function saveExamEdit(id) {
+  const numId = Number(id);
+  const exam  = exams.find(e => e.id === numId || e.id === id);
+  if (!exam) return;
+
+  const g    = elId => { const el = document.getElementById(elId); return el ? el.value : ''; };
+  const gNum = elId => { const v = parseFloat(g(elId)); return isNaN(v) ? null : v; };
+
+  if (!g('exam-subject') || !g('exam-date')) {
+    notifications.showInAppNotification('נא למלא מקצוע ותאריך', 'error');
+    return;
+  }
+  const _rowBVisible = document.getElementById('exam-date-b-row')?.style.display !== 'none';
+  const _rowCVisible = document.getElementById('exam-date-c-row')?.style.display !== 'none';
+  if (_rowBVisible && !g('exam-date-b')) {
+    notifications.showInAppNotification('נא למלא תאריך מועד ב׳', 'error');
+    return;
+  }
+  if (_rowCVisible && !g('exam-date-c')) {
+    notifications.showInAppNotification('נא למלא תאריך מועד ג׳', 'error');
+    return;
+  }
+
+  exam.subject       = g('exam-subject');
+  exam.title         = g('exam-title').trim();
+  exam.date          = g('exam-date');
+  exam.class         = g('exam-class').trim();
+  exam.type          = g('exam-type') || 'exam';
+  exam.typeOther     = exam.type === 'other' ? (document.getElementById('exam-type-other')?.value.trim() || '') : '';
+  exam.term          = g('exam-term');
+  exam.semester      = g('exam-semester');
+  exam.dateB         = g('exam-date-b');
+  exam.dateC         = g('exam-date-c');
+  exam.gradeExpected = gNum('exam-grade-expected');
+  exam.grade         = gNum('exam-grade');
+  exam.gradeBonus    = gNum('exam-grade-bonus') || 0;
+  exam.gradeCorrection = gNum('exam-grade-correction');
+  exam.gradeMax      = gNum('exam-grade-max') || 100;
+  exam.weight        = gNum('exam-weight');
+  exam.link          = g('exam-link').trim();
+  exam.notes         = g('exam-notes').trim();
+  exam.topics        = window._examTopicsTemp || [];
+
+  exam.correctionMode = g('exam-correction-mode') || 'replace';
+  const finalGrade = calcFinalGrade(exam.grade, exam.gradeBonus, exam.gradeCorrection, exam.gradeMax, exam.correctionMode);
+  exam.gradeFinal = finalGrade;
+  exam.gradePct   = finalGrade !== null ? Math.round((finalGrade / exam.gradeMax) * 100) : null;
+
+  window._examTopicsTemp = [];
+
+  // איפוס כפתור לברירת מחדל
+  const saveBtn = document.getElementById('save-exam-btn');
+  if (saveBtn) { saveBtn.textContent = 'שמור מבחן'; saveBtn.onclick = addExam; }
+  document.getElementById('add-exam-modal').querySelector('h2').textContent = '📝 הוסף מבחן חדש';
+
+  saveData();
+  render();
+  document.getElementById('add-exam-modal').classList.add('hidden');
+  notifications.showInAppNotification(`המבחן "${exam.title}" עודכן`, 'success');
+}
+
+function toggleExamTopic(examId, topicIndex) {
+  const numId = Number(examId);
+  const exam = exams.find(e => e.id === numId || e.id === examId);
+  if (!exam || !exam.topics[topicIndex]) return;
+  const wasDone = exam.topics[topicIndex].done;
+  exam.topics[topicIndex].done = !wasDone;
+  if (typeof gamification !== 'undefined') {
+    if (!wasDone) gamification.onTopicDone(exam);
+    else gamification.onTopicUndone();
+  }
+  saveData();
+  render();
+}
+
+function renderExams() {
+  const container = document.getElementById('exams-section');
+  if (!container) return;
+
+  const upcoming = exams
+    .filter(e => !e.completed)
+    .sort((a, b) => new Date(a.date) - new Date(b.date));
+
+  const done = exams.filter(e => e.completed);
+
+  if (exams.length === 0) {
+    container.innerHTML = '<p style="color:#9ca3af;font-size:0.9rem;text-align:center;padding:1rem 0;">אין מבחנים קרובים</p>';
+    return;
+  }
+
+  const renderExamCard = (exam) => {
+    const subject = subjects.find(s => s.id == exam.subject);
+    const daysLeft = getDaysUntilDue(exam.date);
+    const isOverdue = daysLeft < 0 && !exam.completed;
+    const isUrgent  = daysLeft <= 3 && daysLeft >= 0 && !exam.completed;
+
+    let daysText = '';
+    if (!exam.completed) {
+      if (isOverdue) daysText = `עבר לפני ${Math.abs(daysLeft)} ימים`;
+      else if (daysLeft === 0) daysText = '⚠️ היום!';
+      else if (daysLeft === 1) daysText = '⚠️ מחר!';
+      else daysText = `עוד ${daysLeft} ימים`;
+    }
+
+    const doneCnt  = (exam.topics || []).filter(t => t.done).length;
+    const totalCnt = (exam.topics || []).length;
+    const pct      = totalCnt ? Math.round((doneCnt / totalCnt) * 100) : null;
+
+    let borderColor = subject ? subject.color : '#8b5cf6';
+    if (isOverdue) borderColor = '#ef4444';
+    if (isUrgent)  borderColor = '#f59e0b';
+
+    return `
+      <div class="exam-card ${exam.completed ? 'exam-done' : ''} ${isOverdue ? 'exam-overdue' : ''} ${isUrgent ? 'exam-urgent' : ''}"
+           style="border-left: 4px solid ${borderColor};">
+        <div style="display:flex;align-items:start;gap:0.75rem;">
+          <input type="checkbox" class="checkbox" style="width:1.3rem;height:1.3rem;accent-color:#8b5cf6;margin-top:0.2rem;"
+            ${exam.completed ? 'checked' : ''} onchange="toggleExamDone('${exam.id}')">
+          <div style="flex:1;">
+            <div class="homework-badges" style="margin-bottom:0.4rem;">
+              <span class="badge" style="background:#8b5cf6;">📝 מבחן</span>
+              ${subject ? `<span class="badge" style="background:${subject.color};">${subject.name}</span>` : ''}
+              ${isOverdue ? '<span class="badge" style="background:#ef4444;">עבר!</span>' : ''}
+              ${isUrgent  ? '<span class="badge" style="background:#f59e0b;">קרוב!</span>' : ''}
+            </div>
+            <h3 class="homework-title ${exam.completed ? 'completed' : ''}" style="margin-bottom:0.35rem;">${exam.title}</h3>
+            ${exam.notes ? `<p class="homework-desc">${exam.notes}</p>` : ''}
+
+            <div class="homework-meta" style="margin-bottom:${totalCnt ? '0.75rem' : '0'};">
+              <span>📅 ${new Date(exam.date).toLocaleDateString('he-IL')}</span>
+              ${daysText ? `<span class="days-left ${isOverdue ? 'overdue' : isUrgent ? 'urgent' : ''}">${daysText}</span>` : ''}
+            </div>
+
+            ${totalCnt ? `
+              <div class="exam-topics">
+                <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:0.4rem;">
+                  <span style="font-size:0.82rem;font-weight:600;color:#6b7280;">נושאים ללימוד</span>
+                  <span style="font-size:0.82rem;color:#8b5cf6;font-weight:600;">${doneCnt}/${totalCnt} (${pct}%)</span>
+                </div>
+                <div class="exam-progress-bar">
+                  <div class="exam-progress-fill" style="width:${pct}%;"></div>
+                </div>
+                <div style="margin-top:0.5rem;">
+                  ${(exam.topics || []).map((t, i) => `
+                    <label class="exam-topic-check">
+                      <input type="checkbox" ${t.done ? 'checked' : ''} onchange="toggleExamTopic('${exam.id}', ${i})">
+                      <span style="${t.done ? 'text-decoration:line-through;color:#9ca3af;' : ''}">${t.name}</span>
+                    </label>
+                  `).join('')}
+                </div>
+              </div>
+            ` : ''}
+          </div>
+          <button class="icon-btn" onclick="deleteExam('${exam.id}')" title="מחק מבחן">
+            <svg width="20" height="20"><use href="#trash"></use></svg>
+          </button>
+        </div>
+      </div>`;
+  };
+
+  container.innerHTML = upcoming.map(renderExamCard).join('') +
+    (done.length ? `
+      <div style="margin-top:1rem;">
+        <p style="font-size:0.82rem;color:#9ca3af;margin-bottom:0.5rem;">מבחנים שהסתיימו (${done.length})</p>
+        ${done.map(renderExamCard).join('')}
+      </div>` : '');
+}
+
+function saveGradeSkip() {
+  const id   = Number(document.getElementById('grade-exam-id').value);
+  const exam = exams.find(e => e.id === id);
+  if (!exam) return;
+  exam.completed = true;
+  if (typeof gamification !== 'undefined') gamification.onExamCompleted(exam);
+  saveData();
+  render();
+  document.getElementById('grade-modal').classList.add('hidden');
+  notifications.showInAppNotification('✅ המבחן סומן כהסתיים', 'success');
+}
+
 // =============== אתחול ===============
+
+// חשיפת פונקציות ל-window עבור onclick ב-HTML
+window.deleteHomework = deleteHomework;
+window.toggleComplete = toggleComplete;
+window.addHomework = addHomework;
+window.toggleTagEditor = toggleTagEditor;
+window.addTag = addTag;
+window.removeTag = removeTag;
+window.downloadFile = downloadFile;
+// מבחנים
+window.deleteExam = deleteExam;
+window.toggleExamDone = toggleExamDone;
+window.toggleExamTopic = toggleExamTopic;
+window.openExamEditModal = openExamEditModal;
+window.saveGrade = saveGrade;
+window.saveGradeSkip = saveGradeSkip;
+window.recalcGradeModal = recalcGradeModal;
+window.updateTempTopic = updateTempTopic;
+window.removeTempTopic = removeTempTopic;
+window.onExamTermChange = onExamTermChange;
+window.onExamTypeChange = onExamTypeChange;
 
 window.addEventListener('DOMContentLoaded', async () => {
   console.log('🚀 APPLICATION STARTING');
@@ -1364,3 +2210,28 @@ window.addEventListener('DOMContentLoaded', async () => {
     console.error('❌ APPLICATION START FAILED:', error);
   }
 });
+// ─── העלאת שכבה אוטומטית ב-1 בספטמבר ───
+const GRADE_LEVELS = ['א׳','ב׳','ג׳','ד׳','ה׳','ו׳','ז׳','ח׳','ט׳','י׳','י״א','י״ב'];
+
+async function autoAdvanceGradeLevel() {
+  const now = new Date();
+  const isSept1 = now.getMonth() === 8 && now.getDate() === 1; // ספטמבר = 8 (0-based)
+  if (!isSept1) return;
+
+  const lastAdvanceYear = settings.gradeAutoAdvanceYear;
+  if (lastAdvanceYear === now.getFullYear()) return; // כבר בוצע השנה
+
+  const current = (settings.defaultGradeLevel || '').trim();
+  const idx = GRADE_LEVELS.indexOf(current);
+  if (idx === -1 || idx >= GRADE_LEVELS.length - 1) return; // לא נמצא או כבר י״ב
+
+  settings.defaultGradeLevel = GRADE_LEVELS[idx + 1];
+  settings.gradeAutoAdvanceYear = now.getFullYear();
+  await storage.set('homework-settings', settings);
+
+  // עדכן את שדה הקלט אם פתוח
+  const el = document.getElementById('default-grade-level');
+  if (el) el.value = settings.defaultGradeLevel;
+
+  console.log(`📈 שכבה עודכנה אוטומטית ל-${settings.defaultGradeLevel}`);
+}

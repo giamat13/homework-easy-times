@@ -1,0 +1,117 @@
+<!DOCTYPE html>
+<html dir="rtl" lang="he">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>הישגים וסטטיסטיקות</title>
+  <link rel="icon" href="icon.png" type="image/png">
+
+  <link rel="stylesheet" href="styles.css">
+  <link rel="stylesheet" href="enhanced-styles.css">
+  <link rel="stylesheet" href="statistics-styles.css">
+  <link rel="stylesheet" href="achievement-progress-styles.css">
+  <link rel="stylesheet" href="auth-styles.css">
+
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/lucide/0.263.1/umd/lucide.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+
+  <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-auth-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore-compat.js"></script>
+
+  <style>
+    .stats-header {
+      display: flex;
+      align-items: center;
+      gap: 1rem;
+      padding: 1.25rem 1.5rem;
+      background: var(--card-bg);
+      border-radius: 1rem;
+      box-shadow: var(--shadow);
+      margin-bottom: 1.5rem;
+    }
+    .stats-header h1 {
+      font-size: 1.4rem;
+      font-weight: 700;
+      color: var(--text-primary);
+      flex: 1;
+    }
+    .back-btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.4rem;
+      padding: 0.5rem 1rem;
+      background: none;
+      border: 2px solid var(--border-color);
+      border-radius: 0.625rem;
+      color: var(--text-secondary);
+      font-family: inherit;
+      font-size: 0.875rem;
+      font-weight: 600;
+      cursor: pointer;
+      text-decoration: none;
+      transition: all 0.2s;
+    }
+    .back-btn:hover { border-color: #3b82f6; color: #3b82f6; }
+  </style>
+</head>
+<body>
+  <div id="auth-container"></div>
+
+  <div class="container" style="display:none;">
+    <div class="stats-header">
+      <a href="index.html" class="back-btn">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <polyline points="9 18 15 12 9 6"></polyline>
+        </svg>
+        חזור למשימות
+      </a>
+      <h1>🏆 הישגים וסטטיסטיקות</h1>
+    </div>
+
+    <div class="grid">
+      <div class="panel" id="gamification-panel"></div>
+      <div class="panel statistics-panel" id="statistics-panel"></div>
+    </div>
+
+    <!-- Exam Analytics Panel (student mode) -->
+    <div class="panel" id="exam-analytics-panel" style="margin-top:1.5rem;"></div>
+  </div>
+
+  <script src="config.js"></script>
+  <script src="firebase-config.js"></script>
+  <script src="storage.js"></script>
+  <script src="auth.js"></script>
+  <script src="auth-enhancements.js"></script>
+  <script src="notifications.js"></script>
+  <script src="statistics.js"></script>
+  <script src="achievements.js"></script>
+  <script src="gamification.js"></script>
+  <script src="utilities.js"></script>
+  <script src="integration.js"></script>
+  <script src="sync-fix.js"></script>
+  <script src="delete-account.js"></script>
+  <script src="exam-analytics.js"></script>
+
+  <script>
+    document.addEventListener('DOMContentLoaded', () => {
+      const observer = new MutationObserver(() => {
+        const container = document.querySelector('.container');
+        if (container && container.style.display !== 'none') {
+          observer.disconnect();
+          if (typeof gamification !== 'undefined') gamification.renderGamificationPanel();
+          if (typeof unifiedStatistics !== 'undefined') {
+            unifiedStatistics.renderStatisticsPanel();
+          } else if (typeof statistics !== 'undefined') {
+            statistics.renderStatisticsPanel?.();
+          }
+          if (typeof examAnalytics !== 'undefined') examAnalytics.render();
+        }
+      });
+      const target = document.querySelector('.container') || document.body;
+      observer.observe(target, { attributes: true, attributeFilter: ['style'] });
+    });
+  </script>
+</body>
+</html>
