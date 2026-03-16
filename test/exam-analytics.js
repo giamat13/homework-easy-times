@@ -32,12 +32,32 @@ class ExamAnalytics {
     const overdue   = exams.filter(e => !e.completed && this.getDaysUntilDue(e.date) < 0).length;
     const thisWeek  = exams.filter(e => !e.completed && this.getDaysUntilDue(e.date) >= 0 && this.getDaysUntilDue(e.date) <= 7).length;
 
-    // אחוז נושאים שנלמדו
+    // נושאים
     let totalTopics = 0, doneTopics = 0;
     exams.forEach(e => {
       (e.topics || []).forEach(t => { totalTopics++; if (t.done) doneTopics++; });
     });
     const topicPct = totalTopics ? Math.round((doneTopics / totalTopics) * 100) : 0;
+
+    // ציונים — רק מבחנים עם ציון סופי
+    const graded = exams.filter(e => e.gradeFinal !== null && e.gradeFinal !== undefined);
+    const avgGrade    = graded.length ? Math.round(graded.reduce((s, e) => s + e.gradeFinal, 0) / graded.length) : null;
+    const avgExpected = exams.filter(e => e.gradeExpected !== null && e.gradeExpected !== undefined).length
+      ? Math.round(exams.filter(e => e.gradeExpected != null).reduce((s,e) => s + e.gradeExpected, 0) / exams.filter(e => e.gradeExpected != null).length) : null;
+    const maxGrade    = graded.length ? Math.max(...graded.map(e => e.gradeFinal)) : null;
+    const minGrade    = graded.length ? Math.min(...graded.map(e => e.gradeFinal)) : null;
+    const avgPct      = graded.length ? Math.round(graded.reduce((s,e) => s + (e.gradePct || Math.round((e.gradeFinal/(e.gradeMax||100))*100)), 0) / graded.length) : null;
+
+    // התפלגות ציונים
+    const gradeDist = { '90–100': 0, '80–89': 0, '70–79': 0, '55–69': 0, 'מתחת 55': 0 };
+    graded.forEach(e => {
+      const p = e.gradePct || Math.round((e.gradeFinal/(e.gradeMax||100))*100);
+      if (p >= 90) gradeDist['90–100']++;
+      else if (p >= 80) gradeDist['80–89']++;
+      else if (p >= 70) gradeDist['70–79']++;
+      else if (p >= 55) gradeDist['55–69']++;
+      else gradeDist['מתחת 55']++;
+    });
 
     // לפי מקצוע
     const bySubject = {};
@@ -45,13 +65,18 @@ class ExamAnalytics {
       const sub = subjects.find(s => s.id == e.subject);
       const key = sub ? sub.name : 'ללא מקצוע';
       const color = sub ? sub.color : '#9ca3af';
-      if (!bySubject[key]) bySubject[key] = { name: key, color, total: 0, completed: 0, topics: 0, topicsDone: 0 };
+      if (!bySubject[key]) bySubject[key] = { name: key, color, total: 0, completed: 0, topics: 0, topicsDone: 0, grades: [] };
       bySubject[key].total++;
       if (e.completed) bySubject[key].completed++;
       (e.topics || []).forEach(t => { bySubject[key].topics++; if (t.done) bySubject[key].topicsDone++; });
+      if (e.gradeFinal !== null && e.gradeFinal !== undefined) bySubject[key].grades.push(e.gradeFinal);
+    });
+    // ממוצע ציון לפי מקצוע
+    Object.values(bySubject).forEach(s => {
+      s.avgGrade = s.grades.length ? Math.round(s.grades.reduce((a,b)=>a+b,0)/s.grades.length) : null;
     });
 
-    // לפי חודש (ציר הזמן)
+    // לפי חודש
     const byMonth = {};
     exams.forEach(e => {
       const m = e.date ? e.date.slice(0, 7) : null;
@@ -61,7 +86,7 @@ class ExamAnalytics {
       if (e.completed) byMonth[m].completed++;
     });
 
-    // ציר עומס (כמה מבחנים בכל שבוע קדימה)
+    // עומס שבועי
     const loadByWeek = {};
     exams.filter(e => !e.completed).forEach(e => {
       const d = this.getDaysUntilDue(e.date);
@@ -77,10 +102,7 @@ class ExamAnalytics {
       .filter(e => !e.completed && this.getDaysUntilDue(e.date) >= 0)
       .sort((a, b) => new Date(a.date) - new Date(b.date))[0] || null;
 
-    // ממוצע נושאים למבחן
     const avgTopics = total ? (totalTopics / total).toFixed(1) : 0;
-
-    // streak — מבחנים שכל נושאיהם נלמדו
     const fullyPrepared = exams.filter(e => {
       if (e.completed || (e.topics || []).length === 0) return false;
       return e.topics.every(t => t.done);
@@ -89,6 +111,7 @@ class ExamAnalytics {
     return {
       total, completed, upcoming, overdue, thisWeek,
       totalTopics, doneTopics, topicPct,
+      avgGrade, avgExpected, maxGrade, minGrade, avgPct, graded: graded.length, gradeDist,
       bySubject: Object.values(bySubject),
       byMonth: Object.values(byMonth).sort((a,b) => a.label < b.label ? -1 : 1),
       loadByWeek: Object.values(loadByWeek).sort((a,b) => a.week - b.week),
@@ -178,6 +201,70 @@ class ExamAnalytics {
         ${this.kpi('🎓', d.completionRate + '%', 'שיעור סיום', '#8b5cf6')}
       </div>
 
+      <!-- Grade Stats -->
+      ${d.graded > 0 ? `
+      <div class="ea-section">
+        <h3>📊 סטטיסטיקות ציונים (${d.graded} מבחנים עם ציון)</h3>
+        <div class="ea-grade-kpis">
+          ${this.gradeKpi('ממוצע', d.avgGrade, d.avgPct)}
+          ${this.gradeKpi('מקסימום', d.maxGrade, null)}
+          ${this.gradeKpi('מינימום', d.minGrade, null)}
+          ${d.avgExpected !== null ? this.gradeKpi('ממוצע משוער', d.avgExpected, null) : ''}
+        </div>
+        <div class="ea-chart-wrap-wide" style="height:160px;margin-top:1rem;">
+          <canvas id="ea-dist-chart"></canvas>
+        </div>
+      </div>` : ''}
+
+      <!-- Grade per subject -->
+      ${d.bySubject.some(s => s.avgGrade !== null) ? `
+      <div class="ea-section">
+        <h3>📚 ממוצע ציון לפי מקצוע</h3>
+        <div class="ea-chart-wrap-wide" style="height:${Math.max(120, d.bySubject.length * 40)}px;">
+          <canvas id="ea-grade-subject-chart"></canvas>
+        </div>
+      </div>` : ''}
+
+      <!-- Grades table -->
+      ${d.graded > 0 ? `
+      <div class="ea-section">
+        <h3>📋 טבלת ציונים</h3>
+        <div style="overflow-x:auto;">
+          <table class="ea-grades-table">
+            <thead>
+              <tr>
+                <th>מבחן</th><th>מקצוע</th><th>תאריך</th><th>סוג</th><th>מועד</th>
+                <th>ציון</th><th>בונוס</th><th>תיקון</th><th>סופי</th><th>מקס</th><th>%</th><th>משקל</th>
+              </tr>
+            </thead>
+            <tbody>
+              ${[...exams].filter(e => e.gradeFinal !== null && e.gradeFinal !== undefined)
+                .sort((a,b) => new Date(b.date)-new Date(a.date))
+                .map(e => {
+                  const sub = subjects.find(s => s.id == e.subject);
+                  const pct = e.gradePct ?? (e.gradeFinal !== null ? Math.round((e.gradeFinal/(e.gradeMax||100))*100) : null);
+                  const pctColor = pct >= 90 ? '#16a34a' : pct >= 75 ? '#2563eb' : pct >= 55 ? '#d97706' : '#dc2626';
+                  const typeLabels = {exam:'מבחן',work:'עבודה',quiz:'בוחן',oral:'בע"פ',project:'פרויקט',other:'אחר'};
+                  return `<tr>
+                    <td><strong>${e.title}</strong>${e.link ? ` <a href="${e.link}" target="_blank" style="color:#7c3aed;font-size:0.75rem;">🔗</a>` : ''}</td>
+                    <td>${sub ? `<span style="display:inline-block;padding:2px 6px;background:${sub.color};color:#fff;border-radius:4px;font-size:0.72rem;">${sub.name}</span>` : '—'}</td>
+                    <td style="white-space:nowrap;">${new Date(e.date).toLocaleDateString('he-IL')}</td>
+                    <td>${typeLabels[e.type] || '—'}</td>
+                    <td>${e.term ? 'מועד '+e.term : '—'}</td>
+                    <td>${e.grade ?? '—'}</td>
+                    <td>${e.gradeBonus || '—'}</td>
+                    <td>${e.gradeCorrection ?? '—'}</td>
+                    <td><strong>${e.gradeFinal}</strong></td>
+                    <td>${e.gradeMax || 100}</td>
+                    <td><strong style="color:${pctColor}">${pct}%</strong></td>
+                    <td>${e.weight ? e.weight+'%' : '—'}</td>
+                  </tr>`;
+                }).join('')}
+            </tbody>
+          </table>
+        </div>
+      </div>` : ''}
+
       <!-- Topic Preparation Bar -->
       <div class="ea-section">
         <h3>📖 הכנה לנושאים</h3>
@@ -249,7 +336,19 @@ class ExamAnalytics {
       this.createPrepChart(d);
       if (d.loadByWeek.length > 0) this.createLoadChart(d);
       if (d.byMonth.length > 0)   this.createMonthChart(d);
+      if (d.graded > 0)           this.createDistChart(d);
+      if (d.bySubject.some(s => s.avgGrade !== null)) this.createGradeSubjectChart(d);
     }, 100);
+  }
+
+  gradeKpi(label, value, pct) {
+    if (value === null || value === undefined) return '';
+    const color = pct !== null ? (pct >= 90 ? '#16a34a' : pct >= 75 ? '#2563eb' : pct >= 55 ? '#d97706' : '#dc2626') : '#7c3aed';
+    return `<div class="ea-grade-kpi" style="--gk:${color};">
+      <div class="ea-grade-kpi-val">${value}</div>
+      ${pct !== null ? `<div class="ea-grade-kpi-pct">${pct}%</div>` : ''}
+      <div class="ea-grade-kpi-label">${label}</div>
+    </div>`;
   }
 
   kpi(icon, value, label, color) {
@@ -435,6 +534,61 @@ class ExamAnalytics {
       }
     });
   }
+
+  createDistChart(d) {
+    this.destroyChart('dist');
+    const ctx = document.getElementById('ea-dist-chart');
+    if (!ctx) return;
+    const { text, grid } = this.chartDefaults();
+    const labels = Object.keys(d.gradeDist);
+    const colors = ['#16a34a','#2563eb','#7c3aed','#d97706','#dc2626'];
+    this.charts.dist = new Chart(ctx, {
+      type: 'bar',
+      data: {
+        labels,
+        datasets: [{ label: 'מבחנים', data: labels.map(l => d.gradeDist[l]), backgroundColor: colors.map(c => c+'bb'), borderColor: colors, borderWidth: 2, borderRadius: 8 }]
+      },
+      options: {
+        responsive: true, maintainAspectRatio: false,
+        plugins: { legend: { display: false }, tooltip: { callbacks: { label: ctx => ` ${ctx.parsed.y} מבחנים` } } },
+        scales: {
+          x: { ticks: { color: text }, grid: { color: grid } },
+          y: { ticks: { color: text, stepSize: 1 }, grid: { color: grid }, beginAtZero: true }
+        }
+      }
+    });
+  }
+
+  createGradeSubjectChart(d) {
+    this.destroyChart('gradeSubject');
+    const ctx = document.getElementById('ea-grade-subject-chart');
+    if (!ctx) return;
+    const { text, grid } = this.chartDefaults();
+    const filtered = d.bySubject.filter(s => s.avgGrade !== null);
+    this.charts.gradeSubject = new Chart(ctx, {
+      type: 'bar',
+      data: {
+        labels: filtered.map(s => s.name),
+        datasets: [{
+          label: 'ממוצע ציון',
+          data: filtered.map(s => s.avgGrade),
+          backgroundColor: filtered.map(s => s.color + 'bb'),
+          borderColor: filtered.map(s => s.color),
+          borderWidth: 2,
+          borderRadius: 6
+        }]
+      },
+      options: {
+        indexAxis: 'y',
+        responsive: true, maintainAspectRatio: false,
+        plugins: { legend: { display: false }, tooltip: { callbacks: { label: ctx => ` ${ctx.parsed.x}` } } },
+        scales: {
+          x: { ticks: { color: text }, grid: { color: grid }, min: 0, max: 100 },
+          y: { ticks: { color: text }, grid: { color: grid } }
+        }
+      }
+    });
+  }
 }
 
 // ── CSS מוטמע ─────────────────────────────────────────────
@@ -508,6 +662,23 @@ class ExamAnalytics {
     body.dark-mode .ea-insight.info    { background:#1e3a5f; color:#93c5fd; }
     body.dark-mode .ea-insight.warning { background:#1c1a00; color:#fcd34d; }
     body.dark-mode .ea-insight.danger  { background:#1a0000; color:#fca5a5; }
+
+    /* Grade KPIs */
+    .ea-grade-kpis { display: flex; gap: 0.75rem; flex-wrap: wrap; }
+    .ea-grade-kpi { flex:1; min-width:100px; text-align:center; background:var(--bg-secondary); border:2px solid var(--border-color); border-radius:0.75rem; padding:0.85rem 0.5rem; position:relative; overflow:hidden; }
+    .ea-grade-kpi::before { content:''; position:absolute; top:0; left:0; right:0; height:3px; background:var(--gk); }
+    .ea-grade-kpi-val { font-size:1.7rem; font-weight:800; color:var(--gk); line-height:1; }
+    .ea-grade-kpi-pct { font-size:0.8rem; font-weight:700; color:var(--gk); opacity:0.8; }
+    .ea-grade-kpi-label { font-size:0.72rem; color:var(--text-secondary); margin-top:0.2rem; font-weight:600; }
+
+    /* Grades table */
+    .ea-grades-table { width:100%; border-collapse:collapse; font-size:0.82rem; }
+    .ea-grades-table th { background:#f3f4f6; padding:0.5rem 0.6rem; text-align:right; font-weight:700; color:#374151; border-bottom:2px solid #e5e7eb; white-space:nowrap; }
+    .ea-grades-table td { padding:0.45rem 0.6rem; border-bottom:1px solid #e5e7eb; color:var(--text-primary); }
+    .ea-grades-table tr:hover td { background:#faf5ff; }
+    body.dark-mode .ea-grades-table th { background:#1e293b; color:#e5e7eb; border-color:#374151; }
+    body.dark-mode .ea-grades-table td { border-color:#374151; }
+    body.dark-mode .ea-grades-table tr:hover td { background:#2e1065; }
 
     @media (max-width: 600px) {
       .ea-kpi-row { grid-template-columns: repeat(3, 1fr); }

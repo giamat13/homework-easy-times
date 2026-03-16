@@ -1268,3 +1268,80 @@ body.dark-mode .exam-stat-card.exam-stat-done {
   border-color: #166534 !important;
 }
 .exam-stat-card.exam-stat-done .exam-stat-number { color: #16a34a; }
+
+/* =============== טופס מבחן מורחב =============== */
+.exam-form-section {
+  background: var(--bg-primary);
+  border: 1px solid var(--border-color);
+  border-radius: 0.625rem;
+  padding: 1rem;
+  margin-bottom: 1rem;
+}
+body.dark-mode .exam-form-section { background: #1a2332; }
+
+.exam-form-section-title {
+  font-size: 0.8rem;
+  font-weight: 700;
+  color: #7c3aed;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  margin-bottom: 0.75rem;
+}
+
+.exam-form-row {
+  display: flex;
+  gap: 0.75rem;
+  flex-wrap: wrap;
+}
+.exam-form-col-1 { flex: 1; min-width: 0; }
+.exam-form-col-2 { flex: 1; min-width: 120px; }
+.exam-form-col-3 { flex: 1; min-width: 100px; }
+
+.exam-form-row .form-group { margin-bottom: 0.6rem; }
+
+.req { color: #ef4444; margin-right: 0.15rem; }
+
+.exam-pct-display {
+  height: 2.5rem;
+  border-radius: 0.5rem;
+  border: 1px solid var(--border-color);
+  padding: 0 0.75rem;
+  font-size: 0.9rem;
+  font-weight: 700;
+}
+
+/* =============== מודל ציון =============== */
+.grade-modal-result {
+  text-align: center;
+  padding: 1.25rem;
+  background: linear-gradient(135deg, #faf5ff, #ede9fe);
+  border-radius: 0.75rem;
+  border: 2px solid #e9d5ff;
+}
+body.dark-mode .grade-modal-result {
+  background: linear-gradient(135deg, #2e1065, #1e1b4b);
+  border-color: #4c1d95;
+}
+.grade-modal-final {
+  font-size: 3rem;
+  font-weight: 900;
+  line-height: 1;
+  color: #7c3aed;
+  transition: color 0.2s;
+}
+.grade-modal-pct {
+  font-size: 1.3rem;
+  font-weight: 700;
+  margin-top: 0.25rem;
+  color: #9ca3af;
+  transition: color 0.2s;
+}
+
+/* ציון בכרטיס מבחן */
+.exam-grade-badge {
+  font-weight: 700;
+  font-size: 0.82rem;
+  padding: 0.15rem 0.4rem;
+  border-radius: 0.35rem;
+  background: rgba(124,58,237,0.08);
+}

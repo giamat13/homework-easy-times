@@ -567,6 +567,14 @@ class UnifiedStatisticsManager {
     const topSubject = subjects.sort((a, b) => b.total - a.total)[0];
     const mostProductiveHour = this.getMostProductiveHour();
 
+    // בדיקת מצב תלמיד
+    const isStudent = (() => {
+      try {
+        const s = JSON.parse(localStorage.getItem('homework-settings') || '{}');
+        return s.studentMode !== false;
+      } catch { return true; }
+    })();
+
     panel.innerHTML = `
       <h2>📊 סטטיסטיקות ואנליטיקה</h2>
       
@@ -594,12 +602,13 @@ class UnifiedStatisticsManager {
           ` : ''}
         </div>
         
+        ${isStudent ? `
         <div class="analytics-summary-card">
           <div class="summary-icon">📚</div>
           <div class="summary-value">${topSubject ? topSubject.name : '-'}</div>
           <div class="summary-label">מקצוע מוביל</div>
           ${topSubject ? `<div class="summary-detail">${topSubject.total} משימות</div>` : ''}
-        </div>
+        </div>` : ''}
         
         <div class="analytics-summary-card">
           <div class="summary-icon">🌟</div>
@@ -613,9 +622,10 @@ class UnifiedStatisticsManager {
         <div class="chart-wrapper">
           <canvas id="completion-chart"></canvas>
         </div>
+        ${isStudent ? `
         <div class="chart-wrapper">
           <canvas id="subject-chart"></canvas>
-        </div>
+        </div>` : ''}
       </div>
 
       <!-- Advanced Charts -->
@@ -639,7 +649,7 @@ class UnifiedStatisticsManager {
     // יצירת גרפים
     setTimeout(() => {
       this.createCompletionChart();
-      this.createSubjectChart();
+      if (isStudent) this.createSubjectChart();
       this.createDailyTrendChart();
       this.createProductivityChart();
     }, 100);
@@ -964,6 +974,7 @@ class UnifiedStatisticsManager {
 // יצירת אובייקט גלובלי
 console.log('📊 Creating global unified statistics manager...');
 const statistics = new UnifiedStatisticsManager();
+statistics.renderStatisticsPanel = statistics.renderUnifiedDashboard.bind(statistics);
 console.log('✅ Global unified statistics manager created');
 
 // אתחול
