@@ -323,7 +323,7 @@
 
   <!-- Modal: הוסף מבחן -->
   <div class="modal hidden" id="add-exam-modal">
-    <div class="modal-content">
+    <div class="modal-content" style="max-width:740px;">
       <div class="modal-header">
         <h2>📝 הוסף מבחן חדש</h2>
         <button class="close-modal-btn" id="close-add-exam-modal">
@@ -331,36 +331,215 @@
         </button>
       </div>
       <div class="modal-body">
-        <div class="form-group">
-          <label>מקצוע</label>
-          <select class="select" id="exam-subject">
-            <option value="">בחר מקצוע</option>
-          </select>
+
+        <!-- שורה 1: פרטים בסיסיים -->
+        <div class="exam-form-section">
+          <div class="exam-form-section-title">📋 פרטים בסיסיים</div>
+          <div class="exam-form-row">
+            <div class="form-group exam-form-col-2">
+              <label>מקצוע <span class="req">*</span></label>
+              <select class="select" id="exam-subject">
+                <option value="">בחר מקצוע</option>
+              </select>
+            </div>
+            <div class="form-group exam-form-col-2">
+              <label>שכבה</label>
+              <input type="text" class="input" id="exam-class" placeholder="למשל: י׳, י״א">
+            </div>
+          </div>
+          <div class="exam-form-row">
+            <div class="form-group exam-form-col-3">
+              <label>שם המבחן</label>
+              <input type="text" class="input" id="exam-title" placeholder='למשל: מבחן אמצע שנה'>
+            </div>
+            <div class="form-group exam-form-col-3">
+              <label>תאריך מועד א׳ <span class="req">*</span></label>
+              <input type="date" class="input" id="exam-date">
+            </div>
+            <div class="form-group exam-form-col-3">
+              <label>סוג</label>
+              <select class="select" id="exam-type" onchange="onExamTypeChange()">
+                <option value="exam">מבחן</option>
+                <option value="quiz">בוחן</option>
+                <option value="surprise-quiz">בוחן פתע</option>
+                <option value="test">מבדק</option>
+                <option value="dictation">הכתבה</option>
+                <option value="other">אחר</option>
+              </select>
+              <input type="text" class="input" id="exam-type-other" placeholder="פרט סוג..." style="display:none; margin-top:0.4rem;">
+            </div>
+          </div>
+          <div class="exam-form-row">
+            <div class="form-group exam-form-col-2">
+              <label>מועד</label>
+              <select class="select" id="exam-term" onchange="onExamTermChange()">
+                <option value="">—</option>
+                <option value="א">מועד א</option>
+                <option value="ב">מועד ב</option>
+                <option value="ג">מועד ג</option>
+              </select>
+            </div>
+            <div class="form-group exam-form-col-2">
+              <label>מחצית</label>
+              <select class="select" id="exam-semester">
+                <option value="">—</option>
+                <option value="1">מחצית ראשונה</option>
+                <option value="2">מחצית שנייה</option>
+              </select>
+            </div>
+          </div>
+          <div class="exam-form-row" id="exam-date-b-row" style="display:none;">
+            <div class="form-group" style="flex:1;">
+              <label>תאריך מועד ב׳</label>
+              <input type="date" class="input" id="exam-date-b">
+            </div>
+          </div>
+          <div class="exam-form-row" id="exam-date-c-row" style="display:none;">
+            <div class="form-group" style="flex:1;">
+              <label>תאריך מועד ג׳</label>
+              <input type="date" class="input" id="exam-date-c">
+            </div>
+          </div>
+          <div class="exam-form-row">
+            <div class="form-group exam-form-col-2">
+              <label>משקל לתעודה (%)</label>
+              <input type="number" class="input" id="exam-weight" min="0" max="100" placeholder="למשל: 30">
+            </div>
+          </div>
         </div>
-        <div class="form-group">
-          <label>שם המבחן</label>
-          <input type="text" class="input" id="exam-title" placeholder="למשל: מבחן אמצע שנה">
+
+        <!-- שורה 3: נוסף -->
+        <div class="exam-form-section">
+          <div class="exam-form-section-title">📎 מידע נוסף</div>
+          <div class="exam-form-row">
+            <div class="form-group exam-form-col-1">
+              <label>קישור לקובץ / מצגת</label>
+              <input type="url" class="input" id="exam-link" placeholder="https://...">
+            </div>
+          </div>
+          <div class="exam-form-row">
+            <div class="form-group exam-form-col-1">
+              <label>הערות</label>
+              <textarea class="textarea" id="exam-notes" placeholder="מועד ב, קשור למבחן אחר, חומר מותר..." rows="2"></textarea>
+            </div>
+          </div>
         </div>
-        <div class="form-group">
-          <label>תאריך המבחן</label>
-          <input type="date" class="input" id="exam-date">
-        </div>
-        <div class="form-group">
-          <label>הערות</label>
-          <textarea class="textarea" id="exam-notes" placeholder="חומר, הוראות מיוחדות..." rows="2"></textarea>
-        </div>
-        <div class="form-group">
-          <label>נושאים ללימוד</label>
+
+        <!-- נושאים ללימוד -->
+        <div class="exam-form-section">
+          <div class="exam-form-section-title">📖 נושאים ללימוד</div>
           <div style="display:flex;gap:0.5rem;margin-bottom:0.6rem;">
             <input type="text" class="input" id="new-exam-topic" placeholder="הוסף נושא..." style="flex:1;">
             <button class="btn btn-secondary" id="add-exam-topic-btn" style="width:auto;white-space:nowrap;">+ הוסף</button>
           </div>
-          <div id="exam-topics-list" style="max-height:180px;overflow-y:auto;padding:0.25rem 0;"></div>
+          <div id="exam-topics-list" style="max-height:160px;overflow-y:auto;padding:0.25rem 0;"></div>
         </div>
+
+        <!-- שדות ציון — מוסתרים בהוספה, גלויים בעריכה -->
+        <div class="exam-form-section" id="exam-grade-section" style="display:none;">
+          <div class="exam-form-section-title">🎯 ציונים (לאחר המבחן)</div>
+          <div class="exam-form-row">
+            <div class="form-group exam-form-col-3">
+              <label>ציון משוער</label>
+              <input type="number" class="input" id="exam-grade-expected" min="0" max="120" placeholder="0–100">
+            </div>
+            <div class="form-group exam-form-col-3">
+              <label>ציון בפועל</label>
+              <input type="number" class="input" id="exam-grade" min="0" max="120" placeholder="0–100">
+            </div>
+            <div class="form-group exam-form-col-3">
+              <label>מקסימום ציון</label>
+              <input type="number" class="input" id="exam-grade-max" min="1" placeholder="100" value="100">
+            </div>
+          </div>
+          <div class="exam-form-row">
+            <div class="form-group exam-form-col-3">
+              <label>ציון בונוס</label>
+              <input type="number" class="input" id="exam-grade-bonus" min="0" max="20" placeholder="0">
+            </div>
+            <div class="form-group exam-form-col-3">
+              <label>ציון תיקון</label>
+              <input type="number" class="input" id="exam-grade-correction" min="0" max="120" placeholder="אם תוקן">
+              <select class="select" id="exam-correction-mode" style="margin-top:0.4rem;font-size:0.82rem;">
+                <option value="replace">מחליף את הקיים</option>
+                <option value="highest">הציון הגבוה ביותר</option>
+              </select>
+            </div>
+            <div class="form-group exam-form-col-3">
+              <label>ציון סופי</label>
+              <div class="input" style="background:#f3f4f6;display:flex;align-items:center;gap:0.5rem;height:2.5rem;">
+                <span id="exam-grade-final-display" style="font-weight:700;color:#7c3aed;">—</span>
+                <span id="exam-grade-pct-display" style="font-size:0.8rem;color:#9ca3af;"></span>
+              </div>
+            </div>
+          </div>
+          <div class="exam-form-row">
+            <div class="form-group exam-form-col-2">
+              <label>משקל לתעודה (%)</label>
+              <input type="number" class="input" id="exam-weight" min="0" max="100" placeholder="למשל: 30">
+            </div>
+          </div>
+        </div>
+
         <button class="btn btn-exam" id="save-exam-btn" style="width:100%;margin-top:0.5rem;">
           <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2"/><rect x="9" y="3" width="6" height="4" rx="1"/><path d="M9 12h6M9 16h4"/></svg>
           שמור מבחן
         </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal: הזנת ציון -->
+  <div class="modal hidden" id="grade-modal">
+    <div class="modal-content" style="max-width:420px;">
+      <div class="modal-header">
+        <h2 id="grade-modal-title">🎯 הזנת ציון</h2>
+        <button class="close-modal-btn" id="close-grade-modal">
+          <svg width="20" height="20"><use href="#x"></use></svg>
+        </button>
+      </div>
+      <div class="modal-body">
+        <input type="hidden" id="grade-exam-id">
+
+        <div class="grade-modal-result">
+          <div class="grade-modal-final" id="grade-final-display">—</div>
+          <div class="grade-modal-pct" id="grade-pct-display">—</div>
+          <div style="font-size:0.75rem;color:#9ca3af;margin-top:0.2rem;">ציון סופי / אחוז</div>
+        </div>
+
+        <div class="exam-form-row" style="margin-top:1rem;">
+          <div class="form-group exam-form-col-2">
+            <label>ציון בפועל</label>
+            <input type="number" class="input" id="grade-value" min="0" max="120" placeholder="0–100" oninput="recalcGradeModal()">
+          </div>
+          <div class="form-group exam-form-col-2">
+            <label>מקסימום ציון</label>
+            <input type="number" class="input" id="grade-max" min="1" placeholder="100" oninput="recalcGradeModal()">
+          </div>
+        </div>
+        <div class="exam-form-row">
+          <div class="form-group exam-form-col-2">
+            <label>ציון בונוס</label>
+            <input type="number" class="input" id="grade-bonus" min="0" max="20" placeholder="0" oninput="recalcGradeModal()">
+          </div>
+          <div class="form-group exam-form-col-2">
+            <label>ציון תיקון (מועד ב)</label>
+            <input type="number" class="input" id="grade-correction" min="0" max="120" placeholder="אם תוקן" oninput="recalcGradeModal()">
+            <select class="select" id="grade-correction-mode" style="margin-top:0.4rem;font-size:0.82rem;" onchange="recalcGradeModal()">
+              <option value="replace">מחליף את הקיים</option>
+              <option value="highest">הציון הגבוה ביותר</option>
+            </select>
+          </div>
+        </div>
+        <div class="form-group" style="margin-top:0.25rem;">
+          <label>ציון משוער (מה ציפית?)</label>
+          <input type="number" class="input" id="grade-expected" min="0" max="120" placeholder="0–100">
+        </div>
+
+        <div style="display:flex;gap:0.75rem;margin-top:1rem;">
+          <button class="btn btn-exam" onclick="saveGrade()" style="flex:1;">שמור ציון וסמן הסתיים ✅</button>
+          <button class="btn btn-secondary" onclick="saveGradeSkip()" style="width:auto;white-space:nowrap;">סמן הסתיים בלי ציון</button>
+        </div>
       </div>
     </div>
   </div>
@@ -425,6 +604,11 @@
               </div>
             </div>
             <input type="checkbox" id="student-mode-toggle" checked style="display:none;">
+          </div>
+          <div class="setting-item" id="default-grade-setting" style="margin-top:0.75rem;">
+            <label style="font-weight:600;display:block;margin-bottom:0.4rem;">שכבה ברירת מחדל</label>
+            <input type="text" class="input" id="default-grade-level" placeholder='למשל: י׳, י״א' style="max-width:160px;">
+            <p style="font-size:0.78rem;color:#9ca3af;margin-top:0.3rem;">ימולא אוטומטית בכל מבחן חדש</p>
           </div>
         </div>
 
