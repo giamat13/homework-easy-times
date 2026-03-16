@@ -169,6 +169,26 @@
           <div class="stat-label">דחוף</div>
         </div>
       </div>
+
+      <!-- Exam Stats Row (student mode only) -->
+      <div class="stats exam-stats-row" id="exam-stats-row" style="margin-top:0.6rem;">
+        <div class="stat-card exam-stat-card">
+          <div class="stat-number exam-stat-number" id="stat-exam-total">0</div>
+          <div class="stat-label">📝 מבחנים</div>
+        </div>
+        <div class="stat-card exam-stat-card">
+          <div class="stat-number exam-stat-number" id="stat-exam-upcoming">0</div>
+          <div class="stat-label">🗓️ קרובים</div>
+        </div>
+        <div class="stat-card exam-stat-card exam-stat-warn">
+          <div class="stat-number exam-stat-number" id="stat-exam-soon">0</div>
+          <div class="stat-label">⚡ השבוע</div>
+        </div>
+        <div class="stat-card exam-stat-card exam-stat-done">
+          <div class="stat-number exam-stat-number" id="stat-exam-done">0</div>
+          <div class="stat-label">✅ הסתיימו</div>
+        </div>
+      </div>
       
       <!-- Mini XP Progress -->
       <div class="xp-progress-container" style="margin-top: 1rem;">
@@ -194,7 +214,7 @@
 
         <!-- Toolbar: סינון + הוסף -->
         <div class="list-header" style="flex-wrap:wrap;gap:0.75rem;margin-bottom:1rem;">
-          <h2 style="margin-bottom:0">רשימת משימות</h2>
+          <h2 style="margin-bottom:0" id="list-panel-title">רשימת משימות</h2>
           <div style="display:flex;gap:0.5rem;flex-wrap:wrap;align-items:center;flex:1;justify-content:flex-end;">
             <!-- סינון מקצוע -->
             <select class="select" id="filter-subject" onchange="setFilter('subject', this.value)" style="width:auto;min-width:120px;">
@@ -227,6 +247,11 @@
               <svg width="18" height="18"><use href="#plus"></use></svg>
               הוסף משימה
             </button>
+            <!-- הוסף מבחן -->
+            <button class="btn btn-exam" id="open-add-exam-modal" style="width:auto;">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2"/><rect x="9" y="3" width="6" height="4" rx="1"/><path d="M9 12h6M9 16h4"/></svg>
+              הוסף מבחן
+            </button>
           </div>
         </div>
 
@@ -246,7 +271,7 @@
           </button>
         </div>
         <div class="modal-body">
-          <div class="form-group">
+          <div class="form-group" id="hw-subject-group">
             <label>מקצוע</label>
             <div style="display:flex;gap:0.5rem;align-items:center;">
               <select class="select" id="hw-subject" style="flex:1">
@@ -296,6 +321,50 @@
     </div>
   </div>
 
+  <!-- Modal: הוסף מבחן -->
+  <div class="modal hidden" id="add-exam-modal">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h2>📝 הוסף מבחן חדש</h2>
+        <button class="close-modal-btn" id="close-add-exam-modal">
+          <svg width="20" height="20"><use href="#x"></use></svg>
+        </button>
+      </div>
+      <div class="modal-body">
+        <div class="form-group">
+          <label>מקצוע</label>
+          <select class="select" id="exam-subject">
+            <option value="">בחר מקצוע</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label>שם המבחן</label>
+          <input type="text" class="input" id="exam-title" placeholder="למשל: מבחן אמצע שנה">
+        </div>
+        <div class="form-group">
+          <label>תאריך המבחן</label>
+          <input type="date" class="input" id="exam-date">
+        </div>
+        <div class="form-group">
+          <label>הערות</label>
+          <textarea class="textarea" id="exam-notes" placeholder="חומר, הוראות מיוחדות..." rows="2"></textarea>
+        </div>
+        <div class="form-group">
+          <label>נושאים ללימוד</label>
+          <div style="display:flex;gap:0.5rem;margin-bottom:0.6rem;">
+            <input type="text" class="input" id="new-exam-topic" placeholder="הוסף נושא..." style="flex:1;">
+            <button class="btn btn-secondary" id="add-exam-topic-btn" style="width:auto;white-space:nowrap;">+ הוסף</button>
+          </div>
+          <div id="exam-topics-list" style="max-height:180px;overflow-y:auto;padding:0.25rem 0;"></div>
+        </div>
+        <button class="btn btn-exam" id="save-exam-btn" style="width:100%;margin-top:0.5rem;">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2"/><rect x="9" y="3" width="6" height="4" rx="1"/><path d="M9 12h6M9 16h4"/></svg>
+          שמור מבחן
+        </button>
+      </div>
+    </div>
+  </div>
+
   <!-- Settings Modal -->
   <div class="modal hidden" id="settings-modal">
     <div class="modal-content">
@@ -335,6 +404,27 @@
               <svg width="20" height="20"><use href="#palette"></use></svg>
               בחר ערכת נושא
             </button>
+          </div>
+        </div>
+
+        <div class="settings-section">
+          <h3>מצב שימוש</h3>
+          <div class="setting-item mode-toggle-item">
+            <div class="mode-toggle-card active" id="mode-student-card">
+              <div class="mode-toggle-icon">🎓</div>
+              <div class="mode-toggle-text">
+                <strong>מצב תלמיד</strong>
+                <span>מקצועות, מבחנים, Classroom</span>
+              </div>
+            </div>
+            <div class="mode-toggle-card" id="mode-other-card">
+              <div class="mode-toggle-icon">💼</div>
+              <div class="mode-toggle-text">
+                <strong>מצב כללי</strong>
+                <span>מטלות ללא מקצועות ומבחנים</span>
+              </div>
+            </div>
+            <input type="checkbox" id="student-mode-toggle" checked style="display:none;">
           </div>
         </div>
 
@@ -413,7 +503,7 @@
           </div>
         </div>
 
-        <div class="settings-section">
+        <div class="settings-section classroom-section">
           <h3>📚 Google Classroom</h3>
           <div id="classroom-settings-container">
             <div class="classroom-status disconnected">
