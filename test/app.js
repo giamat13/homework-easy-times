@@ -152,11 +152,13 @@ async function loadData() {
     render();
     console.log('✅ loadData: Render complete');
     
+    // אתחול מודל הוספת משימה
+    initAddTaskModal();
+
     // התחל בדיקת התראות אם מופעל
     if (settings.enableNotifications && notifications.permission === 'granted') {
       console.log('🔔 loadData: Starting periodic notification check...');
       await notifications.startPeriodicCheck(homework, settings);
-    initAddTaskModal();
       console.log('✅ loadData: Notification check started');
     }
     
@@ -859,11 +861,13 @@ async function completeGTask(taskId, listId, checkbox) {
 }
 
 function deleteHomework(id) {
-  const hw = homework.find(h => h.id === id);
+  // id can arrive as string from onclick attribute, convert to match stored type
+  const numId = Number(id);
+  const hw = homework.find(h => h.id === numId || h.id === id);
   if (!hw) return;
   
   if (confirm(`האם אתה בטוח שברצונך למחוק את המשימה "${hw.title}"?\n\n⚠️ פעולה זו לא ניתנת לביטול!`)) {
-    homework = homework.filter(h => h.id !== id);
+    homework = homework.filter(h => h.id !== numId && h.id !== id);
     saveData();
     render();
     notifications.showInAppNotification('המשימה נמחקה', 'success');
@@ -930,7 +934,6 @@ async function saveSettings() {
     const granted = await notifications.requestPermission();
     if (granted) {
       await notifications.startPeriodicCheck(homework, settings);
-    initAddTaskModal();
       notifications.showInAppNotification('התראות הופעלו בהצלחה', 'success');
     } else {
       notifications.showInAppNotification('לא ניתן להפעיל התראות - ההרשאה נדחתה', 'error');
@@ -1364,6 +1367,15 @@ function initializeEventListeners() {
 }
 
 // =============== אתחול ===============
+
+// חשיפת פונקציות ל-window עבור onclick ב-HTML
+window.deleteHomework = deleteHomework;
+window.toggleComplete = toggleComplete;
+window.addHomework = addHomework;
+window.toggleTagEditor = toggleTagEditor;
+window.addTag = addTag;
+window.removeTag = removeTag;
+window.downloadFile = downloadFile;
 
 window.addEventListener('DOMContentLoaded', async () => {
   console.log('🚀 APPLICATION STARTING');
