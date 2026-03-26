@@ -20,7 +20,11 @@ class GamificationManager {
       totalTasksCompleted: 0,
       totalStudyTime: 0,
       perfectDays: 0,
-      perfectDayToday: null
+      perfectDayToday: null,
+      // מבחנים
+      totalExamsCompleted: 0,
+      totalTopicsDone: 0,
+      fullyPreparedExams: 0
     };
 
     this.achievements = [];
@@ -355,6 +359,138 @@ class GamificationManager {
         condition: () => false,
         xp: 150,
         category: 'special',
+        quantifiable: false
+      },
+
+      // ── 📝 מבחנים (studentOnly) ──────────────────────────
+      {
+        id: 'exam-first',
+        name: 'נכנס לאזור',
+        description: 'סמן את המבחן הראשון כהסתיים',
+        icon: '📋',
+        condition: (stats) => (stats.totalExamsCompleted || 0) >= 1,
+        target: 1,
+        getProgress: (stats) => stats.totalExamsCompleted || 0,
+        xp: 15,
+        category: 'exams',
+        studentOnly: true,
+        quantifiable: true
+      },
+      {
+        id: 'exam-5',
+        name: 'ניגש לאתגרים',
+        description: 'השלם 5 מבחנים',
+        icon: '📝',
+        condition: (stats) => (stats.totalExamsCompleted || 0) >= 5,
+        target: 5,
+        getProgress: (stats) => stats.totalExamsCompleted || 0,
+        xp: 50,
+        category: 'exams',
+        studentOnly: true,
+        quantifiable: true
+      },
+      {
+        id: 'exam-20',
+        name: 'ותיק הבחינות',
+        description: 'השלם 20 מבחנים',
+        icon: '🎓',
+        condition: (stats) => (stats.totalExamsCompleted || 0) >= 20,
+        target: 20,
+        getProgress: (stats) => stats.totalExamsCompleted || 0,
+        xp: 150,
+        category: 'exams',
+        studentOnly: true,
+        quantifiable: true
+      },
+      {
+        id: 'topics-10',
+        name: 'מתחיל ללמוד',
+        description: 'סמן 10 נושאים כנלמדו',
+        icon: '✏️',
+        condition: (stats) => (stats.totalTopicsDone || 0) >= 10,
+        target: 10,
+        getProgress: (stats) => stats.totalTopicsDone || 0,
+        xp: 30,
+        category: 'exams',
+        studentOnly: true,
+        quantifiable: true
+      },
+      {
+        id: 'topics-50',
+        name: 'לומד שקדן',
+        description: 'סמן 50 נושאים כנלמדו',
+        icon: '📖',
+        condition: (stats) => (stats.totalTopicsDone || 0) >= 50,
+        target: 50,
+        getProgress: (stats) => stats.totalTopicsDone || 0,
+        xp: 100,
+        category: 'exams',
+        studentOnly: true,
+        quantifiable: true
+      },
+      {
+        id: 'topics-200',
+        name: 'אנציקלופדיה חיה',
+        description: 'סמן 200 נושאים כנלמדו',
+        icon: '🧠',
+        condition: (stats) => (stats.totalTopicsDone || 0) >= 200,
+        target: 200,
+        getProgress: (stats) => stats.totalTopicsDone || 0,
+        xp: 300,
+        category: 'exams',
+        studentOnly: true,
+        quantifiable: true
+      },
+      {
+        id: 'fully-prepared-1',
+        name: 'מוכן לחלוטין',
+        description: 'סיים ללמוד את כל הנושאים למבחן אחד',
+        icon: '💪',
+        condition: (stats) => (stats.fullyPreparedExams || 0) >= 1,
+        target: 1,
+        getProgress: (stats) => stats.fullyPreparedExams || 0,
+        xp: 40,
+        category: 'exams',
+        studentOnly: true,
+        quantifiable: true
+      },
+      {
+        id: 'fully-prepared-5',
+        name: 'מכונת הכנה',
+        description: 'סיים ללמוד את כל הנושאים ל-5 מבחנים',
+        icon: '🏋️',
+        condition: (stats) => (stats.fullyPreparedExams || 0) >= 5,
+        target: 5,
+        getProgress: (stats) => stats.fullyPreparedExams || 0,
+        xp: 120,
+        category: 'exams',
+        studentOnly: true,
+        quantifiable: true
+      },
+      {
+        id: 'exam-week-prep',
+        name: 'מתכנן מבריק',
+        description: 'הוסף מבחן עם יותר מ-7 נושאים',
+        icon: '🗂️',
+        condition: (stats) => (stats.maxTopicsInExam || 0) >= 7,
+        target: 7,
+        getProgress: (stats) => stats.maxTopicsInExam || 0,
+        xp: 35,
+        category: 'exams',
+        studentOnly: true,
+        quantifiable: true
+      },
+      {
+        id: 'exam-ahead',
+        name: 'מקדים תרופה',
+        description: 'סמן מבחן כהסתיים לפני התאריך',
+        icon: '⚡',
+        condition: (stats) => (stats.earlyExams || 0) >= 1,
+        target: 1,
+        getProgress: (stats) => stats.earlyExams || 0,
+        xp: 25,
+        category: 'exams',
+        studentOnly: true,
         quantifiable: false
       }
     ];
@@ -763,6 +899,53 @@ class GamificationManager {
     this.checkAchievements();
   }
 
+  onExamCompleted(exam) {
+    if (!exam) return;
+    this.userStats.totalExamsCompleted = (this.userStats.totalExamsCompleted || 0) + 1;
+    // בדיקה אם לפני המועד
+    const daysLeft = (() => {
+      const today = new Date(); today.setHours(0,0,0,0);
+      const due = new Date(exam.date + 'T00:00:00');
+      return Math.round((due - today) / 86400000);
+    })();
+    if (daysLeft > 0) {
+      this.userStats.earlyExams = (this.userStats.earlyExams || 0) + 1;
+      this.addXP(15, 'מבחן הושלם לפני הזמן');
+    } else {
+      this.addXP(20, 'מבחן הושלם');
+    }
+    this.checkAchievements();
+    this.saveStats();
+  }
+
+  onTopicDone(exam) {
+    this.userStats.totalTopicsDone = (this.userStats.totalTopicsDone || 0) + 1;
+    // עדכון fullyPrepared
+    if (exam && (exam.topics || []).length > 0 && exam.topics.every(t => t.done)) {
+      this.userStats.fullyPreparedExams = (this.userStats.fullyPreparedExams || 0) + 1;
+      this.addXP(10, 'מבחן מוכן לחלוטין');
+    } else {
+      this.addXP(2, 'נושא נלמד');
+    }
+    this.checkAchievements();
+    this.saveStats();
+  }
+
+  onTopicUndone() {
+    this.userStats.totalTopicsDone = Math.max(0, (this.userStats.totalTopicsDone || 0) - 1);
+    this.checkAchievements();
+    this.saveStats();
+  }
+
+  onExamAdded(exam) {
+    const topics = (exam && exam.topics) ? exam.topics.length : 0;
+    if (topics > (this.userStats.maxTopicsInExam || 0)) {
+      this.userStats.maxTopicsInExam = topics;
+    }
+    this.checkAchievements();
+    this.saveStats();
+  }
+
   // ==================== ממשק משתמש ====================
 
   updateUI() {
@@ -808,13 +991,25 @@ class GamificationManager {
       study: { name: 'לימוד', icon: '📚' },
       perfect: { name: 'ימים מושלמים', icon: '✨' },
       special: { name: 'מיוחדים', icon: '🌟' },
-      creative: { name: 'יצירתיות', icon: '🎨' }
+      creative: { name: 'יצירתיות', icon: '🎨' },
+      exams: { name: 'מבחנים', icon: '📝', studentOnly: true }
     };
+
+    // בדיקת מצב תלמיד
+    const isStudent = (() => {
+      try {
+        const s = JSON.parse(localStorage.getItem('homework-settings') || '{}');
+        return s.studentMode !== false;
+      } catch { return true; }
+    })();
 
     let achievementsHTML = '';
     
     Object.keys(categories).forEach(catKey => {
       const cat = categories[catKey];
+      // הסתר קטגוריות studentOnly אם לא במצב תלמיד
+      if (cat.studentOnly && !isStudent) return;
+
       const catAchievements = this.achievements.filter(a => a.category === catKey);
       const unlocked = catAchievements.filter(a => 
         this.unlockedAchievements.find(u => u.id === a.id)
