@@ -52,6 +52,14 @@ let exams = [];
 
 
 // ── Add Task Modal ────────────────────────────
+function initEditHomeworkModal() {
+  const modal    = document.getElementById('edit-hw-modal');
+  const closeBtn = document.getElementById('close-edit-hw-modal');
+  if (!modal) return;
+  closeBtn && closeBtn.addEventListener('click', () => modal.classList.add('hidden'));
+  modal.addEventListener('click', (e) => { if (e.target === modal) modal.classList.add('hidden'); });
+}
+
 function initAddTaskModal() {
   const openBtn  = document.getElementById('open-add-task-modal');
   const modal    = document.getElementById('add-task-modal');
@@ -161,6 +169,7 @@ async function loadData() {
     // אתחול מודל הוספת משימה
     initAddTaskModal();
     initExamModal();
+    initEditHomeworkModal();
     applyMode();
 
     // התחל בדיקת התראות אם מופעל
@@ -411,6 +420,7 @@ function getFilteredHomework(homeworkList) {
     if (filters.status === 'pending' && hw.completed) return false;
     
     if (filters.urgency !== 'all') {
+      if (!hw.dueDate) return false; // ללא תאריך - לא נכלל בסינון דחיפות
       const daysLeft = getDaysUntilDue(hw.dueDate);
       if (filters.urgency === 'urgent' && (daysLeft > 2 || hw.completed)) return false;
       if (filters.urgency === 'overdue' && (daysLeft >= 0 || hw.completed)) return false;
@@ -558,16 +568,22 @@ function renderHomework() {
 
   const activeHomework = homework.filter(h => {
     if (!h.completed) return true;
+    if (!h.dueDate) return false; // פריטים מושלמים בלי תאריך לא מוצגים ברשימה הפעילה
     return getDaysUntilDue(h.dueDate) >= 0;
   });
 
   const archivedHomework = homework.filter(h => {
     if (!h.completed) return false;
+    if (!h.dueDate) return true; // פריטים בלי תאריך שהושלמו עוברים לארכיון
     return getDaysUntilDue(h.dueDate) < 0;
   });
 
-  // מבחנים בארכיון = הושלמו + תאריך עבר
-  const archivedExams = (exams || []).filter(e => e.completed && getDaysUntilDue(e.date) < 0);
+  // מבחנים בארכיון = הושלמו + (אין תאריך או תאריך עבר)
+  const archivedExams = (exams || []).filter(e => {
+    if (!e.completed) return false;
+    if (!e.date) return true; // מבחן בלי תאריך שהושלם עובר לארכיון
+    return getDaysUntilDue(e.date) < 0;
+  });
   const totalArchived = archivedHomework.length + archivedExams.length;
 
   if (totalArchived > 0) {
@@ -593,6 +609,9 @@ function renderHomework() {
 
   const sorted = [...displayList].sort((a, b) => {
     if (a.completed !== b.completed) return a.completed ? 1 : -1;
+    if (!a.dueDate && !b.dueDate) return 0;
+    if (!a.dueDate) return 1;
+    if (!b.dueDate) return -1;
     return new Date(a.dueDate) - new Date(b.dueDate);
   });
 
@@ -629,7 +648,11 @@ function renderHomework() {
   // מיזוג מבחנים לרשימה המאוחדת
   const examsToShow = showArchive
     ? archivedExams
-    : (exams || []).filter(e => !e.completed || getDaysUntilDue(e.date) >= 0);
+    : (exams || []).filter(e => {
+        if (!e.completed) return true; // מבחנים לא מושלמים תמיד בתצוגה הפעילה
+        if (!e.date) return false; // מבחנים מושלמים בלי תאריך לא בתצוגה הפעילה
+        return getDaysUntilDue(e.date) >= 0; // מבחנים מושלמים עם תאריך עתידי בתצוגה הפעילה
+      });
   const examItems = examsToShow.map(e => ({ ...e, _type: 'exam', dueDate: e.date }));
 
   const allItems = [...sorted, ...examItems].sort((a, b) => {
@@ -726,9 +749,9 @@ function renderHomework() {
     // ── כרטיס משימה ──
     const hw = item;
     const subject = subjects.find(s => s.id == hw.subject);
-    const daysLeft = getDaysUntilDue(hw.dueDate);
-    const isUrgent = daysLeft <= 2 && !hw.completed;
-    const isOverdue = daysLeft < 0 && !hw.completed;
+    const daysLeft = hw.dueDate ? getDaysUntilDue(hw.dueDate) : null;
+    const isUrgent = daysLeft !== null && daysLeft <= 2 && !hw.completed;
+    const isOverdue = daysLeft !== null && daysLeft < 0 && !hw.completed;
 
     let classes = 'homework-item';
     if (hw.completed) classes += ' completed';
@@ -736,7 +759,7 @@ function renderHomework() {
     else if (isUrgent) classes += ' urgent';
 
     let daysText = '';
-    if (!hw.completed) {
+    if (!hw.completed && daysLeft !== null) {
       if (isOverdue) daysText = `באיחור של ${Math.abs(daysLeft)} ימים`;
       else if (daysLeft === 0) daysText = 'היום!';
       else if (daysLeft === 1) daysText = 'מחר';
@@ -794,13 +817,16 @@ function renderHomework() {
             ` : ''}
 
             <div class="homework-meta">
-              <span>
+              ${hw.dueDate ? `<span>
                 <svg width="16" height="16" style="display: inline; vertical-align: middle;"><use href="#calendar"></use></svg>
                 ${new Date(hw.dueDate).toLocaleDateString('he-IL')}
-              </span>
+              </span>` : ''}
               ${daysText ? `<span class="days-left ${isOverdue ? 'overdue' : isUrgent ? 'urgent' : ''}">${daysText}</span>` : ''}
             </div>
           </div>
+          <button class="icon-btn" onclick="openEditHomeworkModal('${hw.id}')" title="עריכה" style="color:#7c3aed;">
+            <svg width="20" height="20"><use href="#pencil"></use></svg>
+          </button>
           <button class="icon-btn" onclick="deleteHomework('${hw.id}')">
             <svg width="20" height="20"><use href="#trash"></use></svg>
           </button>
@@ -819,7 +845,7 @@ function updateStats() {
   const total = homework.length;
   const completed = homework.filter(h => h.completed).length;
   const pending = homework.filter(h => !h.completed).length;
-  const urgent = homework.filter(h => !h.completed && getDaysUntilDue(h.dueDate) <= 2).length;
+  const urgent = homework.filter(h => !h.completed && h.dueDate && getDaysUntilDue(h.dueDate) <= 2).length;
 
   document.getElementById('stat-total').textContent = total;
   document.getElementById('stat-completed').textContent = completed;
@@ -1029,6 +1055,51 @@ async function completeGTask(taskId, listId, checkbox) {
   }
 }
 
+function openEditHomeworkModal(id) {
+  const numId = Number(id);
+  const hw = homework.find(h => h.id === numId || h.id === id);
+  if (!hw) return;
+
+  // מלא את ה-select של מקצועות
+  const subjectSelect = document.getElementById('edit-hw-subject');
+  subjectSelect.innerHTML = '<option value="">בחר מקצוע</option>' +
+    subjects.map(s => `<option value="${s.id}" ${s.id == hw.subject ? 'selected' : ''}>${s.name}</option>`).join('');
+
+  document.getElementById('edit-hw-title').value = hw.title || '';
+  document.getElementById('edit-hw-desc').value = hw.description || '';
+  document.getElementById('edit-hw-date').value = hw.dueDate || '';
+  document.getElementById('edit-hw-priority').value = hw.priority || 'medium';
+
+  document.getElementById('save-edit-hw-btn').onclick = () => saveEditHomework(numId);
+
+  document.getElementById('edit-hw-modal').classList.remove('hidden');
+}
+
+function saveEditHomework(id) {
+  const numId = Number(id);
+  const hw = homework.find(h => h.id === numId || h.id === id);
+  if (!hw) return;
+
+  const subject = document.getElementById('edit-hw-subject').value;
+  const title   = document.getElementById('edit-hw-title').value.trim();
+
+  if (!subject || !title) {
+    notifications.showInAppNotification('נא למלא מקצוע וכותרת', 'error');
+    return;
+  }
+
+  hw.subject     = subject;
+  hw.title       = title;
+  hw.description = document.getElementById('edit-hw-desc').value.trim();
+  hw.dueDate     = document.getElementById('edit-hw-date').value || null;
+  hw.priority    = document.getElementById('edit-hw-priority').value;
+
+  saveData();
+  render();
+  document.getElementById('edit-hw-modal').classList.add('hidden');
+  notifications.showInAppNotification('המשימה עודכנה בהצלחה', 'success');
+}
+
 function deleteHomework(id) {
   // id can arrive as string from onclick attribute, convert to match stored type
   const numId = Number(id);
@@ -1176,7 +1247,7 @@ async function exportToPDF() {
           <div style="color: #6b7280; font-size: 14px; margin-top: 5px;">ממתינים</div>
         </div>
         <div style="background: #fecaca; padding: 15px; border-radius: 8px; text-align: center;">
-          <div style="font-size: 32px; font-weight: bold; color: #dc2626;">${homework.filter(h => !h.completed && getDaysUntilDue(h.dueDate) <= 2).length}</div>
+          <div style="font-size: 32px; font-weight: bold; color: #dc2626;">${homework.filter(h => !h.completed && h.dueDate && getDaysUntilDue(h.dueDate) <= 2).length}</div>
           <div style="color: #6b7280; font-size: 14px; margin-top: 5px;">דחופים</div>
         </div>
       </div>
@@ -1367,7 +1438,7 @@ async function exportToExcel() {
     // סטטיסטיקות
     csvContent += 'סטטיסטיקות\n';
     csvContent += 'סך הכל,הושלמו,ממתינים,דחופים\n';
-    csvContent += `${homework.length},${homework.filter(h => h.completed).length},${homework.filter(h => !h.completed).length},${homework.filter(h => !h.completed && getDaysUntilDue(h.dueDate) <= 2).length}\n\n`;
+    csvContent += `${homework.length},${homework.filter(h => h.completed).length},${homework.filter(h => !h.completed).length},${homework.filter(h => !h.completed && h.dueDate && getDaysUntilDue(h.dueDate) <= 2).length}\n\n`;
 
     // סטטיסטיקות מבחנים
     if (settings.studentMode !== false && exams && exams.length > 0) {
@@ -1779,16 +1850,8 @@ function addExam() {
   const termVal = g('exam-term');
   const rowBVisible = document.getElementById('exam-date-b-row')?.style.display !== 'none';
   const rowCVisible = document.getElementById('exam-date-c-row')?.style.display !== 'none';
-  if (!subject || !date) {
-    notifications.showInAppNotification('נא למלא מקצוע ותאריך', 'error');
-    return;
-  }
-  if (rowBVisible && !dateB) {
-    notifications.showInAppNotification('נא למלא תאריך מועד ב׳', 'error');
-    return;
-  }
-  if (rowCVisible && !dateC) {
-    notifications.showInAppNotification('נא למלא תאריך מועד ג׳', 'error');
+  if (!subject) {
+    notifications.showInAppNotification('נא למלא מקצוע', 'error');
     return;
   }
 
@@ -2005,8 +2068,8 @@ function saveExamEdit(id) {
   const g    = elId => { const el = document.getElementById(elId); return el ? el.value : ''; };
   const gNum = elId => { const v = parseFloat(g(elId)); return isNaN(v) ? null : v; };
 
-  if (!g('exam-subject') || !g('exam-date')) {
-    notifications.showInAppNotification('נא למלא מקצוע ותאריך', 'error');
+  if (!g('exam-subject')) {
+    notifications.showInAppNotification('נא למלא מקצוע', 'error');
     return;
   }
   const _rowBVisible = document.getElementById('exam-date-b-row')?.style.display !== 'none';
@@ -2182,6 +2245,8 @@ function saveGradeSkip() {
 // חשיפת פונקציות ל-window עבור onclick ב-HTML
 window.deleteHomework = deleteHomework;
 window.toggleComplete = toggleComplete;
+window.openEditHomeworkModal = openEditHomeworkModal;
+window.saveEditHomework = saveEditHomework;
 window.addHomework = addHomework;
 window.toggleTagEditor = toggleTagEditor;
 window.addTag = addTag;
