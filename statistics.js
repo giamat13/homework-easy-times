@@ -567,6 +567,14 @@ class UnifiedStatisticsManager {
     const topSubject = subjects.sort((a, b) => b.total - a.total)[0];
     const mostProductiveHour = this.getMostProductiveHour();
 
+    // בדיקת מצב תלמיד
+    const isStudent = (() => {
+      try {
+        const s = JSON.parse(localStorage.getItem('homework-settings') || '{}');
+        return s.studentMode !== false;
+      } catch { return true; }
+    })();
+
     panel.innerHTML = `
       <h2>📊 סטטיסטיקות ואנליטיקה</h2>
       
@@ -594,12 +602,13 @@ class UnifiedStatisticsManager {
           ` : ''}
         </div>
         
+        ${isStudent ? `
         <div class="analytics-summary-card">
           <div class="summary-icon">📚</div>
           <div class="summary-value">${topSubject ? topSubject.name : '-'}</div>
           <div class="summary-label">מקצוע מוביל</div>
           ${topSubject ? `<div class="summary-detail">${topSubject.total} משימות</div>` : ''}
-        </div>
+        </div>` : ''}
         
         <div class="analytics-summary-card">
           <div class="summary-icon">🌟</div>
@@ -613,9 +622,10 @@ class UnifiedStatisticsManager {
         <div class="chart-wrapper">
           <canvas id="completion-chart"></canvas>
         </div>
+        ${isStudent ? `
         <div class="chart-wrapper">
           <canvas id="subject-chart"></canvas>
-        </div>
+        </div>` : ''}
       </div>
 
       <!-- Advanced Charts -->
@@ -634,19 +644,12 @@ class UnifiedStatisticsManager {
         ${this.generateInsights()}
       </div>
 
-      <!-- Export Options -->
-      <div class="export-section">
-        <button class="btn btn-secondary" onclick="statistics.exportStatisticsReport()">
-          <svg width="20" height="20"><use href="#download"></use></svg>
-          ייצא דוח מלא
-        </button>
-      </div>
     `;
 
     // יצירת גרפים
     setTimeout(() => {
       this.createCompletionChart();
-      this.createSubjectChart();
+      if (isStudent) this.createSubjectChart();
       this.createDailyTrendChart();
       this.createProductivityChart();
     }, 100);
@@ -841,6 +844,8 @@ class UnifiedStatisticsManager {
     try {
       notifications.showInAppNotification('מכין דוח סטטיסטיקות...', 'info');
       
+      await this.collectAllData();
+
       const stats = this.analyticsData.basic;
       const subjects = Object.values(this.analyticsData.subjects);
       const trends = this.analyticsData.trends;
@@ -927,7 +932,7 @@ class UnifiedStatisticsManager {
         </div>
         
         <div style="margin-top: 40px; text-align: center; color: #6b7280; font-size: 12px; border-top: 1px solid #e5e7eb; padding-top: 20px;">
-          <p>מערכת ניהול שיעורי בית - דוח סטטיסטיקות</p>
+          <p>מערכת ניהול משימות - דוח סטטיסטיקות</p>
           <p>© ${new Date().getFullYear()} - נוצר ב-${new Date().toLocaleString('he-IL')}</p>
         </div>
       `;
@@ -942,7 +947,19 @@ class UnifiedStatisticsManager {
         pagebreak: { mode: ['avoid-all', 'css', 'legacy'] }
       };
       
-      await html2pdf().set(opt).from(reportContent).save();
+      reportContent.style.position = 'absolute';
+      reportContent.style.top = '0';
+      reportContent.style.left = '-9999px';
+      reportContent.style.width = '794px';
+      reportContent.style.zIndex = '-1';
+      document.body.appendChild(reportContent);
+      await new Promise(r => setTimeout(r, 300));
+
+      try {
+        await html2pdf().set(opt).from(reportContent).save();
+      } finally {
+        document.body.removeChild(reportContent);
+      }
       
       notifications.showInAppNotification('📊 דוח סטטיסטיקות נוצר בהצלחה!', 'success');
       console.log('✅ exportStatisticsReport: Report exported successfully');
@@ -957,6 +974,7 @@ class UnifiedStatisticsManager {
 // יצירת אובייקט גלובלי
 console.log('📊 Creating global unified statistics manager...');
 const statistics = new UnifiedStatisticsManager();
+statistics.renderStatisticsPanel = statistics.renderUnifiedDashboard.bind(statistics);
 console.log('✅ Global unified statistics manager created');
 
 // אתחול

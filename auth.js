@@ -833,7 +833,7 @@ class AuthManager {
             <svg width="48" height="48" style="color: #3b82f6;">
               <use href="#book-open"></use>
             </svg>
-            <h1>ניהול שיעורי בית</h1>
+            <h1>ניהול משימות</h1>
             <p>התחבר כדי לגשת למשימות שלך</p>
           </div>
 

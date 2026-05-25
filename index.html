@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>מערכת ניהול שיעורי בית - מאובטח</title>
+  <title>מערכת ניהול משימות - מאובטח</title>
   <link rel="icon" href="icon.png" type="image/png">
   
   <!-- CSS Files -->
@@ -23,6 +23,87 @@
   <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-auth-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore-compat.js"></script>
+  <script src="https://accounts.google.com/gsi/client" async defer></script>
+  <style>
+    /* ── Dashboard Widget ── */
+    .dw-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 1.5rem;
+      margin-bottom: 1.5rem;
+    }
+    .dw-panel { padding: 1.25rem !important; }
+    .dw-panel-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 1rem;
+    }
+    .dw-title {
+      font-size: 1rem !important;
+      margin-bottom: 0 !important;
+      color: var(--text-primary);
+    }
+    .dw-disconnect {
+      background: none;
+      border: none;
+      color: var(--text-secondary);
+      font-size: 0.75rem;
+      font-family: inherit;
+      cursor: pointer;
+      padding: 0.2rem 0.5rem;
+      border-radius: 0.375rem;
+      transition: var(--transition);
+    }
+    .dw-disconnect:hover { color: #dc2626; background: #fef2f2; }
+    .dw-connect-btn {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      width: 100%;
+      padding: 0.75rem;
+      background: none;
+      border: 2px dashed var(--border-color);
+      border-radius: 0.75rem;
+      color: var(--text-secondary);
+      font-family: inherit;
+      font-size: 0.875rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: var(--transition);
+    }
+    .dw-connect-btn:hover { border-color: #3b82f6; color: #3b82f6; background: #eff6ff; }
+    .dw-event {
+      display: flex;
+      gap: 0.75rem;
+      padding: 0.65rem;
+      border: 2px solid var(--border-color);
+      border-radius: 0.75rem;
+      align-items: center;
+      margin-bottom: 0.5rem;
+      transition: var(--transition);
+    }
+    .dw-event:hover { box-shadow: 0 2px 8px rgba(0,0,0,0.08); }
+    .dw-date-badge {
+      text-align: center;
+      background: #eff6ff;
+      border-radius: 0.5rem;
+      padding: 0.35rem 0.6rem;
+      min-width: 42px;
+      flex-shrink: 0;
+    }
+    body.dark-mode .dw-date-badge { background: #1e3a8a; }
+    .dw-date-day   { font-size: 1.2rem; font-weight: 700; color: #2563eb; line-height: 1; }
+    .dw-date-month { font-size: 0.65rem; color: var(--text-secondary); text-transform: uppercase; }
+    .dw-event-title { font-size: 0.875rem; font-weight: 600; color: var(--text-primary); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .dw-event-time  { font-size: 0.75rem; color: var(--text-secondary); }
+    .dw-event-body  { overflow: hidden; }
+    @media (max-width: 768px) { .dw-grid { grid-template-columns: 1fr; } }
+    @media (max-width: 900px) {
+      #main-side-layout { flex-direction: column !important; }
+      #dashboard-widget { width: 100% !important; }
+    }
+  </style>
 </head>
 <body>
   <!-- Auth Container - מסך התחברות -->
@@ -42,7 +123,7 @@
         <svg width="32" height="32" style="color: #3b82f6;">
           <use href="#book-open"></use>
         </svg>
-        <h1>ניהול שיעורי בית <span style="font-size: 0.5em; color: #8b5cf6;">🔐 מאובטח</span></h1>
+        <h1>ניהול משימות <span style="font-size: 0.5em; color: #8b5cf6;">🔐 מאובטח</span></h1>
         <div class="header-actions">
           <!-- User menu button will be added here by auth.js -->
           <button class="settings-btn" id="quick-search-btn" title="חיפוש מהיר (Ctrl+F)" onclick="smartSearch.openSearchPanel()">
@@ -60,6 +141,9 @@
           <button class="settings-btn" id="quick-help-btn" title="עזרה (Shift+H)" onclick="quickActions.showHelpModal()">
             <svg width="24" height="24"><use href="#help-circle"></use></svg>
           </button>
+          <a href="stats.html" class="settings-btn" title="הישגים וסטטיסטיקות" style="text-decoration:none;display:inline-flex;align-items:center;justify-content:center;">
+            <svg width="24" height="24"><use href="#bar-chart-2"></use></svg>
+          </a>
           <button class="settings-btn" id="open-settings" title="הגדרות">
             <svg width="24" height="24"><use href="#settings"></use></svg>
           </button>
@@ -85,6 +169,26 @@
           <div class="stat-label">דחוף</div>
         </div>
       </div>
+
+      <!-- Exam Stats Row (student mode only) -->
+      <div class="stats exam-stats-row" id="exam-stats-row" style="margin-top:0.6rem;">
+        <div class="stat-card exam-stat-card">
+          <div class="stat-number exam-stat-number" id="stat-exam-total">0</div>
+          <div class="stat-label">📝 מבחנים</div>
+        </div>
+        <div class="stat-card exam-stat-card">
+          <div class="stat-number exam-stat-number" id="stat-exam-upcoming">0</div>
+          <div class="stat-label">🗓️ קרובים</div>
+        </div>
+        <div class="stat-card exam-stat-card exam-stat-warn">
+          <div class="stat-number exam-stat-number" id="stat-exam-soon">0</div>
+          <div class="stat-label">⚡ השבוע</div>
+        </div>
+        <div class="stat-card exam-stat-card exam-stat-done">
+          <div class="stat-number exam-stat-number" id="stat-exam-done">0</div>
+          <div class="stat-label">✅ הסתיימו</div>
+        </div>
+      </div>
       
       <!-- Mini XP Progress -->
       <div class="xp-progress-container" style="margin-top: 1rem;">
@@ -97,97 +201,387 @@
       </div>
     </div>
 
-    <div class="grid">
-      <!-- Study Timer Panel -->
-      <div class="panel" id="timer-panel"></div>
+    <!-- Main layout: Calendar + Task List side by side -->
+    <div id="main-side-layout" style="display:flex; gap:1.5rem; align-items:flex-start;">
 
-      <!-- Subjects Panel -->
-      <div class="panel">
-        <h2>מקצועות</h2>
-        
-        <button class="btn btn-primary" id="show-add-subject" style="margin-bottom: 1rem;">
-          <svg width="20" height="20"><use href="#plus"></use></svg>
-          הוסף מקצוע
-        </button>
-        
-        <div class="add-form hidden" id="add-subject-form">
-          <input type="text" class="input" id="subject-name" placeholder="שם המקצוע" style="margin-bottom: 0.75rem;">
-          <div id="color-picker"></div>
-          <div class="btn-group">
-            <button class="btn btn-success" id="save-subject">שמור</button>
-            <button class="btn btn-secondary" id="cancel-subject">ביטול</button>
+      <!-- Dashboard Widget (Calendar) - fixed width on the left -->
+      <div id="dashboard-widget" style="width:340px; flex-shrink:0;"></div>
+
+      <div style="flex:1; min-width:0;">
+
+      <!-- Unified Task Panel -->
+      <div class="panel homework-panel">
+
+        <!-- Toolbar: סינון + הוסף -->
+        <div class="list-header" style="flex-wrap:wrap;gap:0.75rem;margin-bottom:1rem;">
+          <h2 style="margin-bottom:0" id="list-panel-title">רשימת משימות</h2>
+          <div style="display:flex;gap:0.5rem;flex-wrap:wrap;align-items:center;flex:1;justify-content:flex-end;">
+            <!-- סינון מקצוע -->
+            <select class="select" id="filter-subject" onchange="setFilter('subject', this.value)" style="width:auto;min-width:120px;">
+              <option value="all">כל המקצועות</option>
+            </select>
+            <!-- סינון סטטוס -->
+            <select class="select" id="filter-status" onchange="setFilter('status', this.value)" style="width:auto;min-width:100px;">
+              <option value="all">הכל</option>
+              <option value="pending">ממתין</option>
+              <option value="completed">הושלם</option>
+            </select>
+            <!-- סינון דחיפות -->
+            <select class="select" id="filter-urgency" onchange="setFilter('urgency', this.value)" style="width:auto;min-width:120px;">
+              <option value="all">כל הדחיפויות</option>
+              <option value="urgent">דחוף</option>
+              <option value="overdue">באיחור</option>
+            </select>
+            <!-- ניקוי סינון -->
+            <button class="btn btn-secondary" onclick="clearFilters()" style="width:auto;padding:0.5rem 0.75rem;">נקה</button>
+            <!-- ארכיון -->
+            <button class="archive-btn hidden" id="archive-toggle"></button>
+            <!-- Google Tasks -->
+            <button id="hw-tasks-connect-btn" class="btn btn-secondary" style="width:auto;" onclick="dashboardWidget._requestToken()">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 01-2 2H5a2 2 0 01-2-2V5a2 2 0 012-2h11"/></svg>
+              חבר Google Tasks
+            </button>
+            <button id="hw-tasks-disconnect-btn" class="btn btn-secondary" style="width:auto;display:none;color:#6b7280;" onclick="dashboardWidget.disconnectTasks()">התנתק Tasks</button>
+            <!-- הוסף משימה -->
+            <button class="btn btn-primary" id="open-add-task-modal" style="width:auto;">
+              <svg width="18" height="18"><use href="#plus"></use></svg>
+              הוסף משימה
+            </button>
+            <!-- הוסף מבחן -->
+            <button class="btn btn-exam" id="open-add-exam-modal" style="width:auto;">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2"/><rect x="9" y="3" width="6" height="4" rx="1"/><path d="M9 12h6M9 16h4"/></svg>
+              הוסף מבחן
+            </button>
           </div>
         </div>
-        
-        <div class="subject-list" id="subject-list"></div>
-      </div>
 
-      <!-- Filters Panel -->
-      <div class="panel">
-        <div id="filters-container"></div>
-      </div>
-
-      <!-- Add Homework Panel -->
-      <div class="panel">
-        <h2>הוסף שיעורי בית</h2>
-        
-        <div class="form-group">
-          <label>מקצוע</label>
-          <select class="select" id="hw-subject">
-            <option value="">בחר מקצוע</option>
-          </select>
-        </div>
-        
-        <div class="form-group">
-          <label>כותרת</label>
-          <input type="text" class="input" id="hw-title" placeholder="למשל: תרגיל 5">
-        </div>
-        
-        <div class="form-group">
-          <label>תיאור</label>
-          <textarea class="textarea" id="hw-desc" placeholder="פרטים נוספים..."></textarea>
-        </div>
-
-        <div class="form-group">
-          <label>קבצים מצורפים</label>
-          <input type="file" class="input" id="hw-files" multiple>
-        </div>
-        
-        <div class="form-group">
-          <label>תאריך הגשה</label>
-          <input type="date" class="input" id="hw-date">
-        </div>
-        
-        <div class="form-group">
-          <label>עדיפות</label>
-          <select class="select" id="hw-priority">
-            <option value="low">נמוכה</option>
-            <option value="medium" selected>בינונית</option>
-            <option value="high">גבוהה</option>
-          </select>
-        </div>
-        
-        <button class="btn btn-primary" id="add-homework">
-          <svg width="20" height="20"><use href="#plus"></use></svg>
-          הוסף משימה
-        </button>
-      </div>
-
-      <!-- Homework List Panel -->
-      <div class="panel homework-panel">
-        <div class="list-header">
-          <h2>רשימת משימות</h2>
-          <button class="archive-btn hidden" id="archive-toggle"></button>
-        </div>
-        
         <div class="homework-list" id="homework-list"></div>
       </div>
 
-      <!-- Gamification Panel -->
-      <div class="panel" id="gamification-panel"></div>
+      </div><!-- end flex right column -->
+    </div><!-- end flex row -->
 
-      <!-- Statistics & Analytics Panel -->
-      <div class="panel statistics-panel" id="statistics-panel"></div>
+    <!-- Modal: הוסף משימה -->
+    <div class="modal hidden" id="add-task-modal">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h2>הוסף משימה חדשה</h2>
+          <button class="close-modal-btn" id="close-add-task-modal">
+            <svg width="20" height="20"><use href="#x"></use></svg>
+          </button>
+        </div>
+        <div class="modal-body">
+          <div class="form-group" id="hw-subject-group">
+            <label>מקצוע</label>
+            <div style="display:flex;gap:0.5rem;align-items:center;">
+              <select class="select" id="hw-subject" style="flex:1">
+                <option value="">בחר מקצוע</option>
+              </select>
+              <button class="btn btn-secondary" id="show-add-subject" style="width:auto;white-space:nowrap;padding:0.5rem 0.75rem;">+ מקצוע חדש</button>
+            </div>
+            <div class="add-form hidden" id="add-subject-form" style="margin-top:0.75rem;">
+              <input type="text" class="input" id="subject-name" placeholder="שם המקצוע" style="margin-bottom:0.75rem;">
+              <div id="color-picker"></div>
+              <div class="btn-group" style="margin-top:0.75rem;">
+                <button class="btn btn-success" id="save-subject">שמור</button>
+                <button class="btn btn-secondary" id="cancel-subject">ביטול</button>
+              </div>
+            </div>
+          </div>
+          <div class="form-group">
+            <label>כותרת</label>
+            <input type="text" class="input" id="hw-title" placeholder="למשל: תרגיל 5">
+          </div>
+          <div class="form-group">
+            <label>תיאור</label>
+            <textarea class="textarea" id="hw-desc" placeholder="פרטים נוספים..."></textarea>
+          </div>
+          <div class="form-group">
+            <label>קבצים מצורפים</label>
+            <input type="file" class="input" id="hw-files" multiple>
+          </div>
+          <div class="form-group">
+            <label>תאריך הגשה <span class="req">*</span></label>
+            <input type="date" class="input" id="hw-date">
+          </div>
+          <div class="form-group">
+            <label>עדיפות</label>
+            <select class="select" id="hw-priority">
+              <option value="low">נמוכה</option>
+              <option value="medium" selected>בינונית</option>
+              <option value="high">גבוהה</option>
+            </select>
+          </div>
+          <button class="btn btn-primary" id="add-homework">
+            <svg width="20" height="20"><use href="#plus"></use></svg>
+            הוסף משימה
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal: עריכת משימה -->
+  <div class="modal hidden" id="edit-hw-modal">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h2>✏️ עריכת משימה</h2>
+        <button class="close-modal-btn" id="close-edit-hw-modal">
+          <svg width="20" height="20"><use href="#x"></use></svg>
+        </button>
+      </div>
+      <div class="modal-body">
+        <div class="form-group">
+          <label>מקצוע</label>
+          <select class="select" id="edit-hw-subject">
+            <option value="">בחר מקצוע</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label>כותרת</label>
+          <input type="text" class="input" id="edit-hw-title">
+        </div>
+        <div class="form-group">
+          <label>תיאור</label>
+          <textarea class="textarea" id="edit-hw-desc"></textarea>
+        </div>
+        <div class="form-group">
+          <label>תאריך הגשה</label>
+          <input type="date" class="input" id="edit-hw-date">
+        </div>
+        <div class="form-group">
+          <label>עדיפות</label>
+          <select class="select" id="edit-hw-priority">
+            <option value="low">נמוכה</option>
+            <option value="medium">בינונית</option>
+            <option value="high">גבוהה</option>
+          </select>
+        </div>
+        <button class="btn btn-primary" id="save-edit-hw-btn">שמור שינויים</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal: הוסף מבחן -->
+  <div class="modal hidden" id="add-exam-modal">
+    <div class="modal-content" style="max-width:740px;">
+      <div class="modal-header">
+        <h2>📝 הוסף מבחן חדש</h2>
+        <button class="close-modal-btn" id="close-add-exam-modal">
+          <svg width="20" height="20"><use href="#x"></use></svg>
+        </button>
+      </div>
+      <div class="modal-body">
+
+        <!-- שורה 1: פרטים בסיסיים -->
+        <div class="exam-form-section">
+          <div class="exam-form-section-title">📋 פרטים בסיסיים</div>
+          <div class="exam-form-row">
+            <div class="form-group exam-form-col-2">
+              <label>מקצוע <span class="req">*</span></label>
+              <select class="select" id="exam-subject">
+                <option value="">בחר מקצוע</option>
+              </select>
+            </div>
+            <div class="form-group exam-form-col-2">
+              <label>שכבה</label>
+              <input type="text" class="input" id="exam-class" placeholder="למשל: י׳, י״א">
+            </div>
+          </div>
+          <div class="exam-form-row">
+            <div class="form-group exam-form-col-3">
+              <label>שם המבחן</label>
+              <input type="text" class="input" id="exam-title" placeholder='למשל: מבחן אמצע שנה'>
+            </div>
+            <div class="form-group exam-form-col-3">
+              <label>תאריך מועד א׳</label>
+              <input type="date" class="input" id="exam-date">
+            </div>
+            <div class="form-group exam-form-col-3">
+              <label>סוג</label>
+              <select class="select" id="exam-type" onchange="onExamTypeChange()">
+                <option value="exam">מבחן</option>
+                <option value="quiz">בוחן</option>
+                <option value="surprise-quiz">בוחן פתע</option>
+                <option value="test">מבדק</option>
+                <option value="dictation">הכתבה</option>
+                <option value="other">אחר</option>
+              </select>
+              <input type="text" class="input" id="exam-type-other" placeholder="פרט סוג..." style="display:none; margin-top:0.4rem;">
+            </div>
+          </div>
+          <div class="exam-form-row">
+            <div class="form-group exam-form-col-2">
+              <label>מועד</label>
+              <select class="select" id="exam-term" onchange="onExamTermChange()">
+                <option value="">—</option>
+                <option value="א">מועד א</option>
+                <option value="ב">מועד ב</option>
+                <option value="ג">מועד ג</option>
+              </select>
+            </div>
+            <div class="form-group exam-form-col-2">
+              <label>מחצית</label>
+              <select class="select" id="exam-semester">
+                <option value="">—</option>
+                <option value="1">מחצית ראשונה</option>
+                <option value="2">מחצית שנייה</option>
+              </select>
+            </div>
+          </div>
+          <div class="exam-form-row" id="exam-date-b-row" style="display:none;">
+            <div class="form-group" style="flex:1;">
+              <label>תאריך מועד ב׳</label>
+              <input type="date" class="input" id="exam-date-b">
+            </div>
+          </div>
+          <div class="exam-form-row" id="exam-date-c-row" style="display:none;">
+            <div class="form-group" style="flex:1;">
+              <label>תאריך מועד ג׳</label>
+              <input type="date" class="input" id="exam-date-c">
+            </div>
+          </div>
+          <div class="exam-form-row">
+            <div class="form-group exam-form-col-2">
+              <label>משקל לתעודה (%)</label>
+              <input type="number" class="input" id="exam-weight" min="0" max="100" placeholder="למשל: 30">
+            </div>
+          </div>
+        </div>
+
+        <!-- שורה 3: נוסף -->
+        <div class="exam-form-section">
+          <div class="exam-form-section-title">📎 מידע נוסף</div>
+          <div class="exam-form-row">
+            <div class="form-group exam-form-col-1">
+              <label>קישור לקובץ / מצגת</label>
+              <input type="url" class="input" id="exam-link" placeholder="https://...">
+            </div>
+          </div>
+          <div class="exam-form-row">
+            <div class="form-group exam-form-col-1">
+              <label>הערות</label>
+              <textarea class="textarea" id="exam-notes" placeholder="מועד ב, קשור למבחן אחר, חומר מותר..." rows="2"></textarea>
+            </div>
+          </div>
+        </div>
+
+        <!-- נושאים ללימוד -->
+        <div class="exam-form-section">
+          <div class="exam-form-section-title">📖 נושאים ללימוד</div>
+          <div style="display:flex;gap:0.5rem;margin-bottom:0.6rem;">
+            <input type="text" class="input" id="new-exam-topic" placeholder="הוסף נושא..." style="flex:1;">
+            <button class="btn btn-secondary" id="add-exam-topic-btn" style="width:auto;white-space:nowrap;">+ הוסף</button>
+          </div>
+          <div id="exam-topics-list" style="max-height:160px;overflow-y:auto;padding:0.25rem 0;"></div>
+        </div>
+
+        <!-- שדות ציון — מוסתרים בהוספה, גלויים בעריכה -->
+        <div class="exam-form-section" id="exam-grade-section" style="display:none;">
+          <div class="exam-form-section-title">🎯 ציונים (לאחר המבחן)</div>
+          <div class="exam-form-row">
+            <div class="form-group exam-form-col-3">
+              <label>ציון משוער</label>
+              <input type="number" class="input" id="exam-grade-expected" min="0" max="120" placeholder="0–100">
+            </div>
+            <div class="form-group exam-form-col-3">
+              <label>ציון בפועל</label>
+              <input type="number" class="input" id="exam-grade" min="0" max="120" placeholder="0–100">
+            </div>
+            <div class="form-group exam-form-col-3">
+              <label>מקסימום ציון</label>
+              <input type="number" class="input" id="exam-grade-max" min="1" placeholder="100" value="100">
+            </div>
+          </div>
+          <div class="exam-form-row">
+            <div class="form-group exam-form-col-3">
+              <label>ציון בונוס</label>
+              <input type="number" class="input" id="exam-grade-bonus" min="0" max="20" placeholder="0">
+            </div>
+            <div class="form-group exam-form-col-3">
+              <label>ציון תיקון</label>
+              <input type="number" class="input" id="exam-grade-correction" min="0" max="120" placeholder="אם תוקן">
+              <select class="select" id="exam-correction-mode" style="margin-top:0.4rem;font-size:0.82rem;">
+                <option value="replace">מחליף את הקיים</option>
+                <option value="highest">הציון הגבוה ביותר</option>
+              </select>
+            </div>
+            <div class="form-group exam-form-col-3">
+              <label>ציון סופי</label>
+              <div class="input" style="background:#f3f4f6;display:flex;align-items:center;gap:0.5rem;height:2.5rem;">
+                <span id="exam-grade-final-display" style="font-weight:700;color:#7c3aed;">—</span>
+                <span id="exam-grade-pct-display" style="font-size:0.8rem;color:#9ca3af;"></span>
+              </div>
+            </div>
+          </div>
+          <div class="exam-form-row">
+            <div class="form-group exam-form-col-2">
+              <label>משקל לתעודה (%)</label>
+              <input type="number" class="input" id="exam-weight" min="0" max="100" placeholder="למשל: 30">
+            </div>
+          </div>
+        </div>
+
+        <button class="btn btn-exam" id="save-exam-btn" style="width:100%;margin-top:0.5rem;">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2"/><rect x="9" y="3" width="6" height="4" rx="1"/><path d="M9 12h6M9 16h4"/></svg>
+          שמור מבחן
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal: הזנת ציון -->
+  <div class="modal hidden" id="grade-modal">
+    <div class="modal-content" style="max-width:420px;">
+      <div class="modal-header">
+        <h2 id="grade-modal-title">🎯 הזנת ציון</h2>
+        <button class="close-modal-btn" id="close-grade-modal">
+          <svg width="20" height="20"><use href="#x"></use></svg>
+        </button>
+      </div>
+      <div class="modal-body">
+        <input type="hidden" id="grade-exam-id">
+
+        <div class="grade-modal-result">
+          <div class="grade-modal-final" id="grade-final-display">—</div>
+          <div class="grade-modal-pct" id="grade-pct-display">—</div>
+          <div style="font-size:0.75rem;color:#9ca3af;margin-top:0.2rem;">ציון סופי / אחוז</div>
+        </div>
+
+        <div class="exam-form-row" style="margin-top:1rem;">
+          <div class="form-group exam-form-col-2">
+            <label>ציון בפועל</label>
+            <input type="number" class="input" id="grade-value" min="0" max="120" placeholder="0–100" oninput="recalcGradeModal()">
+          </div>
+          <div class="form-group exam-form-col-2">
+            <label>מקסימום ציון</label>
+            <input type="number" class="input" id="grade-max" min="1" placeholder="100" oninput="recalcGradeModal()">
+          </div>
+        </div>
+        <div class="exam-form-row">
+          <div class="form-group exam-form-col-2">
+            <label>ציון בונוס</label>
+            <input type="number" class="input" id="grade-bonus" min="0" max="20" placeholder="0" oninput="recalcGradeModal()">
+          </div>
+          <div class="form-group exam-form-col-2">
+            <label>ציון תיקון (מועד ב)</label>
+            <input type="number" class="input" id="grade-correction" min="0" max="120" placeholder="אם תוקן" oninput="recalcGradeModal()">
+            <select class="select" id="grade-correction-mode" style="margin-top:0.4rem;font-size:0.82rem;" onchange="recalcGradeModal()">
+              <option value="replace">מחליף את הקיים</option>
+              <option value="highest">הציון הגבוה ביותר</option>
+            </select>
+          </div>
+        </div>
+        <div class="form-group" style="margin-top:0.25rem;">
+          <label>ציון משוער (מה ציפית?)</label>
+          <input type="number" class="input" id="grade-expected" min="0" max="120" placeholder="0–100">
+        </div>
+
+        <div style="display:flex;gap:0.75rem;margin-top:1rem;">
+          <button class="btn btn-exam" onclick="saveGrade()" style="flex:1;">שמור ציון וסמן הסתיים ✅</button>
+          <button class="btn btn-secondary" onclick="saveGradeSkip()" style="width:auto;white-space:nowrap;">סמן הסתיים בלי ציון</button>
+        </div>
+      </div>
     </div>
   </div>
 
@@ -230,6 +624,32 @@
               <svg width="20" height="20"><use href="#palette"></use></svg>
               בחר ערכת נושא
             </button>
+          </div>
+        </div>
+
+        <div class="settings-section">
+          <h3>מצב שימוש</h3>
+          <div class="setting-item mode-toggle-item">
+            <div class="mode-toggle-card active" id="mode-student-card">
+              <div class="mode-toggle-icon">🎓</div>
+              <div class="mode-toggle-text">
+                <strong>מצב תלמיד</strong>
+                <span>מקצועות, מבחנים, Classroom</span>
+              </div>
+            </div>
+            <div class="mode-toggle-card" id="mode-other-card">
+              <div class="mode-toggle-icon">💼</div>
+              <div class="mode-toggle-text">
+                <strong>מצב כללי</strong>
+                <span>מטלות ללא מקצועות ומבחנים</span>
+              </div>
+            </div>
+            <input type="checkbox" id="student-mode-toggle" checked style="display:none;">
+          </div>
+          <div class="setting-item" id="default-grade-setting" style="margin-top:0.75rem;">
+            <label style="font-weight:600;display:block;margin-bottom:0.4rem;">שכבה ברירת מחדל</label>
+            <input type="text" class="input" id="default-grade-level" placeholder='למשל: י׳, י״א' style="max-width:160px;">
+            <p style="font-size:0.78rem;color:#9ca3af;margin-top:0.3rem;">ימולא אוטומטית בכל מבחן חדש</p>
           </div>
         </div>
 
@@ -290,6 +710,25 @@
         </div>
 
         <div class="settings-section">
+          <h3>✅ Google Tasks & 📅 Google Calendar</h3>
+          <div class="setting-item">
+            <p style="margin-bottom: 0.75rem; color: #6b7280; font-size: 0.875rem;">
+              חבר את חשבון Google שלך כדי לראות משימות ואירועים קרובים בלוח הבקרה.
+            </p>
+            <div id="settings-tasks-status" style="margin-bottom: 0.75rem;"></div>
+            <div style="display:flex; gap:0.5rem; flex-wrap:wrap;">
+              <button class="btn btn-primary" id="settings-tasks-connect-btn" onclick="dashboardWidget._requestToken(); setTimeout(updateSettingsTasksStatus, 2000);" style="width:auto;">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 01-2 2H5a2 2 0 01-2-2V5a2 2 0 012-2h11"/></svg>
+                התחבר ל-Google Tasks & Calendar
+              </button>
+              <button class="btn btn-secondary" id="settings-tasks-disconnect-btn" onclick="dashboardWidget.disconnectTasks(); updateSettingsTasksStatus();" style="width:auto; display:none;">
+                התנתק מ-Google Tasks
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <div class="settings-section classroom-section">
           <h3>📚 Google Classroom</h3>
           <div id="classroom-settings-container">
             <div class="classroom-status disconnected">
@@ -477,6 +916,15 @@
     <symbol id="chevron-right" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
       <polyline points="9 18 15 12 9 6"></polyline>
     </symbol>
+    <symbol id="bar-chart-2" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+      <line x1="18" y1="20" x2="18" y2="10"></line>
+      <line x1="12" y1="20" x2="12" y2="4"></line>
+      <line x1="6" y1="20" x2="6" y2="14"></line>
+    </symbol>
+    <symbol id="pencil" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+      <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path>
+      <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path>
+    </symbol>
   </svg>
 
   <!-- JavaScript Files - ORDER MATTERS! -->
@@ -505,10 +953,6 @@
   <!-- 5. Core functionality -->
   <script src="notifications.js"></script>
   <script src="calendar.js"></script>
-  <script src="statistics.js"></script>
-  <script src="study-timer.js"></script>
-  <script src="achievements.js"></script>
-  <script src="gamification.js"></script>
   <script src="utilities.js"></script>
   
   <!-- 6. Main app (needs all of the above) -->
@@ -525,6 +969,7 @@
   
   <!-- 10. Google Classroom Integration -->
   <script src="classroom-integration.js"></script>
+  <script src="dashboard-widget.js"></script>
   
   <footer class="footer">
     <div id="beta-footer-container"></div>
@@ -543,5 +988,46 @@
     <p>(שימוש לא מסחרי עם מתן קרדיט בלבד)</p>
 </footer>
 
+  <script>
+    // עדכון סטטוס Google Tasks בהגדרות
+    function updateSettingsTasksStatus() {
+      const connected = typeof dashboardWidget !== 'undefined' && dashboardWidget.isConnected();
+      const statusEl = document.getElementById('settings-tasks-status');
+      const connectBtn = document.getElementById('settings-tasks-connect-btn');
+      const disconnectBtn = document.getElementById('settings-tasks-disconnect-btn');
+      if (!statusEl) return;
+      if (connected) {
+        statusEl.innerHTML = '<span style="color:#16a34a; font-weight:600;">✅ מחובר ל-Google Tasks & Calendar</span>';
+        if (connectBtn) connectBtn.style.display = 'none';
+        if (disconnectBtn) disconnectBtn.style.display = '';
+      } else {
+        statusEl.innerHTML = '<span style="color:#6b7280;">⚪ לא מחובר</span>';
+        if (connectBtn) connectBtn.style.display = '';
+        if (disconnectBtn) disconnectBtn.style.display = 'none';
+      }
+    }
+
+    document.addEventListener('DOMContentLoaded', () => {
+      // עדכן סטטוס בפתיחת הגדרות
+      const openSettingsBtn = document.getElementById('open-settings');
+      if (openSettingsBtn) {
+        openSettingsBtn.addEventListener('click', () => {
+          setTimeout(updateSettingsTasksStatus, 100);
+        });
+      }
+
+      // אתחול Dashboard Widget לאחר auth
+      const observer = new MutationObserver(() => {
+        const container = document.querySelector('.container');
+        if (container && container.style.display !== 'none') {
+          dashboardWidget.init();
+          observer.disconnect();
+        }
+      });
+      observer.observe(document.querySelector('.container') || document.body, {
+        attributes: true, attributeFilter: ['style']
+      });
+    });
+  </script>
 </body>
 </html>

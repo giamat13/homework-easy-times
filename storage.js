@@ -189,6 +189,7 @@ class StorageManager {
       'homework-subjects',
       'homework-tags',
       'homework-settings',
+      'exams-list',
       'gamification-stats',
       'gamification-achievements',
       'study-timer-settings',
@@ -319,8 +320,9 @@ class StorageManager {
       const homework = await this.get('homework-list') || [];
       const settings = await this.get('homework-settings') || {};
       const tags = await this.get('homework-tags') || [];
+      const exams = await this.get('exams-list') || [];
 
-      const data = { subjects, homework, settings, tags, exportDate: new Date().toISOString() };
+      const data = { subjects, homework, settings, tags, exams, exportDate: new Date().toISOString() };
       const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
       const url = URL.createObjectURL(blob);
       const a = document.createElement('a');
@@ -348,6 +350,7 @@ class StorageManager {
       if (data.homework) await this.set('homework-list', data.homework);
       if (data.settings) await this.set('homework-settings', data.settings);
       if (data.tags) await this.set('homework-tags', data.tags);
+      if (data.exams) await this.set('exams-list', data.exams);
 
       console.log('✅ importData: Data imported successfully');
       return { success: true };
