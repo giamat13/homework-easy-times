@@ -11278,3 +11278,222 @@ console.log('📝 ExamAnalytics: Module loaded');
     }
   });
 })();
+
+// ===============================================================
+// ניהול מקצועות - Subject Manager Modal
+// ===============================================================
+
+let smEditingId = null;
+let smSelectedColor = '#3b82f6';
+let smEditColor = '#3b82f6';
+
+function openSubjectManager() {
+  const modal = document.getElementById('subject-manager-modal');
+  if (!modal) return;
+  modal.classList.remove('hidden');
+  smEditingId = null;
+  smSelectedColor = '#3b82f6';
+  smRenderColorPicker('sm-color-picker', smSelectedColor, 'smSelectColor');
+  smRenderSubjectList();
+  document.getElementById('sm-edit-panel').classList.add('hidden');
+  document.getElementById('sm-subject-name').value = '';
+  document.getElementById('sm-subject-name').focus();
+}
+
+function closeSubjectManager() {
+  const modal = document.getElementById('subject-manager-modal');
+  if (modal) modal.classList.add('hidden');
+  smEditingId = null;
+}
+
+function smRenderColorPicker(containerId, currentColor, callbackFn) {
+  const picker = document.getElementById(containerId);
+  if (!picker) return;
+  const colorList = typeof colors !== 'undefined' ? colors : [
+    '#3b82f6','#10b981','#f59e0b','#ef4444','#8b5cf6',
+    '#ec4899','#06b6d4','#84cc16','#f97316','#6366f1',
+    '#14b8a6','#a855f7','#64748b','#0ea5e9','#22c55e'
+  ];
+  let html = '<div class="color-grid" style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:0.5rem;">';
+  colorList.forEach(color => {
+    html += `<div class="color-option ${color === currentColor ? 'selected' : ''}"
+      style="width:28px;height:28px;border-radius:50%;background:${color};cursor:pointer;border:3px solid ${color === currentColor ? '#1e293b' : 'transparent'};transition:border 0.15s;"
+      onclick="${callbackFn}('${color}')"></div>`;
+  });
+  html += '</div>';
+  html += `<div style="display:flex;align-items:center;gap:0.5rem;margin-top:0.25rem;">
+    <input type="color" value="${currentColor}" style="width:32px;height:28px;border:none;border-radius:6px;cursor:pointer;padding:0;"
+      onchange="${callbackFn}(this.value)">
+    <span style="font-size:0.8rem;color:var(--text-secondary,#64748b);">צבע מותאם אישית</span>
+  </div>`;
+  picker.innerHTML = html;
+}
+
+function smSelectColor(color) {
+  smSelectedColor = color;
+  smRenderColorPicker('sm-color-picker', smSelectedColor, 'smSelectColor');
+}
+
+function smEditSelectColor(color) {
+  smEditColor = color;
+  smRenderColorPicker('sm-edit-color-picker', smEditColor, 'smEditSelectColor');
+}
+
+function smAddSubject() {
+  const nameInput = document.getElementById('sm-subject-name');
+  const name = nameInput ? nameInput.value.trim() : '';
+  const subjectTerm = (typeof getSubjectTerm === 'function') ? getSubjectTerm() : 'מקצוע';
+
+  if (!name) {
+    if (typeof notifications !== 'undefined') {
+      notifications.showInAppNotification(`נא להזין שם ${subjectTerm}`, 'error');
+    } else {
+      alert(`נא להזין שם ${subjectTerm}`);
+    }
+    return;
+  }
+
+  const newSubject = { id: Date.now(), name, color: smSelectedColor };
+  subjects.push(newSubject);
+
+  nameInput.value = '';
+  smSelectedColor = '#3b82f6';
+  smRenderColorPicker('sm-color-picker', smSelectedColor, 'smSelectColor');
+
+  saveData();
+  renderSubjects();
+  smRenderSubjectList();
+
+  if (typeof notifications !== 'undefined') {
+    notifications.showInAppNotification(`${subjectTerm} "${name}" נוסף בהצלחה`, 'success');
+  }
+}
+
+function smRenderSubjectList() {
+  const container = document.getElementById('sm-subject-list');
+  if (!container) return;
+  const subjectTerm = (typeof getSubjectTerm === 'function') ? getSubjectTerm() : 'מקצוע';
+
+  if (!subjects || subjects.length === 0) {
+    container.innerHTML = `<div style="text-align:center;padding:1.5rem;color:var(--text-secondary,#64748b);font-size:0.9rem;">
+      אין ${subjectTerm}ות עדיין. הוסף ${subjectTerm} חדש למעלה.
+    </div>`;
+    return;
+  }
+
+  container.innerHTML = subjects.map(s => {
+    const taskCount = (typeof homework !== 'undefined') ? homework.filter(h => h.subject == s.id).length : 0;
+    return `<div style="display:flex;align-items:center;gap:0.75rem;padding:0.75rem 1rem;background:var(--card-bg,white);border:1px solid var(--border-color,#e2e8f0);border-radius:0.75rem;transition:box-shadow 0.15s;">
+      <div style="width:18px;height:18px;border-radius:50%;background:${s.color};flex-shrink:0;"></div>
+      <span style="flex:1;font-weight:600;color:var(--text-primary,#1e293b);">${s.name}</span>
+      <span style="font-size:0.78rem;color:var(--text-secondary,#64748b);background:var(--bg-secondary,#f1f5f9);padding:0.2rem 0.6rem;border-radius:999px;">${taskCount} משימות</span>
+      <button class="icon-btn" title="עריכה" onclick="smStartEdit(${s.id})" style="color:#3b82f6;width:32px;height:32px;display:flex;align-items:center;justify-content:center;border-radius:6px;border:1px solid #bfdbfe;background:#eff6ff;">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+      </button>
+      <button class="icon-btn" title="מחיקה" onclick="smDeleteSubject(${s.id})" style="color:#ef4444;width:32px;height:32px;display:flex;align-items:center;justify-content:center;border-radius:6px;border:1px solid #fecaca;background:#fef2f2;">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 01-2 2H8a2 2 0 01-2-2L5 6"/><path d="M10 11v6M14 11v6"/><path d="M9 6V4a1 1 0 011-1h4a1 1 0 011 1v2"/></svg>
+      </button>
+    </div>`;
+  }).join('');
+}
+
+function smStartEdit(id) {
+  const subject = subjects.find(s => s.id === id);
+  if (!subject) return;
+  smEditingId = id;
+  smEditColor = subject.color || '#3b82f6';
+
+  const editPanel = document.getElementById('sm-edit-panel');
+  const editName = document.getElementById('sm-edit-name');
+  editPanel.classList.remove('hidden');
+  editName.value = subject.name;
+  smRenderColorPicker('sm-edit-color-picker', smEditColor, 'smEditSelectColor');
+  editName.focus();
+  editPanel.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+}
+
+function smSaveEdit() {
+  if (!smEditingId) return;
+  const nameInput = document.getElementById('sm-edit-name');
+  const name = nameInput ? nameInput.value.trim() : '';
+  const subjectTerm = (typeof getSubjectTerm === 'function') ? getSubjectTerm() : 'מקצוע';
+
+  if (!name) {
+    if (typeof notifications !== 'undefined') {
+      notifications.showInAppNotification(`נא להזין שם ${subjectTerm}`, 'error');
+    }
+    return;
+  }
+
+  const idx = subjects.findIndex(s => s.id === smEditingId);
+  if (idx !== -1) {
+    subjects[idx].name = name;
+    subjects[idx].color = smEditColor;
+  }
+
+  smEditingId = null;
+  document.getElementById('sm-edit-panel').classList.add('hidden');
+
+  saveData();
+  render();
+  smRenderSubjectList();
+
+  if (typeof notifications !== 'undefined') {
+    notifications.showInAppNotification(`${subjectTerm} עודכן בהצלחה`, 'success');
+  }
+}
+
+function smCancelEdit() {
+  smEditingId = null;
+  document.getElementById('sm-edit-panel').classList.add('hidden');
+}
+
+function smDeleteSubject(id) {
+  const subject = subjects.find(s => s.id === id);
+  if (!subject) return;
+  const subjectTerm = (typeof getSubjectTerm === 'function') ? getSubjectTerm() : 'מקצוע';
+  const relatedCount = (typeof homework !== 'undefined') ? homework.filter(h => h.subject == id).length : 0;
+
+  let msg = `האם אתה בטוח שברצונך למחוק את ה${subjectTerm} "${subject.name}"?`;
+  if (relatedCount > 0) {
+    msg += `\n\n⚠️ פעולה זו תמחק גם ${relatedCount} משימות הקשורות ל${subjectTerm} הזה!`;
+  }
+
+  if (!confirm(msg)) return;
+
+  subjects = subjects.filter(s => s.id !== id);
+  if (typeof homework !== 'undefined') {
+    homework = homework.filter(h => h.subject != id);
+  }
+
+  if (smEditingId === id) {
+    smEditingId = null;
+    document.getElementById('sm-edit-panel').classList.add('hidden');
+  }
+
+  saveData();
+  render();
+  smRenderSubjectList();
+
+  if (typeof notifications !== 'undefined') {
+    notifications.showInAppNotification(`${subjectTerm} "${subject.name}" נמחק`, 'success');
+  }
+}
+
+// סגירת ה-modal בלחיצה מחוץ לו
+document.addEventListener('click', (e) => {
+  const modal = document.getElementById('subject-manager-modal');
+  if (modal && !modal.classList.contains('hidden') && e.target === modal) {
+    closeSubjectManager();
+  }
+});
+
+window.openSubjectManager = openSubjectManager;
+window.closeSubjectManager = closeSubjectManager;
+window.smAddSubject = smAddSubject;
+window.smStartEdit = smStartEdit;
+window.smSaveEdit = smSaveEdit;
+window.smCancelEdit = smCancelEdit;
+window.smDeleteSubject = smDeleteSubject;
+window.smSelectColor = smSelectColor;
+window.smEditSelectColor = smEditSelectColor;
