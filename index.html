@@ -237,6 +237,11 @@
               חבר Google Tasks
             </button>
             <button id="hw-tasks-disconnect-btn" class="btn btn-secondary" style="width:auto;display:none;color:#6b7280;" onclick="dashboardWidget.disconnectTasks()">התנתק Tasks</button>
+            <!-- ניהול מקצועות -->
+            <button class="btn btn-secondary" id="open-subject-manager" style="width:auto;" onclick="openSubjectManager()" title="ניהול מקצועות">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/></svg>
+              מקצועות
+            </button>
             <!-- הוסף משימה -->
             <button class="btn btn-primary" id="open-add-task-modal" style="width:auto;">
               <svg width="18" height="18"><use href="#plus"></use></svg>
@@ -1024,5 +1029,42 @@
       });
     });
   </script>
+
+  <!-- Modal: ניהול מקצועות -->
+  <div class="modal hidden" id="subject-manager-modal">
+    <div class="modal-content" style="max-width:520px;">
+      <div class="modal-header">
+        <h2>📚 ניהול מקצועות</h2>
+        <button class="close-modal-btn" onclick="closeSubjectManager()">
+          <svg width="20" height="20"><use href="#x"></use></svg>
+        </button>
+      </div>
+      <div class="modal-body">
+        <!-- הוספת מקצוע חדש -->
+        <div style="background:var(--bg-secondary,#f8fafc);border-radius:0.75rem;padding:1rem;margin-bottom:1.25rem;">
+          <h3 style="font-size:0.95rem;font-weight:600;margin-bottom:0.75rem;color:var(--text-primary,#1e293b);">+ מקצוע חדש</h3>
+          <input type="text" class="input" id="sm-subject-name" placeholder="שם המקצוע" style="margin-bottom:0.75rem;">
+          <div id="sm-color-picker"></div>
+          <div class="btn-group" style="margin-top:0.75rem;">
+            <button class="btn btn-success" onclick="smAddSubject()" style="width:auto;padding:0.5rem 1.25rem;">הוסף מקצוע</button>
+          </div>
+        </div>
+
+        <!-- רשימת מקצועות קיימים -->
+        <div id="sm-subject-list" style="display:flex;flex-direction:column;gap:0.6rem;"></div>
+
+        <!-- modal עריכה inline -->
+        <div id="sm-edit-panel" class="hidden" style="background:var(--bg-secondary,#f0f9ff);border:2px solid #3b82f6;border-radius:0.75rem;padding:1rem;margin-top:1rem;">
+          <h3 style="font-size:0.95rem;font-weight:600;margin-bottom:0.75rem;">✏️ עריכת מקצוע</h3>
+          <input type="text" class="input" id="sm-edit-name" placeholder="שם המקצוע" style="margin-bottom:0.75rem;">
+          <div id="sm-edit-color-picker"></div>
+          <div class="btn-group" style="margin-top:0.75rem;">
+            <button class="btn btn-primary" onclick="smSaveEdit()" style="width:auto;padding:0.5rem 1.25rem;">שמור שינויים</button>
+            <button class="btn btn-secondary" onclick="smCancelEdit()" style="width:auto;padding:0.5rem 1rem;">ביטול</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
 </body>
 </html>
