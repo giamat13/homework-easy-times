@@ -8,11 +8,6 @@
   
   <!-- CSS Files -->
   <link rel="stylesheet" href="styles.css">
-  <link rel="stylesheet" href="calendar-styles.css">
-  <link rel="stylesheet" href="enhanced-styles.css">
-  <link rel="stylesheet" href="statistics-styles.css">
-  <link rel="stylesheet" href="achievement-progress-styles.css">
-  <link rel="stylesheet" href="auth-styles.css">
   
   <!-- External Libraries -->
   <script src="https://cdnjs.cloudflare.com/ajax/libs/lucide/0.263.1/umd/lucide.min.js"></script>
@@ -272,7 +267,7 @@
         </div>
         <div class="modal-body">
           <div class="form-group" id="hw-subject-group">
-            <label>מקצוע</label>
+            <label id="hw-subject-label">מקצוע</label>
             <div style="display:flex;gap:0.5rem;align-items:center;">
               <select class="select" id="hw-subject" style="flex:1">
                 <option value="">בחר מקצוע</option>
@@ -340,7 +335,7 @@
       </div>
       <div class="modal-body">
         <div class="form-group">
-          <label>מקצוע</label>
+          <label id="edit-hw-subject-label">מקצוע</label>
           <select class="select" id="edit-hw-subject">
             <option value="">בחר מקצוע</option>
           </select>
@@ -959,12 +954,7 @@
     </symbol>
   </svg>
 
-  <!-- JavaScript Files - ORDER MATTERS! -->
-  <!-- 1. Firebase Config (FIRST!) -->
-  <script src="config.js"></script>
-  <script src="firebase-config.js"></script>
-  
-  <!-- Google Analytics (after config) -->
+  <!-- Google Analytics -->
   <script async src="https://www.googletagmanager.com/gtag/js?id=G-3P7J53MD27"></script>
   <script>
     window.dataLayer = window.dataLayer || [];
@@ -973,35 +963,8 @@
     gtag('config', window.GA_MEASUREMENT_ID || 'G-3P7J53MD27');
   </script>
   
-  <!-- 2. Storage (needs Firebase) -->
-  <script src="storage.js"></script>
-  
-  <!-- 3. Auth -->
-  <script src="auth.js"></script>
-  
-  <!-- 4. Auth Enhancements (needs auth.js) -->
-  <script src="auth-enhancements.js"></script>
-  
-  <!-- 5. Core functionality -->
-  <script src="notifications.js"></script>
-  <script src="calendar.js"></script>
-  <script src="utilities.js"></script>
-  
-  <!-- 6. Main app (needs all of the above) -->
-  <script src="app.js"></script>
-  
-  <!-- 7. Integration (LAST!) -->
-  <script src="integration.js"></script>
-  
-  <!-- 8. Sync Fix (NEW!) -->
-  <script src="sync-fix.js"></script>
-  
-  <!-- 9. Delete Account (NEW!) -->
-  <script src="delete-account.js"></script>
-  
-  <!-- 10. Google Classroom Integration -->
-  <script src="classroom-integration.js"></script>
-  <script src="dashboard-widget.js"></script>
+  <!-- Single app bundle -->
+  <script src="app.bundle.js"></script>
   
   <footer class="footer">
     <div id="beta-footer-container"></div>
