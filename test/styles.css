@@ -422,6 +422,38 @@ body.dark-mode .filters-panel {
   gap: 0.5rem;
 }
 
+.custom-fields-form {
+  align-items: stretch;
+  flex-wrap: wrap;
+}
+
+.custom-fields-form .select {
+  min-width: 140px;
+  width: auto;
+}
+
+.custom-field-options-input {
+  margin-bottom: 1rem;
+}
+
+.custom-field-item {
+  background: #0f766e;
+  align-items: flex-start;
+}
+
+.custom-field-type {
+  display: inline-block;
+  margin-right: 0.5rem;
+  font-size: 0.75rem;
+  opacity: 0.85;
+}
+
+.custom-field-options-preview,
+.custom-fields-empty {
+  font-size: 0.8rem;
+  opacity: 0.9;
+}
+
 .tag-item {
   display: flex;
   align-items: center;
@@ -616,6 +648,48 @@ body.dark-mode .filters-panel {
   color: var(--text-secondary);
   margin-bottom: 0.5rem;
   line-height: 1.5;
+}
+
+.custom-field-values {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem 0.75rem;
+  margin-bottom: 0.5rem;
+}
+
+.custom-field-value {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+  font-size: 0.82rem;
+  color: var(--text-secondary);
+  background: var(--border-color);
+  padding: 0.25rem 0.5rem;
+  border-radius: 0.5rem;
+}
+
+.custom-field-label {
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.custom-field-separator {
+  color: var(--text-secondary);
+}
+
+.custom-field-input {
+  margin-bottom: 0.75rem;
+}
+
+.custom-field-input:last-child {
+  margin-bottom: 0;
+}
+
+.custom-field-input label {
+  display: block;
+  margin-bottom: 0.35rem;
+  font-size: 0.9rem;
+  color: var(--text-primary);
 }
 
 .homework-files {

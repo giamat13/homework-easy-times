@@ -138,7 +138,7 @@
           <button class="settings-btn" id="toggle-view-mode" title="החלף תצוגה">
             <svg width="24" height="24"><use href="#calendar"></use></svg>
           </button>
-          <button class="settings-btn" id="quick-help-btn" title="עזרה (Shift+H)" onclick="quickActions.showHelpModal()">
+          <button class="settings-btn" id="quick-help-btn" title="עזרה (F1)" onclick="quickActions.showHelpModal()">
             <svg width="24" height="24"><use href="#help-circle"></use></svg>
           </button>
           <a href="stats.html" class="settings-btn" title="הישגים וסטטיסטיקות" style="text-decoration:none;display:inline-flex;align-items:center;justify-content:center;">
@@ -312,6 +312,10 @@
               <option value="high">גבוהה</option>
             </select>
           </div>
+          <div class="form-group" id="hw-custom-fields-group">
+            <label>שדות מותאמים אישית</label>
+            <div id="hw-custom-fields"></div>
+          </div>
           <button class="btn btn-primary" id="add-homework">
             <svg width="20" height="20"><use href="#plus"></use></svg>
             הוסף משימה
@@ -356,6 +360,10 @@
             <option value="medium">בינונית</option>
             <option value="high">גבוהה</option>
           </select>
+        </div>
+        <div class="form-group" id="edit-hw-custom-fields-group">
+          <label>שדות מותאמים אישית</label>
+          <div id="edit-hw-custom-fields"></div>
         </div>
         <button class="btn btn-primary" id="save-edit-hw-btn">שמור שינויים</button>
       </div>
@@ -673,6 +681,11 @@
               <input type="time" id="notification-time" value="09:00" class="input" style="width: 120px; display: inline-block; margin-right: 0.5rem;">
             </label>
           </div>
+        </div>
+
+        <div class="settings-section">
+          <h3>שדות מותאמים למשימות</h3>
+          <div id="custom-task-fields-management"></div>
         </div>
 
         <div class="settings-section">

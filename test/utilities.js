@@ -186,7 +186,7 @@ class QuickActionsManager {
       's': { action: 'newSubject', description: 'מקצוע חדש', ctrl: true },
       'f': { action: 'search', description: 'חיפוש', ctrl: true },
       't': { action: 'toggleTimer', description: 'התחל/עצור טיימר', ctrl: true },
-      'h': { action: 'showHelp', description: 'עזרה', shift: true },
+      'f1': { action: 'showHelp', description: 'עזרה' },
       'a': { action: 'showAchievements', description: 'הישגים', ctrl: true },
       'd': { action: 'toggleDarkMode', description: 'מצב לילה', ctrl: true },
       'e': { action: 'export', description: 'ייצוא', ctrl: true, shift: true },
@@ -214,9 +214,16 @@ class QuickActionsManager {
     
     document.addEventListener('keydown', (e) => {
       if (!this.isEnabled) return;
+
+      const key = e.key.toLowerCase();
+      const shortcut = this.shortcuts[key];
       
       // אל תפעל בתוך שדות קלט
       if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') {
+        if (shortcut && shortcut.action === 'showHelp') {
+          e.preventDefault();
+          this.executeAction(shortcut.action);
+        }
         // אבל אפשר Ctrl+F לחיפוש
         if (e.ctrlKey && e.key === 'f') {
           e.preventDefault();
@@ -224,9 +231,6 @@ class QuickActionsManager {
         }
         return;
       }
-
-      const key = e.key.toLowerCase();
-      const shortcut = this.shortcuts[key];
 
       if (shortcut) {
         const ctrlMatch = shortcut.ctrl ? e.ctrlKey : !e.ctrlKey;
@@ -341,7 +345,7 @@ class QuickActionsManager {
             ${shortcutsHTML}
           </div>
           <div class="help-tip">
-            💡 טיפ: לחץ <kbd>Shift</kbd> + <kbd>H</kbd> בכל עת כדי לראות רשימה זו
+            💡 טיפ: לחץ <kbd>F1</kbd> בכל עת כדי לראות רשימה זו
           </div>
         </div>
       </div>

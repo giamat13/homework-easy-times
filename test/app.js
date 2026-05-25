@@ -47,6 +47,7 @@ let filters = {
 };
 let availableTags = [];
 let exams = [];
+let customTaskFields = [];
 
 // =============== טעינה ושמירה ===============
 
@@ -102,11 +103,20 @@ async function loadData() {
     
     console.log('📚 loadData: Loading homework...');
     homework = await storage.get('homework-list') || [];
+    homework = homework.map(hw => ({
+      ...hw,
+      customFields: hw && typeof hw.customFields === 'object' && hw.customFields !== null ? hw.customFields : {}
+    }));
     console.log('✅ loadData: Homework loaded:', homework.length, 'items');
     
     console.log('🏷️ loadData: Loading tags...');
     availableTags = await storage.get('homework-tags') || [];
     console.log('✅ loadData: Tags loaded:', availableTags.length, 'items');
+
+    console.log('🧩 loadData: Loading custom task fields...');
+    customTaskFields = await storage.get('homework-custom-fields') || [];
+    customTaskFields = customTaskFields.map((field, index) => normalizeCustomTaskField(field, index)).filter(Boolean);
+    console.log('✅ loadData: Custom task fields loaded:', customTaskFields.length, 'items');
 
     exams = await storage.get('exams-list') || [];
     console.log('✅ loadData: Exams loaded:', exams.length, 'items');
@@ -202,6 +212,7 @@ async function saveData() {
     await storage.set('homework-list', homework);
     await storage.set('homework-settings', settings);
     await storage.set('homework-tags', availableTags);
+    await storage.set('homework-custom-fields', customTaskFields);
     await storage.set('exams-list', exams);
     console.log('✅✅✅ saveData: הנתונים נשמרו בהצלחה');
   } catch (error) {
@@ -220,6 +231,210 @@ function getDaysUntilDue(dueDate) {
   const due = new Date(dueDate + 'T00:00:00');
   const days = Math.round((due - today) / (1000 * 60 * 60 * 24));
   return days;
+}
+
+function escapeHtml(value) {
+  return String(value ?? '')
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;');
+}
+
+function slugifyCustomFieldLabel(label) {
+  return label
+    .trim()
+    .toLowerCase()
+    .replace(/\s+/g, '-')
+    .replace(/[^a-z0-9\u0590-\u05ff_-]/g, '')
+    .replace(/-+/g, '-')
+    .replace(/^-|-$/g, '');
+}
+
+function normalizeCustomTaskField(field, index = 0) {
+  if (!field || !field.label) return null;
+  const type = ['text', 'number', 'date', 'select'].includes(field.type) ? field.type : 'text';
+  return {
+    id: field.id || `${slugifyCustomFieldLabel(field.label) || 'custom-field'}-${index}`,
+    label: field.label.trim(),
+    type,
+    options: type === 'select' ? (Array.isArray(field.options) ? field.options.filter(Boolean) : []) : []
+  };
+}
+
+function renderTaskCustomFields(containerId, fieldValues = {}, idPrefix = 'hw') {
+  const container = document.getElementById(containerId);
+  const group = document.getElementById(`${containerId}-group`) || document.getElementById(`${idPrefix}-custom-fields-group`);
+  if (!container) return;
+
+  if (!customTaskFields.length) {
+    container.innerHTML = '<p class="custom-fields-empty">אין עדיין שדות מותאמים. אפשר להוסיף אותם בהגדרות.</p>';
+    if (group) group.classList.add('hidden');
+    return;
+  }
+
+  if (group) group.classList.remove('hidden');
+
+  container.innerHTML = customTaskFields.map(field => {
+    const inputId = `${idPrefix}-custom-field-${field.id}`;
+    const currentValue = fieldValues[field.id] ?? '';
+
+    if (field.type === 'select') {
+      return `
+        <div class="custom-field-input">
+          <label for="${inputId}">${escapeHtml(field.label)}</label>
+          <select class="select" id="${inputId}" data-custom-field-id="${escapeHtml(field.id)}">
+            <option value="">בחר</option>
+            ${field.options.map(option => `
+              <option value="${escapeHtml(option)}" ${option === currentValue ? 'selected' : ''}>${escapeHtml(option)}</option>
+            `).join('')}
+          </select>
+        </div>
+      `;
+    }
+
+    return `
+      <div class="custom-field-input">
+        <label for="${inputId}">${escapeHtml(field.label)}</label>
+        <input
+          type="${field.type === 'number' ? 'number' : field.type === 'date' ? 'date' : 'text'}"
+          class="input"
+          id="${inputId}"
+          data-custom-field-id="${escapeHtml(field.id)}"
+          value="${escapeHtml(currentValue)}"
+        >
+      </div>
+    `;
+  }).join('');
+}
+
+function collectTaskCustomFieldValues(idPrefix = 'hw') {
+  return customTaskFields.reduce((acc, field) => {
+    const input = document.getElementById(`${idPrefix}-custom-field-${field.id}`);
+    if (!input) return acc;
+    const value = input.value.trim();
+    if (value !== '') acc[field.id] = value;
+    return acc;
+  }, {});
+}
+
+function formatCustomFieldValue(field, value) {
+  if (value === null || value === undefined || value === '') return '';
+  if (field.type === 'date') {
+    const parsed = new Date(`${value}T00:00:00`);
+    if (!Number.isNaN(parsed.getTime())) return parsed.toLocaleDateString('he-IL');
+  }
+  return String(value);
+}
+
+function renderCustomTaskFieldsManager() {
+  const container = document.getElementById('custom-task-fields-management');
+  if (!container) return;
+
+  container.innerHTML = `
+    <div class="custom-fields-manager">
+      <div class="add-tag-form custom-fields-form">
+        <input type="text" class="input" id="new-custom-field-label" placeholder="שם השדה">
+        <select class="select" id="new-custom-field-type">
+          <option value="text">טקסט</option>
+          <option value="number">מספר</option>
+          <option value="date">תאריך</option>
+          <option value="select">רשימת בחירה</option>
+        </select>
+        <button class="btn btn-primary" onclick="addCustomTaskField()">
+          <svg width="16" height="16"><use href="#plus"></use></svg>
+          הוסף
+        </button>
+      </div>
+      <input type="text" class="input custom-field-options-input" id="new-custom-field-options" placeholder="אפשרויות מופרדות בפסיקים" style="display:none;">
+      <div class="tags-list custom-fields-list">
+        ${customTaskFields.length ? customTaskFields.map(field => `
+          <div class="tag-item custom-field-item">
+            <div>
+              <strong>${escapeHtml(field.label)}</strong>
+              <span class="custom-field-type">${field.type === 'text' ? 'טקסט' : field.type === 'number' ? 'מספר' : field.type === 'date' ? 'תאריך' : 'רשימה'}</span>
+              ${field.type === 'select' && field.options.length ? `<div class="custom-field-options-preview">${escapeHtml(field.options.join(', '))}</div>` : ''}
+            </div>
+            <button class="icon-btn" onclick="removeCustomTaskField('${escapeHtml(field.id)}')" title="מחק שדה">
+              <svg width="14" height="14"><use href="#x"></use></svg>
+            </button>
+          </div>
+        `).join('') : '<p class="custom-fields-empty">עוד לא הוגדרו שדות מותאמים.</p>'}
+      </div>
+    </div>
+  `;
+
+  const typeSelect = document.getElementById('new-custom-field-type');
+  const optionsInput = document.getElementById('new-custom-field-options');
+  if (typeSelect && optionsInput) {
+    typeSelect.addEventListener('change', () => {
+      optionsInput.style.display = typeSelect.value === 'select' ? '' : 'none';
+      if (typeSelect.value !== 'select') optionsInput.value = '';
+    });
+  }
+}
+
+async function addCustomTaskField() {
+  const labelInput = document.getElementById('new-custom-field-label');
+  const typeInput = document.getElementById('new-custom-field-type');
+  const optionsInput = document.getElementById('new-custom-field-options');
+  if (!labelInput || !typeInput || !optionsInput) return;
+
+  const label = labelInput.value.trim();
+  const type = typeInput.value;
+  if (!label) {
+    notifications.showInAppNotification('נא להזין שם לשדה המותאם', 'error');
+    return;
+  }
+
+  if (customTaskFields.some(field => field.label === label)) {
+    notifications.showInAppNotification('כבר קיים שדה עם אותו שם', 'error');
+    return;
+  }
+
+  const newField = normalizeCustomTaskField({
+    id: `${slugifyCustomFieldLabel(label) || 'custom-field'}-${Date.now()}`,
+    label,
+    type,
+    options: type === 'select'
+      ? optionsInput.value.split(',').map(option => option.trim()).filter(Boolean)
+      : []
+  }, customTaskFields.length);
+
+  if (type === 'select' && !newField.options.length) {
+    notifications.showInAppNotification('לשדה מסוג רשימה צריך להזין לפחות אפשרות אחת', 'error');
+    return;
+  }
+
+  customTaskFields.push(newField);
+  await saveData();
+  renderCustomTaskFieldsManager();
+  renderTaskCustomFields('hw-custom-fields');
+  renderTaskCustomFields('edit-hw-custom-fields', {}, 'edit-hw');
+
+  labelInput.value = '';
+  typeInput.value = 'text';
+  optionsInput.value = '';
+  optionsInput.style.display = 'none';
+  notifications.showInAppNotification(`השדה "${label}" נוסף`, 'success');
+}
+
+async function removeCustomTaskField(fieldId) {
+  const field = customTaskFields.find(item => item.id === fieldId);
+  if (!field) return;
+  if (!confirm(`למחוק את השדה "${field.label}" מכל המשימות?`)) return;
+
+  customTaskFields = customTaskFields.filter(item => item.id !== fieldId);
+  homework.forEach(hw => {
+    if (hw.customFields) delete hw.customFields[fieldId];
+  });
+
+  await saveData();
+  render();
+  renderTaskCustomFields('hw-custom-fields');
+  renderTaskCustomFields('edit-hw-custom-fields', {}, 'edit-hw');
+  notifications.showInAppNotification(`השדה "${field.label}" נמחק`, 'success');
 }
 
 function downloadFile(filename, dataUrl) {
@@ -783,6 +998,21 @@ function renderHomework() {
             </div>
             <h3 class="homework-title ${hw.completed ? 'completed' : ''}">${hw.title}</h3>
             ${hw.description ? `<p class="homework-desc">${hw.description}</p>` : ''}
+            ${customTaskFields.some(field => hw.customFields && hw.customFields[field.id]) ? `
+              <div class="custom-field-values">
+                ${customTaskFields.map(field => {
+                  const value = hw.customFields ? hw.customFields[field.id] : '';
+                  if (!value) return '';
+                  return `
+                    <div class="custom-field-value">
+                      <span class="custom-field-label">${escapeHtml(field.label)}</span>
+                      <span class="custom-field-separator">:</span>
+                      <span>${escapeHtml(formatCustomFieldValue(field, value))}</span>
+                    </div>
+                  `;
+                }).join('')}
+              </div>
+            ` : ''}
 
             ${hw.files && hw.files.length ? `
               <div class="homework-files">
@@ -882,6 +1112,9 @@ function render() {
   renderHomework();
   renderFilters();
   renderTagSelector();
+  renderCustomTaskFieldsManager();
+  renderTaskCustomFields('hw-custom-fields');
+  renderTaskCustomFields('edit-hw-custom-fields', {}, 'edit-hw');
   updateStats();
   applyMode();
 }
@@ -970,6 +1203,7 @@ function addHomework() {
   const dueDate = document.getElementById('hw-date').value;
   const priority = document.getElementById('hw-priority').value;
   const fileInput = document.getElementById('hw-files');
+  const customFields = collectTaskCustomFieldValues('hw');
 
   if (!subject || !title || !dueDate) {
     notifications.showInAppNotification('נא למלא את כל השדות החובה (מקצוע, כותרת, תאריך)', 'error');
@@ -1011,6 +1245,7 @@ function addHomework() {
       completed: false,
       files: hwFiles,
       tags: [],
+      customFields,
       notified: false,
       todayNotified: false
     };
@@ -1023,6 +1258,7 @@ function addHomework() {
     document.getElementById('hw-date').value = '';
     document.getElementById('hw-priority').value = 'medium';
     document.getElementById('hw-files').value = '';
+    renderTaskCustomFields('hw-custom-fields');
 
     saveData();
     render();
@@ -1069,6 +1305,7 @@ function openEditHomeworkModal(id) {
   document.getElementById('edit-hw-desc').value = hw.description || '';
   document.getElementById('edit-hw-date').value = hw.dueDate || '';
   document.getElementById('edit-hw-priority').value = hw.priority || 'medium';
+  renderTaskCustomFields('edit-hw-custom-fields', hw.customFields || {}, 'edit-hw');
 
   document.getElementById('save-edit-hw-btn').onclick = () => saveEditHomework(numId);
 
@@ -1093,6 +1330,7 @@ function saveEditHomework(id) {
   hw.description = document.getElementById('edit-hw-desc').value.trim();
   hw.dueDate     = document.getElementById('edit-hw-date').value || null;
   hw.priority    = document.getElementById('edit-hw-priority').value;
+  hw.customFields = collectTaskCustomFieldValues('edit-hw');
 
   saveData();
   render();
@@ -1526,10 +1764,15 @@ async function handleImportFile(event) {
   try {
     const result = await storage.importData(file);
     if (result.success) {
-      subjects = result.data.subjects;
-      homework = result.data.homework;
+      subjects = result.data.subjects || [];
+      homework = (result.data.homework || []).map(hw => ({
+        ...hw,
+        customFields: hw && typeof hw.customFields === 'object' && hw.customFields !== null ? hw.customFields : {}
+      }));
       if (result.data.settings) settings = result.data.settings;
       if (result.data.tags) availableTags = result.data.tags;
+      customTaskFields = (result.data.customTaskFields || []).map((field, index) => normalizeCustomTaskField(field, index)).filter(Boolean);
+      if (result.data.exams) exams = result.data.exams;
       
       render();
       loadSettingsUI();
@@ -1567,6 +1810,7 @@ async function clearAllData() {
     subjects = [];
     homework = [];
     availableTags = [];
+    customTaskFields = [];
     settings = {
       enableNotifications: false,
       notificationDays: 1,
@@ -2251,6 +2495,8 @@ window.addHomework = addHomework;
 window.toggleTagEditor = toggleTagEditor;
 window.addTag = addTag;
 window.removeTag = removeTag;
+window.addCustomTaskField = addCustomTaskField;
+window.removeCustomTaskField = removeCustomTaskField;
 window.downloadFile = downloadFile;
 // מבחנים
 window.deleteExam = deleteExam;
