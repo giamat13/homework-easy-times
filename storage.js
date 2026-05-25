@@ -188,6 +188,7 @@ class StorageManager {
       'homework-list',
       'homework-subjects',
       'homework-tags',
+      'homework-custom-fields',
       'homework-settings',
       'exams-list',
       'gamification-stats',
@@ -320,9 +321,10 @@ class StorageManager {
       const homework = await this.get('homework-list') || [];
       const settings = await this.get('homework-settings') || {};
       const tags = await this.get('homework-tags') || [];
+      const customTaskFields = await this.get('homework-custom-fields') || [];
       const exams = await this.get('exams-list') || [];
 
-      const data = { subjects, homework, settings, tags, exams, exportDate: new Date().toISOString() };
+      const data = { subjects, homework, settings, tags, customTaskFields, exams, exportDate: new Date().toISOString() };
       const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
       const url = URL.createObjectURL(blob);
       const a = document.createElement('a');
@@ -350,13 +352,14 @@ class StorageManager {
       if (data.homework) await this.set('homework-list', data.homework);
       if (data.settings) await this.set('homework-settings', data.settings);
       if (data.tags) await this.set('homework-tags', data.tags);
+      if (data.customTaskFields) await this.set('homework-custom-fields', data.customTaskFields);
       if (data.exams) await this.set('exams-list', data.exams);
 
       console.log('✅ importData: Data imported successfully');
-      return { success: true };
+      return { success: true, data, message: 'הנתונים יובאו בהצלחה' };
     } catch (e) {
       console.error('❌ importData: Error:', e.message);
-      return { success: false, error: e.message };
+      return { success: false, error: e.message, message: e.message };
     }
   }
 }
