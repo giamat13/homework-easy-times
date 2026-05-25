@@ -35,7 +35,8 @@ let settings = {
   darkMode: false,
   recentColors: [],
   viewMode: 'list',
-  studentMode: true
+  studentMode: true,
+  usageMode: 'student'
 };
 let selectedColor = '#3b82f6';
 let showArchive = false;
@@ -48,6 +49,7 @@ let filters = {
 let availableTags = [];
 let exams = [];
 let customTaskFields = [];
+let groupMembers = [];
 
 // =============== טעינה ושמירה ===============
 
@@ -100,12 +102,17 @@ async function loadData() {
     console.log('📊 loadData: Loading subjects...');
     subjects = await storage.get('homework-subjects') || [];
     console.log('✅ loadData: Subjects loaded:', subjects.length, 'items');
+
+    console.log('👥 loadData: Loading group members...');
+    groupMembers = await storage.get('group-members') || [];
+    console.log('✅ loadData: Group members loaded:', groupMembers.length, 'items');
     
     console.log('📚 loadData: Loading homework...');
     homework = await storage.get('homework-list') || [];
     homework = homework.map(hw => ({
       ...hw,
-      customFields: hw && typeof hw.customFields === 'object' && hw.customFields !== null ? hw.customFields : {}
+      customFields: hw && typeof hw.customFields === 'object' && hw.customFields !== null ? hw.customFields : {},
+      assignees: Array.isArray(hw?.assignees) ? hw.assignees : []
     }));
     console.log('✅ loadData: Homework loaded:', homework.length, 'items');
     
@@ -129,8 +136,10 @@ async function loadData() {
       autoBackup: false,
       darkMode: false,
       recentColors: [],
-      viewMode: 'list'
+      viewMode: 'list',
+      usageMode: 'student'
     };
+    if (!settings.usageMode) settings.usageMode = settings.studentMode !== false ? 'student' : 'general';
     console.log('✅ loadData: Settings loaded:', settings);
     await autoAdvanceGradeLevel();
     
@@ -209,6 +218,7 @@ async function saveData() {
   console.log('💾 saveData: Starting data save...');
   try {
     await storage.set('homework-subjects', subjects);
+    await storage.set('group-members', groupMembers);
     await storage.set('homework-list', homework);
     await storage.set('homework-settings', settings);
     await storage.set('homework-tags', availableTags);
@@ -231,6 +241,20 @@ function getDaysUntilDue(dueDate) {
   const due = new Date(dueDate + 'T00:00:00');
   const days = Math.round((due - today) / (1000 * 60 * 60 * 24));
   return days;
+}
+
+function getUsageMode() {
+  const mode = settings.usageMode;
+  if (mode === 'student' || mode === 'general' || mode === 'group') return mode;
+  return settings.studentMode !== false ? 'student' : 'general';
+}
+
+function isStudentMode() {
+  return getUsageMode() === 'student';
+}
+
+function isGroupMode() {
+  return getUsageMode() === 'group';
 }
 
 function escapeHtml(value) {
@@ -435,6 +459,128 @@ async function removeCustomTaskField(fieldId) {
   renderTaskCustomFields('hw-custom-fields');
   renderTaskCustomFields('edit-hw-custom-fields', {}, 'edit-hw');
   notifications.showInAppNotification(`השדה "${field.label}" נמחק`, 'success');
+}
+
+function renderGroupMembersManager() {
+  const container = document.getElementById('group-members-management');
+  if (!container) return;
+
+  container.innerHTML = `
+    <div class="custom-fields-manager">
+      <div class="add-tag-form custom-fields-form">
+        <input type="text" class="input" id="new-group-member-name" placeholder="שם האדם">
+        <input type="text" class="input" id="new-group-member-role" placeholder="תפקיד / הערה">
+        <button class="btn btn-primary" onclick="addGroupMember()">
+          <svg width="16" height="16"><use href="#plus"></use></svg>
+          הוסף
+        </button>
+      </div>
+      <div class="tags-list custom-fields-list">
+        ${groupMembers.length ? groupMembers.map(member => `
+          <div class="tag-item group-member-item">
+            <div>
+              <strong>${escapeHtml(member.name)}</strong>
+              ${member.role ? `<div class="custom-field-options-preview">${escapeHtml(member.role)}</div>` : ''}
+            </div>
+            <button class="icon-btn" onclick="removeGroupMember('${escapeHtml(member.id)}')" title="מחק אדם">
+              <svg width="14" height="14"><use href="#x"></use></svg>
+            </button>
+          </div>
+        `).join('') : '<p class="custom-fields-empty">עוד לא הוגדרו אנשים בקבוצה.</p>'}
+      </div>
+    </div>
+  `;
+}
+
+async function addGroupMember() {
+  const nameInput = document.getElementById('new-group-member-name');
+  const roleInput = document.getElementById('new-group-member-role');
+  if (!nameInput || !roleInput) return;
+
+  const name = nameInput.value.trim();
+  const role = roleInput.value.trim();
+  if (!name) {
+    notifications.showInAppNotification('נא להזין שם לאדם בקבוצה', 'error');
+    return;
+  }
+
+  if (groupMembers.some(member => member.name === name)) {
+    notifications.showInAppNotification('האדם הזה כבר קיים בקבוצה', 'error');
+    return;
+  }
+
+  groupMembers.push({
+    id: `member-${Date.now()}`,
+    name,
+    role
+  });
+
+  await saveData();
+  renderGroupMembersManager();
+  renderAssigneeSelector('hw-assignees', [], 'hw');
+  renderAssigneeSelector('edit-hw-assignees', [], 'edit-hw');
+  nameInput.value = '';
+  roleInput.value = '';
+  notifications.showInAppNotification(`"${name}" נוסף לקבוצה`, 'success');
+}
+
+async function removeGroupMember(memberId) {
+  const member = groupMembers.find(item => item.id === memberId);
+  if (!member) return;
+  if (!confirm(`למחוק את "${member.name}" מהקבוצה ומכל ההקצאות?`)) return;
+
+  groupMembers = groupMembers.filter(item => item.id !== memberId);
+  homework.forEach(hw => {
+    if (Array.isArray(hw.assignees)) {
+      hw.assignees = hw.assignees.filter(id => id !== memberId);
+    }
+  });
+
+  await saveData();
+  render();
+  notifications.showInAppNotification(`"${member.name}" הוסר מהקבוצה`, 'success');
+}
+
+function renderAssigneeSelector(containerId, selectedIds = [], idPrefix = 'hw') {
+  const container = document.getElementById(containerId);
+  if (!container) return;
+
+  if (!groupMembers.length) {
+    container.innerHTML = '<p class="custom-fields-empty">אין עדיין חברי קבוצה. הוסף אותם בהגדרות.</p>';
+    return;
+  }
+
+  const selectedSet = new Set(selectedIds);
+  container.innerHTML = `
+    <div class="assignee-grid">
+      ${groupMembers.map(member => `
+        <label class="tag-checkbox assignee-checkbox">
+          <input
+            type="checkbox"
+            id="${idPrefix}-assignee-${escapeHtml(member.id)}"
+            ${selectedSet.has(member.id) ? 'checked' : ''}
+          >
+          <span>
+            ${escapeHtml(member.name)}
+            ${member.role ? `<small>${escapeHtml(member.role)}</small>` : ''}
+          </span>
+        </label>
+      `).join('')}
+    </div>
+  `;
+}
+
+function collectAssignees(idPrefix = 'hw') {
+  return groupMembers
+    .filter(member => document.getElementById(`${idPrefix}-assignee-${member.id}`)?.checked)
+    .map(member => member.id);
+}
+
+function getAssigneeNames(hw) {
+  if (!Array.isArray(hw.assignees) || !hw.assignees.length) return [];
+  return hw.assignees
+    .map(id => groupMembers.find(member => member.id === id)?.name)
+    .filter(Boolean);
 }
 
 function downloadFile(filename, dataUrl) {
@@ -998,6 +1144,17 @@ function renderHomework() {
             </div>
             <h3 class="homework-title ${hw.completed ? 'completed' : ''}">${hw.title}</h3>
             ${hw.description ? `<p class="homework-desc">${hw.description}</p>` : ''}
+            ${getAssigneeNames(hw).length ? `
+              <div class="custom-field-values assignee-values">
+                ${getAssigneeNames(hw).map(name => `
+                  <div class="custom-field-value assignee-badge">
+                    <span class="custom-field-label">אחראי</span>
+                    <span class="custom-field-separator">:</span>
+                    <span>${escapeHtml(name)}</span>
+                  </div>
+                `).join('')}
+              </div>
+            ` : ''}
             ${customTaskFields.some(field => hw.customFields && hw.customFields[field.id]) ? `
               <div class="custom-field-values">
                 ${customTaskFields.map(field => {
@@ -1083,7 +1240,7 @@ function updateStats() {
   document.getElementById('stat-urgent').textContent = urgent;
 
   // סטטיסטיקות מבחנים (מצב תלמיד)
-  if (settings.studentMode !== false) {
+  if (isStudentMode()) {
     const examTotal    = (exams || []).length;
     const examUpcoming = (exams || []).filter(e => !e.completed && getDaysUntilDue(e.date) >= 0).length;
     const examSoon     = (exams || []).filter(e => !e.completed && getDaysUntilDue(e.date) >= 0 && getDaysUntilDue(e.date) <= 7).length;
@@ -1108,23 +1265,32 @@ function updateStats() {
 }
 
 function render() {
+  window.groupMembers = groupMembers;
   renderSubjects();
   renderHomework();
   renderFilters();
   renderTagSelector();
   renderCustomTaskFieldsManager();
+  renderGroupMembersManager();
   renderTaskCustomFields('hw-custom-fields');
   renderTaskCustomFields('edit-hw-custom-fields', {}, 'edit-hw');
+  renderAssigneeSelector('hw-assignees', [], 'hw');
+  renderAssigneeSelector('edit-hw-assignees', [], 'edit-hw');
   updateStats();
   applyMode();
 }
 
 function applyMode() {
-  const isStudent = settings.studentMode !== false;
+  const mode = getUsageMode();
+  const isStudent = mode === 'student';
+  const isGroup = mode === 'group';
+  settings.studentMode = isStudent;
 
   // כותרת הרשימה
   const listTitle = document.getElementById('list-panel-title');
-  if (listTitle) listTitle.textContent = isStudent ? 'רשימת משימות' : 'רשימת מטלות';
+  if (listTitle) {
+    listTitle.textContent = isStudent ? 'רשימת משימות' : isGroup ? 'משימות קבוצה' : 'רשימת מטלות';
+  }
 
   // כפתור הוסף מבחן
   const examBtn = document.getElementById('open-add-exam-modal');
@@ -1133,10 +1299,17 @@ function applyMode() {
   // סינון מקצוע
   const subjectFilter = document.getElementById('filter-subject');
   if (subjectFilter) subjectFilter.style.display = isStudent ? '' : 'none';
+  if (!isStudent) filters.subject = 'all';
 
   // שדה מקצוע + כפתור מקצוע חדש במודל
   const subjectFormGroup = document.getElementById('hw-subject-group');
   if (subjectFormGroup) subjectFormGroup.style.display = isStudent ? '' : 'none';
+
+  const assigneesGroup = document.getElementById('hw-assignees-group');
+  if (assigneesGroup) assigneesGroup.classList.toggle('hidden', !isGroup);
+
+  const editAssigneesGroup = document.getElementById('edit-hw-assignees-group');
+  if (editAssigneesGroup) editAssigneesGroup.classList.toggle('hidden', !isGroup);
 
   // Google Classroom בכותרת
   const classroomSection = document.querySelector('.settings-section.classroom-section');
@@ -1147,7 +1320,11 @@ function applyMode() {
   const defaultGradeSetting = document.getElementById('default-grade-setting');
   if (defaultGradeSetting) defaultGradeSetting.style.display = isStudent ? '' : 'none';
 
+  const groupMembersSetting = document.getElementById('group-members-setting');
+  if (groupMembersSetting) groupMembersSetting.classList.toggle('hidden', !isGroup);
+
   document.body.classList.toggle('non-student-mode', !isStudent);
+  document.body.classList.toggle('group-mode', isGroup);
 }
 
 // =============== פעולות על מקצועות ===============
@@ -1204,9 +1381,16 @@ function addHomework() {
   const priority = document.getElementById('hw-priority').value;
   const fileInput = document.getElementById('hw-files');
   const customFields = collectTaskCustomFieldValues('hw');
+  const assignees = collectAssignees('hw');
+  const requireSubject = isStudentMode();
 
-  if (!subject || !title || !dueDate) {
-    notifications.showInAppNotification('נא למלא את כל השדות החובה (מקצוע, כותרת, תאריך)', 'error');
+  if (!title || !dueDate || (requireSubject && !subject)) {
+    notifications.showInAppNotification(
+      requireSubject
+        ? 'נא למלא את כל השדות החובה (מקצוע, כותרת, תאריך)'
+        : 'נא למלא את כל השדות החובה (כותרת, תאריך)',
+      'error'
+    );
     return;
   }
 
@@ -1246,6 +1430,7 @@ function addHomework() {
       files: hwFiles,
       tags: [],
       customFields,
+      assignees,
       notified: false,
       todayNotified: false
     };
@@ -1302,6 +1487,7 @@ function openEditHomeworkModal(id) {
     subjects.map(s => `<option value="${s.id}" ${s.id == hw.subject ? 'selected' : ''}>${s.name}</option>`).join('');
 
   document.getElementById('edit-hw-title').value = hw.title || '';
+  renderAssigneeSelector('edit-hw-assignees', hw.assignees || [], 'edit-hw');
   document.getElementById('edit-hw-desc').value = hw.description || '';
   document.getElementById('edit-hw-date').value = hw.dueDate || '';
   document.getElementById('edit-hw-priority').value = hw.priority || 'medium';
@@ -1319,9 +1505,10 @@ function saveEditHomework(id) {
 
   const subject = document.getElementById('edit-hw-subject').value;
   const title   = document.getElementById('edit-hw-title').value.trim();
+  const requireSubject = isStudentMode();
 
-  if (!subject || !title) {
-    notifications.showInAppNotification('נא למלא מקצוע וכותרת', 'error');
+  if (!title || (requireSubject && !subject)) {
+    notifications.showInAppNotification(requireSubject ? 'נא למלא מקצוע וכותרת' : 'נא למלא כותרת', 'error');
     return;
   }
 
@@ -1331,6 +1518,7 @@ function saveEditHomework(id) {
   hw.dueDate     = document.getElementById('edit-hw-date').value || null;
   hw.priority    = document.getElementById('edit-hw-priority').value;
   hw.customFields = collectTaskCustomFieldValues('edit-hw');
+  hw.assignees   = collectAssignees('edit-hw');
 
   saveData();
   render();
@@ -1381,7 +1569,8 @@ async function loadSettingsUI() {
   setVal('auto-backup', settings.autoBackup);
   setVal('dark-mode-toggle', settings.darkMode);
   setVal('view-mode-toggle', settings.viewMode === 'calendar');
-  setVal('student-mode-toggle', settings.studentMode !== false);
+  const usageModeInput = document.getElementById('usage-mode');
+  if (usageModeInput) usageModeInput.value = getUsageMode();
   if (typeof window.updateModeCards === 'function') window.updateModeCards();
   const defaultGradeEl = document.getElementById('default-grade-level');
   if (defaultGradeEl) defaultGradeEl.value = settings.defaultGradeLevel || '';
@@ -1409,7 +1598,8 @@ async function saveSettings() {
   settings.notificationDays = parseInt(getVal('notification-days', 1));
   settings.notificationTime = getVal('notification-time', '09:00');
   settings.autoBackup = getChecked('auto-backup');
-  settings.studentMode = getChecked('student-mode-toggle');
+  settings.usageMode = getVal('usage-mode', getUsageMode());
+  settings.studentMode = settings.usageMode === 'student';
   settings.defaultGradeLevel = (document.getElementById('default-grade-level')?.value || '').trim();
   applyMode();
   
@@ -1566,7 +1756,7 @@ async function exportToPDF() {
         </tbody>
       </table>
 
-      ${(exams && exams.length > 0 && settings.studentMode !== false) ? `
+      ${(exams && exams.length > 0 && isStudentMode()) ? `
       <h2 style="color: #7c3aed; font-size: 20px; margin: 30px 0 15px 0; border-bottom: 2px solid #ede9fe; padding-bottom: 8px;">
         📝 מבחנים (${exams.length})
       </h2>
@@ -1679,7 +1869,7 @@ async function exportToExcel() {
     csvContent += `${homework.length},${homework.filter(h => h.completed).length},${homework.filter(h => !h.completed).length},${homework.filter(h => !h.completed && h.dueDate && getDaysUntilDue(h.dueDate) <= 2).length}\n\n`;
 
     // סטטיסטיקות מבחנים
-    if (settings.studentMode !== false && exams && exams.length > 0) {
+    if (isStudentMode() && exams && exams.length > 0) {
       csvContent += 'סטטיסטיקות מבחנים\n';
       csvContent += 'סך הכל,קרובים,השבוע,הסתיימו\n';
       csvContent += `${exams.length},${exams.filter(e => !e.completed && getDaysUntilDue(e.date) >= 0).length},${exams.filter(e => !e.completed && getDaysUntilDue(e.date) >= 0 && getDaysUntilDue(e.date) <= 7).length},${exams.filter(e => e.completed).length}\n\n`;
@@ -1696,7 +1886,7 @@ async function exportToExcel() {
     
     // משימות
     csvContent += 'כל המשימות\n';
-    csvContent += 'כותרת,מקצוע,תיאור,תאריך הגשה,עדיפות,סטטוס,ימים עד הגשה,תגיות\n';
+    csvContent += 'כותרת,מקצוע,תיאור,תאריך הגשה,עדיפות,סטטוס,ימים עד הגשה,תגיות,אחראים\n';
     
     const sortedHomework = [...homework].sort((a, b) => new Date(a.dueDate) - new Date(b.dueDate));
     
@@ -1712,13 +1902,14 @@ async function exportToExcel() {
       
       const daysText = hw.completed ? '-' : (daysLeft < 0 ? `איחור ${Math.abs(daysLeft)} ימים` : `${daysLeft} ימים`);
       const tags = hw.tags ? hw.tags.join('; ') : '';
+      const assignees = getAssigneeNames(hw).join('; ');
       const description = hw.description ? hw.description.replace(/,/g, '،').replace(/\n/g, ' ') : '';
       
-      csvContent += `"${hw.title}","${subject ? subject.name : '-'}","${description}",${new Date(hw.dueDate).toLocaleDateString('he-IL')},${hw.priority},${status},${daysText},"${tags}"\n`;
+      csvContent += `"${hw.title}","${subject ? subject.name : '-'}","${description}",${new Date(hw.dueDate).toLocaleDateString('he-IL')},${hw.priority},${status},${daysText},"${tags}","${assignees}"\n`;
     });
     
     // מבחנים
-    if (settings.studentMode !== false && exams && exams.length > 0) {
+    if (isStudentMode() && exams && exams.length > 0) {
       csvContent += 'מבחנים\n';
       csvContent += 'שם המבחן,מקצוע,תאריך,סטטוס,נושאים שנלמדו,סה"כ נושאים\n';
       [...exams].sort((a, b) => new Date(a.date) - new Date(b.date)).forEach(exam => {
@@ -1772,6 +1963,7 @@ async function handleImportFile(event) {
       if (result.data.settings) settings = result.data.settings;
       if (result.data.tags) availableTags = result.data.tags;
       customTaskFields = (result.data.customTaskFields || []).map((field, index) => normalizeCustomTaskField(field, index)).filter(Boolean);
+      groupMembers = result.data.groupMembers || [];
       if (result.data.exams) exams = result.data.exams;
       
       render();
@@ -1811,13 +2003,16 @@ async function clearAllData() {
     homework = [];
     availableTags = [];
     customTaskFields = [];
+    groupMembers = [];
     settings = {
       enableNotifications: false,
       notificationDays: 1,
       notificationTime: '09:00',
       autoBackup: false,
       darkMode: false,
-      recentColors: []
+      recentColors: [],
+      usageMode: 'student',
+      studentMode: true
     };
     
     render();
@@ -1916,28 +2111,31 @@ function initializeEventListeners() {
   const autoBackup = document.getElementById('auto-backup');
   if (autoBackup) autoBackup.addEventListener('change', saveSettings);
 
-  const studentModeToggle = document.getElementById('student-mode-toggle');
-  if (studentModeToggle) studentModeToggle.addEventListener('change', saveSettings);
-
   const defaultGradeLevelInput = document.getElementById('default-grade-level');
   if (defaultGradeLevelInput) defaultGradeLevelInput.addEventListener('change', saveSettings);
 
   // כרטיסי מצב שימוש
   const modeStudentCard = document.getElementById('mode-student-card');
   const modeOtherCard   = document.getElementById('mode-other-card');
+  const modeGroupCard   = document.getElementById('mode-group-card');
   window.updateModeCards = function() {
-    const toggle = document.getElementById('student-mode-toggle');
-    const isStudent = toggle ? toggle.checked : true;
-    if (modeStudentCard) modeStudentCard.classList.toggle('active', isStudent);
-    if (modeOtherCard)   modeOtherCard.classList.toggle('active', !isStudent);
+    const modeInput = document.getElementById('usage-mode');
+    const mode = modeInput ? modeInput.value : 'student';
+    if (modeStudentCard) modeStudentCard.classList.toggle('active', mode === 'student');
+    if (modeOtherCard)   modeOtherCard.classList.toggle('active', mode === 'general');
+    if (modeGroupCard)   modeGroupCard.classList.toggle('active', mode === 'group');
   };
   if (modeStudentCard) modeStudentCard.addEventListener('click', () => {
-    const toggle = document.getElementById('student-mode-toggle');
-    if (toggle) { toggle.checked = true; window.updateModeCards(); saveSettings(); }
+    const modeInput = document.getElementById('usage-mode');
+    if (modeInput) { modeInput.value = 'student'; window.updateModeCards(); saveSettings(); }
   });
   if (modeOtherCard) modeOtherCard.addEventListener('click', () => {
-    const toggle = document.getElementById('student-mode-toggle');
-    if (toggle) { toggle.checked = false; window.updateModeCards(); saveSettings(); }
+    const modeInput = document.getElementById('usage-mode');
+    if (modeInput) { modeInput.value = 'general'; window.updateModeCards(); saveSettings(); }
+  });
+  if (modeGroupCard) modeGroupCard.addEventListener('click', () => {
+    const modeInput = document.getElementById('usage-mode');
+    if (modeInput) { modeInput.value = 'group'; window.updateModeCards(); saveSettings(); }
   });
   window.openSettings = function() { origOpenSettings && origOpenSettings(); window.updateModeCards(); };
 
@@ -2497,6 +2695,8 @@ window.addTag = addTag;
 window.removeTag = removeTag;
 window.addCustomTaskField = addCustomTaskField;
 window.removeCustomTaskField = removeCustomTaskField;
+window.addGroupMember = addGroupMember;
+window.removeGroupMember = removeGroupMember;
 window.downloadFile = downloadFile;
 // מבחנים
 window.deleteExam = deleteExam;
