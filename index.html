@@ -288,6 +288,10 @@
               </div>
             </div>
           </div>
+          <div class="form-group hidden" id="hw-assignees-group">
+            <label>שיוך לאנשים</label>
+            <div id="hw-assignees"></div>
+          </div>
           <div class="form-group">
             <label>כותרת</label>
             <input type="text" class="input" id="hw-title" placeholder="למשל: תרגיל 5">
@@ -344,6 +348,10 @@
         <div class="form-group">
           <label>כותרת</label>
           <input type="text" class="input" id="edit-hw-title">
+        </div>
+        <div class="form-group hidden" id="edit-hw-assignees-group">
+          <label>שיוך לאנשים</label>
+          <div id="edit-hw-assignees"></div>
         </div>
         <div class="form-group">
           <label>תיאור</label>
@@ -652,12 +660,23 @@
                 <span>מטלות ללא מקצועות ומבחנים</span>
               </div>
             </div>
-            <input type="checkbox" id="student-mode-toggle" checked style="display:none;">
+            <div class="mode-toggle-card" id="mode-group-card">
+              <div class="mode-toggle-icon">👥</div>
+              <div class="mode-toggle-text">
+                <strong>מצב קבוצה</strong>
+                <span>אנשים, הקצאות ומשימות משותפות</span>
+              </div>
+            </div>
+            <input type="hidden" id="usage-mode" value="student">
           </div>
           <div class="setting-item" id="default-grade-setting" style="margin-top:0.75rem;">
             <label style="font-weight:600;display:block;margin-bottom:0.4rem;">שכבה ברירת מחדל</label>
             <input type="text" class="input" id="default-grade-level" placeholder='למשל: י׳, י״א' style="max-width:160px;">
             <p style="font-size:0.78rem;color:#9ca3af;margin-top:0.3rem;">ימולא אוטומטית בכל מבחן חדש</p>
+          </div>
+          <div class="setting-item hidden" id="group-members-setting" style="margin-top:0.75rem;">
+            <label style="font-weight:600;display:block;margin-bottom:0.4rem;">חברי קבוצה</label>
+            <div id="group-members-management"></div>
           </div>
         </div>
 

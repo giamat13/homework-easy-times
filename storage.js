@@ -187,6 +187,7 @@ class StorageManager {
     const keysToSync = [
       'homework-list',
       'homework-subjects',
+      'group-members',
       'homework-tags',
       'homework-custom-fields',
       'homework-settings',
@@ -318,13 +319,14 @@ class StorageManager {
   async exportData() {
     try {
       const subjects = await this.get('homework-subjects') || [];
+      const groupMembers = await this.get('group-members') || [];
       const homework = await this.get('homework-list') || [];
       const settings = await this.get('homework-settings') || {};
       const tags = await this.get('homework-tags') || [];
       const customTaskFields = await this.get('homework-custom-fields') || [];
       const exams = await this.get('exams-list') || [];
 
-      const data = { subjects, homework, settings, tags, customTaskFields, exams, exportDate: new Date().toISOString() };
+      const data = { subjects, groupMembers, homework, settings, tags, customTaskFields, exams, exportDate: new Date().toISOString() };
       const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
       const url = URL.createObjectURL(blob);
       const a = document.createElement('a');
@@ -349,6 +351,7 @@ class StorageManager {
       const data = JSON.parse(text);
 
       if (data.subjects) await this.set('homework-subjects', data.subjects);
+      if (data.groupMembers) await this.set('group-members', data.groupMembers);
       if (data.homework) await this.set('homework-list', data.homework);
       if (data.settings) await this.set('homework-settings', data.settings);
       if (data.tags) await this.set('homework-tags', data.tags);

@@ -380,6 +380,11 @@ class SmartSearchManager {
       // הוספת משימות לאינדקס
       homework.forEach(hw => {
         const subject = subjects.find(s => s.id == hw.subject);
+        const assignees = Array.isArray(hw.assignees) && Array.isArray(window.groupMembers)
+          ? hw.assignees
+              .map(id => window.groupMembers.find(member => member.id === id)?.name)
+              .filter(Boolean)
+          : [];
         
         this.searchIndex.push({
           type: 'homework',
@@ -387,6 +392,7 @@ class SmartSearchManager {
           title: hw.title,
           description: hw.description || '',
           subject: subject ? subject.name : '',
+          assignees,
           tags: hw.tags || [],
           dueDate: hw.dueDate,
           completed: hw.completed,
@@ -394,6 +400,7 @@ class SmartSearchManager {
             hw.title,
             hw.description,
             subject ? subject.name : '',
+            ...assignees,
             ...(hw.tags || [])
           ].join(' ').toLowerCase()
         });
