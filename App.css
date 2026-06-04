@@ -59,6 +59,7 @@ body {
   max-width: 500px;
   width: 100%;
   animation: fadeIn 0.5s ease-in;
+  position: relative;
 }
 
 .dashboard {
@@ -376,6 +377,156 @@ button:disabled {
 }
 
 /* ============================================
+   כפתור מצב לילה
+============================================ */
+.dark-mode-toggle {
+  position: absolute;
+  top: 20px;
+  left: 20px;
+  width: auto;
+  padding: 8px 12px;
+  background: transparent;
+  border: 2px solid #e0e0e0;
+  border-radius: 50px;
+  font-size: 18px;
+  cursor: pointer;
+  margin: 0;
+  color: #333;
+  box-shadow: none;
+}
+
+.dark-mode-toggle:hover:not(:disabled) {
+  transform: none;
+  background: #f0f0f0;
+  box-shadow: none;
+}
+
+/* ============================================
+   שדה סיסמה עם toggle
+============================================ */
+.password-wrapper {
+  position: relative;
+  margin-bottom: 15px;
+}
+
+.password-wrapper input {
+  margin-bottom: 0;
+  padding-left: 50px;
+}
+
+.toggle-password {
+  position: absolute;
+  left: 12px;
+  top: 50%;
+  transform: translateY(-50%);
+  background: none;
+  border: none;
+  padding: 5px;
+  cursor: pointer;
+  width: auto;
+  margin: 0;
+  font-size: 18px;
+  color: #999;
+  box-shadow: none;
+}
+
+.toggle-password:hover:not(:disabled) {
+  transform: translateY(-50%);
+  box-shadow: none;
+  color: #667eea;
+}
+
+/* ============================================
+   מד חוזק סיסמה
+============================================ */
+.password-strength {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 15px;
+}
+
+.strength-bar {
+  flex: 1;
+  height: 6px;
+  background: #e0e0e0;
+  border-radius: 3px;
+  overflow: hidden;
+}
+
+.strength-fill {
+  height: 100%;
+  border-radius: 3px;
+  transition: width 0.3s ease, background-color 0.3s ease;
+}
+
+.strength-label {
+  font-size: 13px;
+  font-weight: 600;
+  white-space: nowrap;
+  min-width: 70px;
+  text-align: right;
+}
+
+/* ============================================
+   כפתור שכחת סיסמה
+============================================ */
+.forgot-password-btn {
+  background: none;
+  color: #667eea;
+  border: none;
+  font-size: 14px;
+  font-weight: 400;
+  padding: 5px;
+  margin-top: -5px;
+  text-align: center;
+  box-shadow: none;
+}
+
+.forgot-password-btn:hover:not(:disabled) {
+  text-decoration: underline;
+  transform: none;
+  box-shadow: none;
+}
+
+/* ============================================
+   שורת UID עם כפתור העתקה
+============================================ */
+.uid-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.uid-text {
+  font-size: 12px;
+  color: #888;
+  font-family: monospace;
+  word-break: break-all;
+  flex: 1;
+}
+
+.copy-btn {
+  width: auto;
+  padding: 4px 8px;
+  font-size: 14px;
+  margin: 0;
+  background: transparent;
+  border: 1px solid #ddd;
+  border-radius: 6px;
+  color: #666;
+  box-shadow: none;
+  flex-shrink: 0;
+}
+
+.copy-btn:hover:not(:disabled) {
+  transform: none;
+  background: #f0f0f0;
+  box-shadow: none;
+}
+
+/* ============================================
    reCAPTCHA
 ============================================ */
 #recaptcha-container {
@@ -383,6 +534,107 @@ button:disabled {
   min-height: 78px;
   display: flex;
   justify-content: center;
+}
+
+/* ============================================
+   מצב לילה
+============================================ */
+body.dark-mode {
+  background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+}
+
+body.dark-mode .auth-container,
+body.dark-mode .dashboard {
+  background: #1e1e2e;
+  color: #e0e0e0;
+}
+
+body.dark-mode h1,
+body.dark-mode h2,
+body.dark-mode h3,
+body.dark-mode h4 {
+  color: #e0e0e0;
+}
+
+body.dark-mode .user-info p,
+body.dark-mode .user-info strong {
+  color: #ccc;
+}
+
+body.dark-mode input[type="email"],
+body.dark-mode input[type="password"],
+body.dark-mode input[type="tel"],
+body.dark-mode input[type="text"] {
+  background: #2a2a3e;
+  border-color: #444;
+  color: #e0e0e0;
+}
+
+body.dark-mode input:focus {
+  border-color: #667eea;
+}
+
+body.dark-mode input:disabled {
+  background: #252535;
+}
+
+body.dark-mode .user-info {
+  background: #252535;
+}
+
+body.dark-mode .providers-info {
+  background: #1a2a3a;
+}
+
+body.dark-mode .providers-info li {
+  background: #2a2a3e;
+  color: #e0e0e0;
+}
+
+body.dark-mode .link-accounts {
+  background: #2a2a1a;
+}
+
+body.dark-mode .tabs button {
+  color: #aaa;
+}
+
+body.dark-mode .tabs button.active {
+  color: #667eea;
+}
+
+body.dark-mode .divider {
+  color: #666;
+}
+
+body.dark-mode .dark-mode-toggle {
+  border-color: #444;
+  color: #e0e0e0;
+}
+
+body.dark-mode .dark-mode-toggle:hover {
+  background: #2a2a3e;
+}
+
+body.dark-mode .copy-btn {
+  border-color: #444;
+  color: #aaa;
+}
+
+body.dark-mode .copy-btn:hover {
+  background: #2a2a3e;
+}
+
+body.dark-mode .forgot-password-btn {
+  color: #7a8ef0;
+}
+
+body.dark-mode .strength-bar {
+  background: #3a3a4e;
+}
+
+body.dark-mode .uid-text {
+  color: #aaa;
 }
 
 /* ============================================

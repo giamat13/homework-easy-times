@@ -9,6 +9,7 @@ import {
   EmailAuthProvider,
   PhoneAuthProvider,
   sendEmailVerification,
+  sendPasswordResetEmail,
   signOut,
   onAuthStateChanged,
   fetchSignInMethodsForEmail,
@@ -343,7 +344,20 @@ const handleAuthError = (error) => {
 };
 
 // ============================================
-// 10. פונקציות עזר
+// 10. איפוס סיסמה
+// ============================================
+export const resetPassword = async (email) => {
+  try {
+    await sendPasswordResetEmail(auth, email);
+    return { success: true, message: 'מייל לאיפוס סיסמה נשלח!' };
+  } catch (error) {
+    console.error('שגיאה באיפוס סיסמה:', error);
+    return handleAuthError(error);
+  }
+};
+
+// ============================================
+// 11. פונקציות עזר
 // ============================================
 export const getCurrentUser = () => {
   return auth.currentUser;
