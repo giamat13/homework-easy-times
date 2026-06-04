@@ -511,8 +511,11 @@ class StorageManager {
       const tags = await this.get('homework-tags') || [];
       const customTaskFields = await this.get('homework-custom-fields') || [];
       const exams = await this.get('exams-list') || [];
+      const achievements = await this.get('homework-achievements') || null;
+      const gamificationStats = await this.get('gamification-stats') || null;
+      const gamificationAchievements = await this.get('gamification-achievements') || null;
 
-      const data = { subjects, groupMembers, homework, settings, tags, customTaskFields, exams, exportDate: new Date().toISOString() };
+      const data = { subjects, groupMembers, homework, settings, tags, customTaskFields, exams, achievements, gamificationStats, gamificationAchievements, exportDate: new Date().toISOString() };
       const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
       const url = URL.createObjectURL(blob);
       const a = document.createElement('a');
@@ -543,6 +546,9 @@ class StorageManager {
       if (data.tags) await this.set('homework-tags', data.tags);
       if (data.customTaskFields) await this.set('homework-custom-fields', data.customTaskFields);
       if (data.exams) await this.set('exams-list', data.exams);
+      if (data.achievements) await this.set('homework-achievements', data.achievements);
+      if (data.gamificationStats) await this.set('gamification-stats', data.gamificationStats);
+      if (data.gamificationAchievements) await this.set('gamification-achievements', data.gamificationAchievements);
 
       console.log('✅ importData: Data imported successfully');
       return { success: true, data, message: 'הנתונים יובאו בהצלחה' };
@@ -928,8 +934,138 @@ class AuthManager {
     }
   }
 
+  // ==================== החלפת משתמש ====================
+
+  async switchUser() {
+    console.log('🔄 switchUser: Switching user...');
+    try {
+      // שמירת הנתונים הנוכחיים לפני ההחלפה
+      if (typeof saveData === 'function') await saveData();
+
+      if (this.isGuestMode) {
+        // במצב אורח - הצג מסך בחירת פרופיל
+        this.showSwitchProfileModal();
+      } else {
+        // משתמש מחובר - התנתק ואפשר כניסה מחדש
+        const uidToClear = this.currentUser?.uid;
+        if (typeof storage !== 'undefined' && storage.clearUserCache && uidToClear) {
+          storage.clearUserCache(uidToClear);
+        }
+        await this.auth.signOut();
+        this.showSuccess('התנתקת - התחבר עם משתמש אחר');
+      }
+    } catch (error) {
+      console.error('❌ switchUser error:', error);
+      this.showError('שגיאה בהחלפת משתמש');
+    }
+  }
+
+  showSwitchProfileModal() {
+    // קבלת פרופילים שמורים
+    let profiles = [];
+    try {
+      profiles = JSON.parse(localStorage.getItem('guest_profiles') || '[]');
+    } catch {}
+    const currentId = localStorage.getItem('guest_active_profile');
+
+    const modal = document.createElement('div');
+    modal.className = 'modal';
+    modal.id = 'switch-profile-modal';
+
+    const profilesHTML = profiles
+      .filter(p => p.id !== currentId)
+      .map(p => `
+        <button class="btn btn-secondary" onclick="authManager.loadGuestProfile('${p.id}'); document.getElementById('switch-profile-modal').remove();">
+          👤 ${p.name}
+        </button>
+      `).join('');
+
+    modal.innerHTML = `
+      <div class="modal-content" style="max-width: 400px;">
+        <div class="modal-header">
+          <h2>🔄 החלף פרופיל</h2>
+          <button class="close-modal-btn" onclick="document.getElementById('switch-profile-modal').remove()">
+            <svg width="24" height="24"><use href="#x"></use></svg>
+          </button>
+        </div>
+        <div class="modal-body" style="display:flex;flex-direction:column;gap:0.75rem;">
+          ${profilesHTML || '<p style="color:var(--text-secondary)">אין פרופילים נוספים שמורים.</p>'}
+          <hr style="margin:0.5rem 0;">
+          <button class="btn btn-primary" onclick="authManager.createNewGuestProfile(); document.getElementById('switch-profile-modal').remove();">
+            ➕ צור פרופיל חדש
+          </button>
+        </div>
+      </div>
+    `;
+
+    document.body.appendChild(modal);
+    modal.addEventListener('click', (e) => { if (e.target === modal) modal.remove(); });
+  }
+
+  saveCurrentGuestProfile() {
+    const currentId = localStorage.getItem('guest_active_profile');
+    if (!currentId) return;
+    const keys = ['homework-subjects', 'homework-list', 'homework-settings', 'homework-tags', 'exams-list', 'homework-achievements', 'gamification-stats', 'gamification-achievements'];
+    const profileData = {};
+    keys.forEach(key => {
+      const val = localStorage.getItem(key);
+      if (val) profileData[key] = val;
+    });
+    localStorage.setItem(`guest_profile_${currentId}`, JSON.stringify(profileData));
+  }
+
+  loadGuestProfile(profileId) {
+    // שמור פרופיל נוכחי
+    this.saveCurrentGuestProfile();
+
+    // טען פרופיל חדש
+    const profileData = JSON.parse(localStorage.getItem(`guest_profile_${profileId}`) || '{}');
+    const keys = ['homework-subjects', 'homework-list', 'homework-settings', 'homework-tags', 'exams-list', 'homework-achievements', 'gamification-stats', 'gamification-achievements'];
+    keys.forEach(key => {
+      if (profileData[key]) {
+        localStorage.setItem(key, profileData[key]);
+      } else {
+        localStorage.removeItem(key);
+      }
+    });
+
+    localStorage.setItem('guest_active_profile', profileId);
+    const profiles = JSON.parse(localStorage.getItem('guest_profiles') || '[]');
+    const profile = profiles.find(p => p.id === profileId);
+    this.showSuccess(`עברת לפרופיל: ${profile?.name || profileId}`);
+    setTimeout(() => location.reload(), 1000);
+  }
+
+  createNewGuestProfile() {
+    const name = prompt('שם הפרופיל החדש:');
+    if (!name) return;
+
+    // שמור פרופיל נוכחי
+    this.saveCurrentGuestProfile();
+
+    // צור פרופיל חדש
+    const newId = 'guest_' + Date.now();
+    const profiles = JSON.parse(localStorage.getItem('guest_profiles') || '[]');
+    const currentId = localStorage.getItem('guest_active_profile');
+
+    // הוסף פרופיל נוכחי לרשימה אם אין לו שם
+    if (currentId && !profiles.find(p => p.id === currentId)) {
+      profiles.push({ id: currentId, name: 'פרופיל ראשי', createdAt: new Date().toISOString() });
+    }
+    profiles.push({ id: newId, name, createdAt: new Date().toISOString() });
+    localStorage.setItem('guest_profiles', JSON.stringify(profiles));
+
+    // נקה נתונים לפרופיל חדש
+    const keys = ['homework-subjects', 'homework-list', 'homework-settings', 'homework-tags', 'exams-list', 'homework-achievements', 'gamification-stats', 'gamification-achievements'];
+    keys.forEach(key => localStorage.removeItem(key));
+    localStorage.setItem('guest_active_profile', newId);
+
+    this.showSuccess(`פרופיל חדש "${name}" נוצר`);
+    setTimeout(() => location.reload(), 1000);
+  }
+
   // ==================== Google Sign-In ====================
-  
+
   async loginWithGoogle() {
     console.log('🔑 Google Login: Attempting...');
     
@@ -1244,11 +1380,14 @@ class AuthManager {
           <button class="btn btn-secondary" onclick="authManager.showResetPasswordModal()">
             🔐 שנה סיסמה
           </button>
+          <button class="btn btn-secondary" onclick="authManager.switchUser(); document.getElementById('user-menu-modal').remove();">
+            🔄 החלף משתמש
+          </button>
           <button class="btn btn-danger" onclick="authManager.logout(); document.getElementById('user-menu-modal').remove();">
             👋 התנתק
           </button>
         </div>
-        
+
         <div style="margin-top: 1.5rem; padding-top: 1.5rem; border-top: 1px solid var(--border-color); font-size: 0.75rem; color: var(--text-secondary);">
           <p>נוצר: ${new Date(this.currentUser.createdAt).toLocaleDateString('he-IL')}</p>
           <p>התחברות אחרונה: ${new Date(this.currentUser.lastLogin).toLocaleDateString('he-IL')}</p>
@@ -2567,7 +2706,7 @@ class ThemeCustomizer {
 // ============ Quick Actions ============
 class QuickActionsManager {
   constructor() {
-    this.shortcuts = {
+    this.defaultShortcuts = {
       'n': { action: 'newTask', description: 'משימה חדשה', ctrl: true },
       's': { action: 'newSubject', description: 'נושא/מקצוע חדש', ctrl: true },
       'f': { action: 'search', description: 'חיפוש', ctrl: true },
@@ -2577,6 +2716,7 @@ class QuickActionsManager {
       'd': { action: 'toggleDarkMode', description: 'מצב לילה', ctrl: true },
       'e': { action: 'export', description: 'ייצוא', ctrl: true, shift: true },
     };
+    this.shortcuts = { ...this.defaultShortcuts };
 
     this.isEnabled = true;
     console.log('⚡ QuickActionsManager: Initialized');
@@ -2588,10 +2728,27 @@ class QuickActionsManager {
       const saved = await storage.get('quick-actions-settings');
       if (saved) {
         this.isEnabled = saved.enabled !== false;
+        // טען קיצורים מותאמים אישית
+        if (saved.customShortcuts) {
+          Object.assign(this.shortcuts, saved.customShortcuts);
+        }
         console.log('✅ loadSettings: Settings loaded');
       }
     } catch (error) {
       console.error('❌ loadSettings: Error loading settings:', error);
+    }
+  }
+
+  async saveCustomShortcuts(customShortcuts) {
+    try {
+      const saved = await storage.get('quick-actions-settings') || {};
+      saved.customShortcuts = customShortcuts;
+      await storage.set('quick-actions-settings', saved);
+      // עדכון הקיצורים הפעילים
+      this.shortcuts = { ...this.defaultShortcuts, ...customShortcuts };
+      console.log('✅ saveCustomShortcuts: Saved');
+    } catch (error) {
+      console.error('❌ saveCustomShortcuts: Error:', error);
     }
   }
 
@@ -2733,6 +2890,9 @@ class QuickActionsManager {
           <div class="help-tip">
             💡 טיפ: לחץ <kbd>F1</kbd> בכל עת כדי לראות רשימה זו
           </div>
+          <button class="btn btn-secondary" style="margin-top:1rem;width:100%;" onclick="quickActions.showCustomizeModal(); document.getElementById('help-modal').remove();">
+            ✏️ התאם קיצורי דרך
+          </button>
         </div>
       </div>
     `;
@@ -2742,6 +2902,80 @@ class QuickActionsManager {
     modal.addEventListener('click', (e) => {
       if (e.target === modal) modal.remove();
     });
+  }
+  showCustomizeModal() {
+    const modal = document.createElement('div');
+    modal.className = 'modal';
+    modal.id = 'customize-shortcuts-modal';
+
+    const rows = Object.entries(this.shortcuts).map(([key, sc]) => `
+      <div class="shortcut-item" style="align-items:center;">
+        <div class="shortcut-desc" style="flex:1;">${sc.description}</div>
+        <div style="display:flex;align-items:center;gap:0.5rem;">
+          ${sc.ctrl ? '<kbd>Ctrl</kbd>' : ''}
+          ${sc.shift ? '<kbd>Shift</kbd>' : ''}
+          <input type="text" maxlength="4" value="${key}" data-action="${sc.action}"
+            style="width:60px;text-align:center;border:1px solid var(--border-color);border-radius:4px;padding:4px;font-family:monospace;"
+            placeholder="מקש">
+        </div>
+      </div>
+    `).join('');
+
+    modal.innerHTML = `
+      <div class="modal-content" style="max-width:500px;">
+        <div class="modal-header">
+          <h2>✏️ התאמת קיצורי דרך</h2>
+          <button class="close-modal-btn" onclick="document.getElementById('customize-shortcuts-modal').remove()">
+            <svg width="24" height="24"><use href="#x"></use></svg>
+          </button>
+        </div>
+        <div class="modal-body">
+          <p style="color:var(--text-secondary);font-size:0.875rem;margin-bottom:1rem;">שנה את המקש לכל פעולה. Ctrl/Shift נשארים כפי שהם.</p>
+          <div class="shortcuts-list" id="custom-shortcuts-rows" style="gap:0.75rem;">
+            ${rows}
+          </div>
+          <div style="display:flex;gap:0.75rem;margin-top:1rem;">
+            <button class="btn btn-primary" style="flex:1;" onclick="quickActions.applyCustomShortcuts()">💾 שמור</button>
+            <button class="btn btn-secondary" style="flex:1;" onclick="quickActions.resetShortcuts(); document.getElementById('customize-shortcuts-modal').remove();">↩️ איפוס</button>
+          </div>
+        </div>
+      </div>
+    `;
+
+    document.body.appendChild(modal);
+    modal.addEventListener('click', (e) => { if (e.target === modal) modal.remove(); });
+  }
+
+  async applyCustomShortcuts() {
+    const rows = document.querySelectorAll('#custom-shortcuts-rows input[data-action]');
+    const customShortcuts = {};
+    const existingByAction = {};
+    Object.entries(this.defaultShortcuts).forEach(([k, v]) => { existingByAction[v.action] = v; });
+
+    rows.forEach(input => {
+      const action = input.dataset.action;
+      const newKey = input.value.trim().toLowerCase() || Object.keys(this.defaultShortcuts).find(k => this.defaultShortcuts[k]?.action === action);
+      const base = existingByAction[action] || {};
+      customShortcuts[newKey] = { ...base, action };
+    });
+
+    await this.saveCustomShortcuts(customShortcuts);
+    document.getElementById('customize-shortcuts-modal')?.remove();
+    if (typeof notifications !== 'undefined') {
+      notifications.showInAppNotification('✅ קיצורי דרך נשמרו!', 'success');
+    }
+  }
+
+  async resetShortcuts() {
+    this.shortcuts = { ...this.defaultShortcuts };
+    try {
+      const saved = await storage.get('quick-actions-settings') || {};
+      delete saved.customShortcuts;
+      await storage.set('quick-actions-settings', saved);
+    } catch {}
+    if (typeof notifications !== 'undefined') {
+      notifications.showInAppNotification('↩️ קיצורי דרך אופסו לברירת המחדל', 'info');
+    }
   }
 }
 
@@ -3121,6 +3355,7 @@ async function loadData() {
       notificationTime: '09:00',
       autoBackup: false,
       darkMode: false,
+      systemTheme: true,
       recentColors: [],
       viewMode: 'list',
       usageMode: 'student'
@@ -3129,23 +3364,32 @@ async function loadData() {
     console.log('✅ loadData: Settings loaded:', settings);
     await autoAdvanceGradeLevel();
     
-    // החל מצב לילה אם נבחר
-    if (settings.darkMode) {
+    // החל מצב לילה: העדפת מערכת כברירת מחדל, אלא אם המשתמש בחר ידנית
+    const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+    const shouldDark = settings.systemTheme !== false ? prefersDark : settings.darkMode;
+    settings.darkMode = shouldDark;
+    if (shouldDark) {
       console.log('🌙 loadData: Applying dark mode...');
       document.body.classList.add('dark-mode');
-      
-      // עדכון האייקון של כפתור מצב הלילה
       const toggleBtn = document.getElementById('toggle-dark-mode');
       if (toggleBtn) {
         const svg = toggleBtn.querySelector('svg use');
-        if (svg) {
-          svg.setAttribute('href', '#sun');
-          console.log('🌙 loadData: Dark mode icon updated to sun');
-        }
+        if (svg) svg.setAttribute('href', '#sun');
       }
-      
       console.log('✅ loadData: Dark mode applied');
     }
+    // האזנה לשינויי ערכת צבעים של המכשיר
+    window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', (e) => {
+      if (settings.systemTheme !== false) {
+        settings.darkMode = e.matches;
+        document.body.classList.toggle('dark-mode', e.matches);
+        const toggleBtn = document.getElementById('toggle-dark-mode');
+        if (toggleBtn) {
+          const svg = toggleBtn.querySelector('svg use');
+          if (svg) svg.setAttribute('href', e.matches ? '#sun' : '#moon');
+        }
+      }
+    });
     
     // החל תצוגה שמורה (רשימה או לוח שנה)
     if (settings.viewMode) {
@@ -3716,7 +3960,8 @@ function deduplicateColors() {
 function toggleDarkMode() {
   console.log('🌙 toggleDarkMode: Toggling dark mode...');
   settings.darkMode = !settings.darkMode;
-  
+  settings.systemTheme = false; // המשתמש בחר ידנית - לא לעקוב אחרי המכשיר
+
   document.body.classList.toggle('dark-mode');
   
   // עדכון האייקון של הכפתור
@@ -5930,12 +6175,28 @@ function checkAndUpdatePerfectDay() {
     
     gamification.userStats.perfectDays++;
     gamification.userStats.perfectDayToday = today;
+
+    // עדכון רצף ימים מושלמים
+    const yesterdayPerfect = new Date();
+    yesterdayPerfect.setDate(yesterdayPerfect.getDate() - 1);
+    const yesterdayPerfectStr = yesterdayPerfect.toISOString().split('T')[0];
+    if (gamification.userStats.lastPerfectDay === yesterdayPerfectStr) {
+      gamification.userStats.perfectDayStreak = (gamification.userStats.perfectDayStreak || 0) + 1;
+    } else {
+      gamification.userStats.perfectDayStreak = 1;
+    }
+    gamification.userStats.lastPerfectDay = today;
+    if (gamification.userStats.perfectDayStreak > (gamification.userStats.maxPerfectDayStreak || 0)) {
+      gamification.userStats.maxPerfectDayStreak = gamification.userStats.perfectDayStreak;
+    }
+
     gamification.addXP(50, 'יום מושלם');
     gamification.checkAchievements();
     gamification.saveStats();
-    
+
+    const streakMsg = gamification.userStats.perfectDayStreak > 1 ? ` רצף ${gamification.userStats.perfectDayStreak} ימים! 🔥` : '';
     if (notifications && notifications.showInAppNotification) {
-      notifications.showInAppNotification('🎉 יום מושלם! כל המשימות הושלמו! +50 XP', 'success');
+      notifications.showInAppNotification(`🎉 יום מושלם! כל המשימות הושלמו! +50 XP${streakMsg}`, 'success');
     }
   }
   // ⭐ מצב 2: לא מושלם עכשיו, אבל היה מושלם קודם → בטל XP והישג!
@@ -8582,6 +8843,7 @@ class AchievementsManager {
       points: 0,
       level: 1,
       unlockedAchievements: [],
+      achievementDates: {},
       lastCompletionDate: null,
       currentStreak: 0,
       maxStreak: 0,
@@ -8768,6 +9030,8 @@ class AchievementsManager {
         console.log('🎉 AchievementsManager: New achievement unlocked:', achievement.name);
         
         this.userProgress.unlockedAchievements.push(achievement.id);
+        if (!this.userProgress.achievementDates) this.userProgress.achievementDates = {};
+        this.userProgress.achievementDates[achievement.id] = new Date().toISOString();
         this.userProgress.points += achievement.points;
         newAchievements.push(achievement);
 
@@ -9059,6 +9323,7 @@ class AchievementsManager {
               <div class="achievement-points-badge">
                 <span class="points-icon">⭐</span> ${achievement.points} XP
               </div>
+              ${unlocked && this.userProgress.achievementDates?.[achievement.id] ? `<div class="achievement-date">🗓️ נפתח: ${new Date(this.userProgress.achievementDates[achievement.id]).toLocaleDateString('he-IL')}</div>` : ''}
             </div>
             ${unlocked ? '<div class="achievement-check">✓</div>' : ''}
           </div>
@@ -9146,6 +9411,9 @@ class GamificationManager {
       totalStudyTime: 0,
       perfectDays: 0,
       perfectDayToday: null,
+      perfectDayStreak: 0,
+      maxPerfectDayStreak: 0,
+      lastPerfectDay: null,
       // מבחנים
       totalExamsCompleted: 0,
       totalTopicsDone: 0,
@@ -10165,7 +10433,7 @@ class GamificationManager {
                   ` : ''}
                   
                   <div class="achievement-xp">${achievement.xp} XP</div>
-                  ${isUnlocked ? '<div class="achievement-unlocked">✓</div>' : ''}
+                  ${isUnlocked ? `<div class="achievement-unlocked">✓</div>${isUnlocked.unlockedAt ? `<div class="achievement-date">🗓️ ${new Date(isUnlocked.unlockedAt).toLocaleDateString('he-IL')}</div>` : ''}` : ''}
                 </div>
               `;
             }).join('')}
@@ -10192,6 +10460,11 @@ class GamificationManager {
           <div class="stat-icon">🔥</div>
           <div class="stat-value" id="user-streak">${this.userStats.streak}</div>
           <div class="stat-label">רצף ימים</div>
+        </div>
+        <div class="gamification-stat">
+          <div class="stat-icon">✨</div>
+          <div class="stat-value">${this.userStats.perfectDayStreak || 0}</div>
+          <div class="stat-label">רצף ימים מושלמים</div>
         </div>
         <div class="gamification-stat">
           <div class="stat-icon">🏅</div>
