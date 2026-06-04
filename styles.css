@@ -4005,6 +4005,25 @@ body.dark-mode .achievement-progress-percent {
   box-shadow: 0 2px 8px rgba(16, 185, 129, 0.3);
 }
 
+.achievement-date {
+  font-size: 0.72rem;
+  color: var(--text-secondary, #888);
+  margin-top: 0.25rem;
+}
+
+.achievement-unlocked {
+  background: #10b981;
+  color: white;
+  width: 1.5rem;
+  height: 1.5rem;
+  border-radius: 50%;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: bold;
+  font-size: 0.9rem;
+}
+
 /* Responsive Adjustments */
 @media (max-width: 768px) {
   .achievement-item {
