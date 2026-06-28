@@ -4211,7 +4211,9 @@ function renderHomework() {
     }
   }
 
+  const today = new Date(); today.setHours(0,0,0,0);
   const activeHomework = homework.filter(h => {
+    if (h.startDate && new Date(h.startDate) > today) return false;
     if (!h.completed) return true;
     if (!h.dueDate) return false; // פריטים מושלמים בלי תאריך לא מוצגים ברשימה הפעילה
     return getDaysUntilDue(h.dueDate) >= 0;
@@ -4676,6 +4678,7 @@ function addHomework() {
   const subject = document.getElementById('hw-subject').value;
   const title = document.getElementById('hw-title').value.trim();
   const description = document.getElementById('hw-desc').value.trim();
+  const startDate = document.getElementById('hw-start-date').value;
   const dueDate = document.getElementById('hw-date').value;
   const priority = document.getElementById('hw-priority').value;
   const fileInput = document.getElementById('hw-files');
@@ -4721,6 +4724,7 @@ function addHomework() {
       subject,
       title,
       description,
+      startDate: startDate || null,
       dueDate,
       priority,
       completed: false,
@@ -4737,6 +4741,7 @@ function addHomework() {
     document.getElementById('hw-subject').value = '';
     document.getElementById('hw-title').value = '';
     document.getElementById('hw-desc').value = '';
+    document.getElementById('hw-start-date').value = '';
     document.getElementById('hw-date').value = '';
     document.getElementById('hw-priority').value = 'medium';
     document.getElementById('hw-files').value = '';
