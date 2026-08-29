@@ -4,8 +4,8 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <meta name="theme-color" content="#ffffff">
-<title>סטטיסטיקה</title>
-<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><text y='26' font-size='26'>📊</text></svg>">
+<title>הישגים</title>
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><text y='26' font-size='26'>🏆</text></svg>">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Heebo:wght@600;700;800&family=Rubik:wght@400;500;600&display=swap">
 <link rel="stylesheet" href="css/themes.css">
@@ -33,18 +33,10 @@
 <main class="shell">
   <div class="page-head">
     <div class="page-head__title">
-      <h1>סטטיסטיקה ותובנות</h1>
-      <span class="page-head__sub" id="range-label"></span>
+      <h1>הישגים והתקדמות</h1>
+      <span class="page-head__sub" id="ach-count"></span>
     </div>
-    <div class="row no-print">
-      <select id="range" aria-label="טווח זמן">
-        <option value="30">30 ימים אחרונים</option>
-        <option value="90">3 חודשים</option>
-        <option value="180">חצי שנה</option>
-        <option value="0">הכל</option>
-      </select>
-      <button class="btn btn--sm" type="button" id="print-report">🖨️ הדפסה / PDF</button>
-    </div>
+    <div class="seg no-print" role="group" aria-label="סינון הישגים" id="ach-filter"></div>
   </div>
 
   <div id="view" tabindex="-1" aria-live="polite">
@@ -52,6 +44,6 @@
   </div>
 </main>
 
-<script type="module" src="js/statspage.js"></script>
+<script type="module" src="js/achievementspage.js"></script>
 </body>
 </html>
