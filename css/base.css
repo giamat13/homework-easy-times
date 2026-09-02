@@ -15,7 +15,8 @@ html {
 }
 
 body {
-  background: var(--bg);
+  background: var(--bg) repeating-linear-gradient(180deg, transparent 0 35px, var(--paper-line) 35px 36px);
+  background-attachment: fixed;
   color: var(--text);
   line-height: 1.55;
   min-height: 100dvh;
@@ -63,17 +64,29 @@ ul.plain, ol.plain { list-style: none; padding: 0; }
 
 /* ---------- פריסה ---------- */
 .shell {
+  position: relative;
   max-width: 1180px;
   margin-inline: auto;
   padding: var(--space-4) var(--space-4) var(--space-7);
 }
+/* קו השוליים — כמו במחברת בית-ספר. חי בתוך ריפוד ה-shell עצמו, לפני שהתוכן מתחיל,
+   כדי שלא יחתוך דרך כרטיסים אמיתיים. */
+.shell::before {
+  content: ""; position: absolute; inset-block: 0; inset-inline-start: 6px;
+  width: 2px; background: var(--margin-rule); pointer-events: none;
+}
+@media (max-width: 760px) { .shell::before { display: none; } }
+
 .page-head {
   display: flex; flex-wrap: wrap; gap: var(--space-3);
   align-items: center; justify-content: space-between;
   margin-block-end: var(--space-4);
 }
 .page-head__title { display: flex; align-items: baseline; gap: var(--space-3); flex-wrap: wrap; }
-.page-head__sub { color: var(--text-2); font-size: var(--fs-sm); }
+.page-head__sub {
+  color: var(--text-2); font-size: var(--fs-sm);
+  text-decoration: underline wavy var(--brand); text-decoration-thickness: 1px; text-underline-offset: 5px;
+}
 
 .row { display: flex; gap: var(--space-3); align-items: center; flex-wrap: wrap; }
 .row--between { justify-content: space-between; }
