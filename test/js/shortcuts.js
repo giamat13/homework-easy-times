@@ -73,7 +73,7 @@ function onKey(e) {
 /** מסך העזרה — נפתח ב-? ומראה בדיוק את הקיצורים הפעילים. */
 export function openShortcutsHelp() {
   const rows = Object.entries(cfg.bindings)
-    .filter(([a]) => ACTION_LABELS[a])
+    .filter(([a]) => ACTION_LABELS[a] && handlers[a])
     .map(([a, k]) => h('div', { class: 'row row--between' },
       h('span', { text: ACTION_LABELS[a] }),
       h('kbd', { class: 'ltr', text: a === 'palette' ? `Ctrl+${k.toUpperCase()}` : k.toUpperCase() }),
@@ -104,7 +104,7 @@ export function openShortcutsEditor(onSaved = () => {}) {
         h('span', { text: 'הפעל קיצורי מקלדת' }),
       ),
       h('div', { class: 'menu__sep' }),
-      ...Object.entries(ACTION_LABELS).map(([action, label]) => {
+      ...Object.entries(ACTION_LABELS).filter(([action]) => handlers[action]).map(([action, label]) => {
         const btn = h('button', {
           class: 'btn btn--sm ltr', type: 'button', disabled: !draft.enabled,
           'aria-label': `שינוי הקיצור עבור ${label}`,

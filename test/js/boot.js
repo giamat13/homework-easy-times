@@ -2,7 +2,7 @@
 
 import { initTheme } from './theme.js';
 import { initAuth, getSession } from './auth.js';
-import { loadAll, onData } from './state.js';
+import { loadAll, onData, terms } from './state.js';
 import { loadGam, refreshStreak } from './gamification.js';
 import { initTimer } from './timer.js';
 import { startNotificationLoop, dailyBriefing } from './notifications.js';
@@ -48,7 +48,8 @@ export function boot({ onChange = () => {}, shortcuts = {} } = {}) {
       palette: () => openPalette({ onChange: refresh }),
       search: () => openPalette({ onChange: refresh }),
       newTask: () => openTaskForm(null, refresh),
-      newExam: () => openExamForm(null, refresh),
+      // מבחנים לא רלוונטיים במצב "כללי"/"קבוצה" — אין להם דף, לוח פקודות או ניווט; גם לא קיצור מקלדת.
+      ...(terms().hasExams ? { newExam: () => openExamForm(null, refresh) } : {}),
       timer: () => openTimer(),
       ...shortcuts,
     });

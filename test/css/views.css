@@ -25,15 +25,30 @@
 .task-group__count { font-weight: 400; color: var(--text-3); }
 
 .task {
+  position: relative;
   display: grid; grid-template-columns: auto 1fr auto; gap: var(--space-3);
   align-items: start; padding: var(--space-3);
   background: var(--surface); border: 1px solid var(--line);
-  border-radius: var(--radius); transition: border-color var(--dur), box-shadow var(--dur);
+  border-radius: var(--radius-sm); box-shadow: var(--shadow-1);
+  transition: border-color var(--dur), box-shadow var(--dur);
 }
-.task:hover { border-color: var(--line-strong); box-shadow: var(--shadow-1); }
+.task:hover { border-color: var(--line-strong); box-shadow: var(--shadow-2); }
 .task.is-done { opacity: .58; }
 .task.is-done .task__title { text-decoration: line-through; }
 .task.is-overdue { background: color-mix(in srgb, var(--danger) 5%, var(--surface)); }
+
+/* פתק דבק בצבע המקצוע — כמו נייר טייפ על כרטיסיית משימה */
+.task::before, .card.exam::before {
+  content: ""; position: absolute; top: -7px; inset-inline-start: 24px;
+  width: 44px; height: 15px; border-radius: 2px;
+  background: color-mix(in srgb, var(--sub-color, var(--brand)) 55%, transparent);
+  transform: rotate(-3deg);
+}
+.task-list > .task:nth-child(3n) { transform: rotate(-.35deg); }
+.task-list > .task:nth-child(3n+1) { transform: rotate(.3deg); }
+.task-list > .task:nth-child(3n+2) { transform: rotate(-.15deg); }
+.task-list > .task:nth-child(3n)::before { transform: rotate(2deg); }
+.task-list > .task:nth-child(3n+2)::before { transform: rotate(-4deg); }
 
 .task__check {
   width: 24px; height: 24px; margin-block-start: 2px; border-radius: 50%;
@@ -46,6 +61,9 @@
 .task__main { min-width: 0; display: flex; flex-direction: column; gap: 5px; }
 .task__title { font-weight: 550; line-height: 1.35; }
 .task__desc { font-size: var(--fs-sm); color: var(--text-2); }
+.task__progress { display: flex; align-items: center; gap: var(--space-2); }
+.task__progress input[type="range"] { flex: 1 1 auto; min-width: 0; height: 18px; }
+.task__progress-label { font-size: var(--fs-xs); color: var(--text-3); white-space: nowrap; }
 .task__meta { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; font-size: var(--fs-xs); color: var(--text-3); }
 .task__side { display: flex; gap: 2px; align-items: center; }
 
@@ -109,6 +127,10 @@
 }
 
 /* ---------- מבחנים ---------- */
+.card.exam { position: relative; }
+.grid--cards > .card.exam:nth-child(3n) { transform: rotate(-.3deg); }
+.grid--cards > .card.exam:nth-child(3n+1) { transform: rotate(.25deg); }
+.grid--cards > .card.exam:nth-child(3n+2) { transform: rotate(-.15deg); }
 .exam { display: flex; flex-direction: column; gap: var(--space-3); }
 .exam__top { display: flex; justify-content: space-between; gap: var(--space-3); align-items: start; }
 .exam__grade {

@@ -1,31 +1,41 @@
 /* components.css — רכיבים גנריים: ניווט, כפתורים, טפסים, כרטיסים, מודל, טוסט. */
 
-/* ---------- ניווט ---------- */
+/* ---------- ניווט: כריכה ספירלה + כרטיסיות מפרידות ---------- */
 .app-nav {
   position: sticky; top: 0; z-index: 40;
-  background: color-mix(in srgb, var(--surface) 88%, transparent);
-  backdrop-filter: blur(12px);
-  border-block-end: 1px solid var(--line);
+  background: var(--surface-2);
+  border-block-end: 1px solid var(--line-strong);
+  padding-block-start: 13px;
+}
+/* רצועת חורי הספירלה שבראש כל עמוד */
+.app-nav::before {
+  content: ""; display: block; height: 13px; margin-block-start: -13px;
+  background-image: radial-gradient(circle 3.5px, var(--bg) 3.5px, transparent 4px);
+  background-size: 26px 100%; background-position: 16px center; background-repeat: repeat-x;
 }
 .app-nav__inner {
   max-width: 1180px; margin-inline: auto;
-  display: flex; align-items: center; gap: var(--space-2);
-  padding: var(--space-2) var(--space-3);
+  display: flex; align-items: flex-end; gap: var(--space-2);
+  padding: 0 var(--space-3);
 }
-.brand { display: flex; align-items: center; gap: var(--space-2); font-weight: 700; color: var(--text); text-decoration: none; }
+.brand { display: flex; align-items: center; gap: var(--space-2); font-weight: 700; color: var(--text); text-decoration: none; padding-block-end: var(--space-2); }
 .brand__mark {
-  width: 30px; height: 30px; border-radius: 9px; display: grid; place-items: center;
+  width: 28px; height: 28px; border-radius: 50%; display: grid; place-items: center;
   background: var(--brand); color: var(--brand-ink); font-size: var(--fs-sm);
+  box-shadow: 0 0 0 2px var(--surface-2), 0 0 0 3px var(--brand-line);
 }
-.nav-links { display: flex; gap: 2px; overflow-x: auto; scrollbar-width: none; }
+.nav-links { display: flex; align-items: flex-end; gap: 3px; overflow-x: auto; scrollbar-width: none; }
 .nav-links::-webkit-scrollbar { display: none; }
 .nav-link {
-  padding: var(--space-2) var(--space-3); border-radius: var(--radius);
-  color: var(--text-2); text-decoration: none; font-size: var(--fs-sm);
+  padding: 9px var(--space-3); border-radius: 8px 8px 0 0;
+  background: var(--surface-3); color: var(--text-2); text-decoration: none; font-size: var(--fs-sm);
   white-space: nowrap; transition: background var(--dur), color var(--dur);
 }
-.nav-link:hover { background: var(--surface-2); color: var(--text); }
-.nav-link[aria-current="page"] { background: var(--brand-soft); color: var(--brand); font-weight: 600; }
+.nav-link:hover { background: var(--surface); color: var(--text); }
+.nav-link[aria-current="page"] {
+  background: var(--surface); color: var(--text); font-weight: 700;
+  padding-block-start: 11px; box-shadow: var(--shadow-1);
+}
 
 @media (max-width: 700px) {
   .app-nav__inner { flex-wrap: wrap; }
@@ -75,9 +85,11 @@
   inset-inline-end: var(--space-4); z-index: 30;
   width: 56px; height: 56px; border-radius: 50%;
   background: var(--brand); color: var(--brand-ink); font-size: 1.6rem;
-  display: grid; place-items: center; box-shadow: var(--shadow-3);
+  display: grid; place-items: center;
+  box-shadow: var(--shadow-3), 0 0 0 4px var(--bg);
+  transition: transform var(--dur), filter var(--dur);
 }
-.fab:hover { filter: brightness(1.08); }
+.fab:hover { filter: brightness(1.08); transform: translateY(-3px); }
 
 /* ---------- טפסים ---------- */
 .form { display: flex; flex-direction: column; gap: var(--space-3); }
@@ -232,7 +244,10 @@ input:invalid:not(:placeholder-shown) { border-color: var(--danger); }
 .toast--info .toast__icon { background: var(--info-bg); color: var(--info); }
 
 /* ---------- מצב ריק ---------- */
-.empty { display: grid; place-items: center; gap: var(--space-2); padding: var(--space-7) var(--space-4); text-align: center; }
+.empty {
+  display: grid; place-items: center; gap: var(--space-2); padding: var(--space-7) var(--space-4); text-align: center;
+  border: 2px dashed var(--line-strong); border-radius: var(--radius-lg); background: var(--surface);
+}
 .empty__icon { font-size: 2.6rem; opacity: .65; }
 .empty h3 { font-weight: 600; }
 .empty p { color: var(--text-2); font-size: var(--fs-sm); max-width: 42ch; }

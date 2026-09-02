@@ -41,7 +41,7 @@ boot({ onChange: () => render(), shortcuts: { toggleView: () => setView(view ===
 
 function render() {
   const T = terms();
-  document.title = `${T.tasks} — המשימות שלי`;
+  document.title = `${T.tasks} — המשימות שלי 2.0`;
   renderStrip();
   renderFilters();
   renderBody();

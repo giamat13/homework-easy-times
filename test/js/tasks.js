@@ -51,7 +51,7 @@ export function deleteTask(id) {
 export function duplicateTask(id) {
   const src = S.tasks.find((t) => t.id === id);
   if (!src) return null;
-  return createTask({ ...src, id: '', title: `${src.title} (עותק)`, completed: false, completedAt: null, notified: false, todayNotified: false });
+  return createTask({ ...src, id: '', title: `${src.title} (עותק)`, completed: false, completedAt: null, notified: false, todayNotified: false, progressCurrent: 0 });
 }
 
 export function archiveTask(id, archived = true) { return updateTask(id, { archived }); }
@@ -65,9 +65,11 @@ export function toggleComplete(id) {
   if (!t) return null;
   const wasCompleted = t.completed;
   const prevCompletedAt = t.completedAt;
+  const prevProgressCurrent = t.progressCurrent;
 
   t.completed = !wasCompleted;
   t.completedAt = t.completed ? todayISO() : null;
+  if (t.completed && t.progressTarget !== null) t.progressCurrent = t.progressTarget;
 
   let result;
   let spawned = null;
@@ -85,6 +87,7 @@ export function toggleComplete(id) {
     if (!cur) return;
     cur.completed = wasCompleted;
     cur.completedAt = prevCompletedAt;
+    cur.progressCurrent = prevProgressCurrent;
     if (wasCompleted) awardTask(cur); else revertTask(cur);
     if (spawned) { const i = S.tasks.findIndex((x) => x.id === spawned.id); if (i >= 0) S.tasks.splice(i, 1); }
     save('tasks');
@@ -100,7 +103,7 @@ function spawnNext(t) {
     : t.repeat === 'weekly' ? addDays(base, 7)
       : shiftMonth(base, 1);
   return createTask({
-    ...t, id: '', dueDate: next, completed: false, completedAt: null,
+    ...t, id: '', dueDate: next, completed: false, completedAt: null, progressCurrent: 0,
     notified: false, todayNotified: false,
     startDate: t.startDate ? addDays(t.startDate, diffDays(base, next)) : '',
     subtasks: (t.subtasks || []).map((s) => ({ ...s, id: uid('s'), done: false })),
@@ -112,6 +115,19 @@ function shiftMonth(iso, n) {
   return `${dt.getFullYear()}-${String(dt.getMonth() + 1).padStart(2, '0')}-${String(dt.getDate()).padStart(2, '0')}`;
 }
 function diffDays(a, b) { return Math.round((new Date(b) - new Date(a)) / 86400000); }
+
+/**
+ * עדכון התקדמות (0..progressTarget). הגעה ליעד משלימה את המשימה אוטומטית —
+ * דרך toggleComplete, כך שה-XP וההישגים עוברים באותו נתיב יחיד.
+ */
+export function setProgress(id, current) {
+  const t = S.tasks.find((x) => x.id === id);
+  if (!t || t.progressTarget === null) return null;
+  t.progressCurrent = Math.max(0, Math.min(Math.round(current), t.progressTarget));
+  if (t.progressCurrent >= t.progressTarget && !t.completed) return toggleComplete(id);
+  save('tasks');
+  return { task: t, completed: t.completed };
+}
 
 export function toggleSubtask(taskId, subId) {
   const t = S.tasks.find((x) => x.id === taskId);
