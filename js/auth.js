@@ -164,6 +164,7 @@ export async function resetPassword(email) {
 export async function resendVerification() {
   const f = await fb();
   if (!f.auth.currentUser) throw new Error('אין משתמש מחובר.');
+  await f.auth.currentUser.getIdToken(true); // מכריח טוקן טרי — טוקן מהזיכרון עלול להיות פג
   await f.authM.sendEmailVerification(f.auth.currentUser);
 }
 

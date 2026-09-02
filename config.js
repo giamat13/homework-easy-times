@@ -1,5 +1,4 @@
-// config.js — לא נכנס לגיט (ראה .gitignore).
-// ערכי firebaseConfig שוחזרו מהיסטוריית הקומיטים (firebase-config.js הישן).
+// config.js — ערכים שוחזרו מהיסטוריית הקומיטים (הקובץ נדחף בכוונה כדי ש-GH Pages יעבוד).
 
 export const firebaseConfig = {
   apiKey: 'AIzaSyCbHTfv0U0DdVRbKc4FSPQi-VF4zrdX0QQ',
@@ -10,8 +9,8 @@ export const firebaseConfig = {
   appId: '1:344316429906:web:853d2c96b6d0500128c18b',
 };
 
-// מזהה OAuth ל-Google Calendar / Tasks / Classroom. לא נמצא ערך בהיסטוריה — השאר ריק כדי לכבות את השילוב.
-export const googleClientId = '';
+// מזהה OAuth ל-Google Calendar / Tasks / Classroom — שוחזר מהיסטוריית הקומיטים.
+export const googleClientId = '344316429906-ieeddq7bufco57vg80hnq06p3v38u3ac.apps.googleusercontent.com';
 
 // מזהה Analytics שנמצא בהיסטוריה (measurementId הישן).
 export const analyticsId = 'G-J3F285WRQM';
