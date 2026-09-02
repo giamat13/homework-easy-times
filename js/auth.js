@@ -104,10 +104,12 @@ export function authReady() { return ready; }
 
 async function adoptUser(user) {
   await store.setScope({ kind: 'user', id: `user:${user.uid}`, uid: user.uid });
+  // חשבון פדרטיבי (גוגל וכו') — האימייל כבר מאומת אצל הספק, אין טעם ב-"אמת אימייל" של Firebase.
+  const federatedOnly = user.providerData.length > 0 && !user.providerData.some((p) => p.providerId === 'password');
   session = {
     kind: 'user', id: user.uid, uid: user.uid,
     name: user.displayName || (user.email || '').split('@')[0] || 'משתמש',
-    email: user.email, emailVerified: user.emailVerified, photo: user.photoURL,
+    email: user.email, emailVerified: user.emailVerified || federatedOnly, photo: user.photoURL,
   };
   emit();
 }
