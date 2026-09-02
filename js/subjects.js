@@ -3,8 +3,6 @@
 import { h, openModal, toast, confirmDialog, fieldRow } from './ui.js';
 import { S, save, terms, normSubject, normMember } from './state.js';
 import { uid, autoColor, readableOn, cmpText } from './util.js';
-import { KEYS } from './keys.js';
-import * as store from './storage.js';
 
 export const PALETTE = [
   '#e5484d', '#e5794d', '#e5a94d', '#d6c033', '#8fbf3f', '#3fb96b',
@@ -13,14 +11,13 @@ export const PALETTE = [
 ];
 
 function recentColors() {
-  const s = store.get(KEYS.settings) || {};
-  return Array.isArray(s.recentColors) ? s.recentColors.slice(0, 8) : [];
+  return Array.isArray(S.settings.recentColors) ? S.settings.recentColors.slice(0, 8) : [];
 }
+// חייב לעבור דרך save('settings') ולא store.set ישירות: כתיבה גולמית מפעילה
+// מחדש טעינה גורפת (state.js) שדרסה תחומים/מקצועות חדשים שעדיין לא נשמרו.
 function pushRecentColor(c) {
-  const s = store.get(KEYS.settings) || {};
-  s.recentColors = [c, ...(s.recentColors || []).filter((x) => x !== c)].slice(0, 8);
-  store.set(KEYS.settings, s);
-  S.settings.recentColors = s.recentColors;
+  S.settings.recentColors = [c, ...(S.settings.recentColors || []).filter((x) => x !== c)].slice(0, 8);
+  save('settings');
 }
 
 /** בורר צבע: פלטה + צבעים אחרונים + בורר חופשי. */
