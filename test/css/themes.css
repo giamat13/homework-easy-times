@@ -1,0 +1,91 @@
+/* themes.css — טוקנים בלבד. כל צבע באפליקציה יוצא מכאן. */
+
+:root {
+  --brand-h: 245; --brand-s: 62%; --brand-l: 58%;
+
+  --radius-sm: 6px; --radius: 12px; --radius-lg: 18px; --radius-full: 999px;
+  --space-1: 4px; --space-2: 8px; --space-3: 12px; --space-4: 16px;
+  --space-5: 24px; --space-6: 32px; --space-7: 48px;
+
+  /* Rubik לגוף הטקסט (קריא בגדלים קטנים), Heebo לכותרות ולמספרים (צר יותר, נוכחות חזקה).
+     שתיהן עם כיסוי עברי מלא — פונט לטיני בלבד היה שובר את הממשק. */
+  --font: "Rubik", "Segoe UI", system-ui, -apple-system, "Noto Sans Hebrew", sans-serif;
+  --font-display: "Heebo", "Rubik", "Segoe UI", system-ui, "Noto Sans Hebrew", sans-serif;
+  --fs-xs: .75rem; --fs-sm: .85rem; --fs-md: 1rem; --fs-lg: 1.15rem;
+  --fs-xl: 1.4rem; --fs-2xl: 1.8rem; --fs-3xl: 2.3rem;
+
+  --ease: cubic-bezier(.2, .7, .3, 1);
+  --dur: .18s;
+
+  /* סמנטיקה */
+  --ok: #16a34a; --ok-bg: #dcfce7;
+  --warn: #d97706; --warn-bg: #fef3c7;
+  --danger: #dc2626; --danger-bg: #fee2e2;
+  --info: #0284c7; --info-bg: #e0f2fe;
+
+  /* עדיפויות */
+  --p-urgent: #dc2626; --p-high: #ea580c; --p-normal: #64748b; --p-low: #94a3b8;
+}
+
+/* ---------- מצב בהיר ---------- */
+:root[data-mode="light"] {
+  --bg: #f5f6fa;
+  --surface: #ffffff;
+  --surface-2: #f0f2f7;
+  --surface-3: #e5e8f0;
+  --line: #dfe3ec;
+  --line-strong: #c3c9d8;
+  --text: #171a22;
+  --text-2: #4c5566;
+  --text-3: #7b8496;
+  --brand: hsl(var(--brand-h) var(--brand-s) var(--brand-l));
+  --brand-ink: #fff;
+  --brand-soft: hsl(var(--brand-h) 70% 96%);
+  --brand-line: hsl(var(--brand-h) 60% 86%);
+  --shadow-1: 0 1px 2px rgb(16 20 30 / .06), 0 1px 3px rgb(16 20 30 / .06);
+  --shadow-2: 0 4px 12px rgb(16 20 30 / .08), 0 2px 4px rgb(16 20 30 / .05);
+  --shadow-3: 0 18px 48px rgb(16 20 30 / .18);
+  --overlay: rgb(20 24 34 / .45);
+}
+
+/* ---------- מצב כהה ---------- */
+:root[data-mode="dark"] {
+  --bg: #0e1016;
+  --surface: #171a22;
+  --surface-2: #1e222c;
+  --surface-3: #272c39;
+  --line: #2b3140;
+  --line-strong: #3d4557;
+  --text: #eef1f7;
+  --text-2: #aeb6c6;
+  --text-3: #7d8697;
+  --brand: hsl(var(--brand-h) 70% 68%);
+  --brand-ink: #10131a;
+  --brand-soft: hsl(var(--brand-h) 40% 18%);
+  --brand-line: hsl(var(--brand-h) 35% 30%);
+  --ok: #4ade80; --ok-bg: #14321f;
+  --warn: #fbbf24; --warn-bg: #3a2b0d;
+  --danger: #f87171; --danger-bg: #3b1414;
+  --info: #60a5fa; --info-bg: #12283f;
+  --p-urgent: #f87171; --p-high: #fb923c; --p-normal: #94a3b8; --p-low: #64748b;
+  --shadow-1: 0 1px 2px rgb(0 0 0 / .4);
+  --shadow-2: 0 6px 18px rgb(0 0 0 / .45);
+  --shadow-3: 0 22px 56px rgb(0 0 0 / .6);
+  --overlay: rgb(4 6 10 / .68);
+}
+
+/* ---------- ערכות ---------- */
+:root[data-theme="indigo"] { --brand-h: 245; --brand-s: 62%; --brand-l: 58%; }
+:root[data-theme="teal"]   { --brand-h: 174; --brand-s: 72%; --brand-l: 34%; }
+:root[data-theme="sunset"] { --brand-h: 17;  --brand-s: 76%; --brand-l: 51%; }
+:root[data-theme="rose"]   { --brand-h: 336; --brand-s: 68%; --brand-l: 50%; }
+:root[data-theme="forest"] { --brand-h: 148; --brand-s: 48%; --brand-l: 36%; }
+:root[data-theme="grape"]  { --brand-h: 268; --brand-s: 70%; --brand-l: 58%; }
+:root[data-theme="mono"]   { --brand-h: 218; --brand-s: 14%; --brand-l: 38%; }
+:root[data-theme="mono"][data-mode="dark"] { --brand-h: 218; --brand-s: 12%; --brand-l: 72%; }
+
+/* ---------- צפיפות ---------- */
+:root[data-density="compact"] {
+  --space-3: 8px; --space-4: 12px; --space-5: 16px; --space-6: 22px;
+  --fs-md: .94rem; --fs-lg: 1.05rem;
+}
