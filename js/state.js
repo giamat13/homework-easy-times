@@ -30,6 +30,7 @@ const TASK_DEFAULTS = {
   // תוספות
   archived: false, createdAt: null, completedAt: null, subtasks: [],
   repeat: 'none', estimateMin: null, order: 0,
+  progressTarget: null, progressCurrent: 0, progressUnit: '',
 };
 
 export function normTask(t) {
@@ -49,6 +50,10 @@ export function normTask(t) {
   if (!o.completed) o.completedAt = null;
   o.estimateMin = num(o.estimateMin, null);
   if (!['none', 'daily', 'weekly', 'monthly'].includes(o.repeat)) o.repeat = 'none';
+  // התקדמות: יעד/יחידה חופשיים (%, עמ', דק'...) — target null = בלי מעקב התקדמות, רק סימון בוליאני.
+  o.progressTarget = o.progressTarget === null || o.progressTarget === '' ? null : Math.max(0, num(o.progressTarget, 0));
+  o.progressUnit = String(o.progressUnit ?? '');
+  o.progressCurrent = o.progressTarget === null ? 0 : Math.max(0, Math.min(num(o.progressCurrent, 0), o.progressTarget));
   return o;
 }
 

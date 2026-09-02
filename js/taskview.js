@@ -2,7 +2,7 @@
 
 import { h, mount, emptyState, confirmDialog, toast } from './ui.js';
 import { S, subjectById, memberById, terms } from './state.js';
-import { PRIORITIES, groupForDisplay, toggleComplete, toggleSubtask, deleteTask, duplicateTask, archiveTask } from './tasks.js';
+import { PRIORITIES, groupForDisplay, toggleComplete, toggleSubtask, setProgress, deleteTask, duplicateTask, archiveTask } from './tasks.js';
 import { relativeDay, fmtDate, urgency, autoColor, readableOn, isScheduledAhead } from './util.js';
 import { openTaskForm } from './taskform.js';
 
@@ -54,6 +54,15 @@ export function taskCard(t, { onChange = () => {} } = {}) {
       }),
   );
 
+  const progress = t.progressTarget ? h('div', { class: 'task__progress' },
+    h('input', {
+      type: 'range', min: 0, max: t.progressTarget, value: t.progressCurrent, step: 1,
+      'aria-label': `התקדמות: ${t.title}`,
+      on: { change: (e) => handleProgress(t, Number(e.target.value), onChange) },
+    }),
+    h('span', { class: 'task__progress-label num', text: `${t.progressCurrent}/${t.progressTarget}${t.progressUnit ? ' ' + t.progressUnit : ''}` }),
+  ) : null;
+
   const subs = t.subtasks?.length ? h('div', { class: 'subtasks' },
     ...t.subtasks.map((s) => h('label', { class: `subtask ${s.done ? 'is-done' : ''}` },
       h('input', {
@@ -76,6 +85,7 @@ export function taskCard(t, { onChange = () => {} } = {}) {
         on: { click: () => openTaskForm(t, onChange) },
       }, t.title || '(ללא כותרת)'),
       t.description && h('p', { class: 'task__desc', text: t.description }),
+      progress,
       subs,
       meta,
     ),
@@ -145,6 +155,22 @@ async function handleToggle(t, onChange) {
   } else {
     const lost = r.lostAchievements?.length ? ` (${r.lostAchievements.length} הישגים ננעלו)` : '';
     toast(`הסימון בוטל${lost}`, { type: 'info', action: { label: 'ביטול', onClick: () => { r.undo(); onChange(); } } });
+  }
+}
+
+function handleProgress(t, value, onChange) {
+  const r = setProgress(t.id, value);
+  if (!r) return;
+  onChange();
+  if (r.xp === undefined) return; // עדכון חלקי — לא הגיע ליעד, בלי טוסט על כל גרירה
+  const bits = [`+${r.xp} XP`];
+  if (r.spawned) bits.push('נוצר המופע הבא');
+  toast(`${t.title} — ${bits.join(' · ')}`, {
+    type: 'success',
+    action: { label: 'ביטול', onClick: () => { r.undo(); onChange(); } },
+  });
+  for (const a of r.newAchievements || []) {
+    toast(`${a.icon} הישג חדש: ${a.name}`, { type: 'success', timeout: 6000 });
   }
 }
 

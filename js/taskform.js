@@ -16,6 +16,7 @@ export function openTaskForm(task, onSaved = () => {}) {
     subject: S.subjects[0]?.id || '', title: '', description: '', startDate: '',
     dueDate: '', priority: 'normal', tags: [], assignees: [], customFields: {},
     files: [], subtasks: [], repeat: 'none', estimateMin: null,
+    progressTarget: null, progressCurrent: 0, progressUnit: '',
   };
 
   let tags = [...(d.tags || [])];
@@ -42,7 +43,17 @@ export function openTaskForm(task, onSaved = () => {}) {
   );
   const estimate = fieldRow({ name: 'estimateMin', label: 'הערכת זמן (דקות)', type: 'number', min: 0, step: 5, value: d.estimateMin ?? '' });
 
+  const progressFields = h('div', { class: 'form-grid form-grid--2' },
+    fieldRow({ name: 'progressTarget', label: 'יעד התקדמות (רשות)', type: 'number', min: 0, step: 1, value: d.progressTarget ?? '', hint: 'למשל 100 לאחוזים, 10 לעמודים, 60 לדקות' }),
+    fieldRow({ name: 'progressCurrent', label: 'התקדמות נוכחית', type: 'number', min: 0, step: 1, value: d.progressCurrent ?? 0 }),
+  );
+  const progressUnitField = h('div', {},
+    fieldRow({ name: 'progressUnit', label: 'יחידה', value: d.progressUnit ?? '', list: 'progress-units', placeholder: "% / עמ' / דק'" }),
+    h('datalist', { id: 'progress-units' }, ...['%', "עמ'", "דק'", 'שאלות', 'תרגילים'].map((u) => h('option', { value: u }))),
+  );
+
   form.append(titleField, subjectField, descField, dates, meta, estimate);
+  form.append(section('התקדמות', h('div', { class: 'stack' }, progressFields, progressUnitField)));
   form.append(section('תגיות', tagsEditor()));
   if (subtasksEnabled()) form.append(section('תת-משימות', subtasksEditor()));
   if (S.members.length) form.append(section('אחראים', assigneesEditor()));
@@ -67,6 +78,10 @@ export function openTaskForm(task, onSaved = () => {}) {
     if (fd.startDate && fd.dueDate && fd.startDate > fd.dueDate) {
       showFormError(form, 'תאריך ההתחלה מאוחר מתאריך ההגשה.'); return;
     }
+    const progressTarget = fd.progressTarget === '' ? null : num(fd.progressTarget, null);
+    if (progressTarget !== null && progressTarget <= 0) {
+      showFormError(form, 'יעד ההתקדמות חייב להיות גדול מ-0.'); return;
+    }
     for (const f of S.customFields) {
       if (f.required && !String(fd[`cf_${f.id}`] || '').trim()) {
         showFormError(form, `השדה "${f.name}" הוא חובה.`); return;
@@ -81,6 +96,7 @@ export function openTaskForm(task, onSaved = () => {}) {
       title, subject: fd.subject || '', description: String(fd.description || '').trim(),
       startDate: fd.startDate || '', dueDate: fd.dueDate || '',
       priority: fd.priority, repeat: fd.repeat, estimateMin: num(fd.estimateMin, null),
+      progressTarget, progressCurrent: num(fd.progressCurrent, 0), progressUnit: String(fd.progressUnit || '').trim(),
       tags, assignees, files, subtasks, customFields,
     };
     if (isNew) createTask(payload); else updateTask(task.id, payload);
