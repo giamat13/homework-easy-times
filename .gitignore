@@ -6,3 +6,5 @@ config.js
 Thumbs.db
 node_modules/
 *.log
+
+.playwright-mcp/
