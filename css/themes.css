@@ -1,0 +1,95 @@
+/* themes.css — טוקנים בלבד. כל צבע באפליקציה יוצא מכאן. */
+
+:root {
+  --brand-h: 245; --brand-s: 62%; --brand-l: 58%;
+
+  --radius-sm: 4px; --radius: 10px; --radius-lg: 14px; --radius-full: 999px;
+  --space-1: 4px; --space-2: 8px; --space-3: 12px; --space-4: 16px;
+  --space-5: 24px; --space-6: 32px; --space-7: 48px;
+
+  /* Assistant לגוף הטקסט (כתב-יד נקי, קריא בגדלים קטנים), Secular One לכותרות ולמספרים
+     (עגול, בטוח, כמו כותרת שנכתבה בטוש על מחברת). שתיהן עם כיסוי עברי מלא. */
+  --font: "Assistant", "Segoe UI", system-ui, -apple-system, "Noto Sans Hebrew", sans-serif;
+  --font-display: "Secular One", "Assistant", "Segoe UI", system-ui, "Noto Sans Hebrew", sans-serif;
+  --fs-xs: .75rem; --fs-sm: .85rem; --fs-md: 1rem; --fs-lg: 1.15rem;
+  --fs-xl: 1.4rem; --fs-2xl: 1.8rem; --fs-3xl: 2.3rem;
+
+  --ease: cubic-bezier(.2, .7, .3, 1);
+  --dur: .18s;
+
+  /* סמנטיקה */
+  --ok: #16a34a; --ok-bg: #dcfce7;
+  --warn: #d97706; --warn-bg: #fef3c7;
+  --danger: #dc2626; --danger-bg: #fee2e2;
+  --info: #0284c7; --info-bg: #e0f2fe;
+
+  /* עדיפויות */
+  --p-urgent: #dc2626; --p-high: #ea580c; --p-normal: #64748b; --p-low: #94a3b8;
+}
+
+/* ---------- מצב בהיר: דף מחברת פתוח ---------- */
+:root[data-mode="light"] {
+  --bg: #efe6d1;
+  --surface: #fbf6ea;
+  --surface-2: #f3ecd8;
+  --surface-3: #e9dfc3;
+  --line: #ddd0ab;
+  --line-strong: #c7b98c;
+  --text: #1d2a44;
+  --text-2: #5b6478;
+  --text-3: #8b93a6;
+  --brand: hsl(var(--brand-h) var(--brand-s) var(--brand-l));
+  --brand-ink: #fff;
+  --brand-soft: hsl(var(--brand-h) 70% 94%);
+  --brand-line: hsl(var(--brand-h) 55% 82%);
+  --paper-line: rgb(29 42 68 / .06);
+  --margin-rule: rgb(214 69 69 / .38);
+  --shadow-1: 0 1px 2px rgb(60 45 20 / .08), 0 1px 3px rgb(60 45 20 / .06);
+  --shadow-2: 0 6px 16px rgb(60 45 20 / .12), 0 2px 4px rgb(60 45 20 / .06);
+  --shadow-3: 0 18px 40px rgb(40 30 15 / .22);
+  --overlay: rgb(30 24 14 / .45);
+}
+
+/* ---------- מצב כהה: אותה מחברת, אור מנורה ---------- */
+:root[data-mode="dark"] {
+  --bg: #17140e;
+  --surface: #201b12;
+  --surface-2: #282216;
+  --surface-3: #342c1b;
+  --line: #3c3320;
+  --line-strong: #504429;
+  --text: #f1ead8;
+  --text-2: #bdb193;
+  --text-3: #8a8068;
+  --brand: hsl(var(--brand-h) 70% 68%);
+  --brand-ink: #17140e;
+  --brand-soft: hsl(var(--brand-h) 40% 18%);
+  --brand-line: hsl(var(--brand-h) 35% 30%);
+  --paper-line: rgb(241 234 216 / .045);
+  --margin-rule: rgb(255 130 130 / .28);
+  --ok: #4ade80; --ok-bg: #14321f;
+  --warn: #fbbf24; --warn-bg: #3a2b0d;
+  --danger: #f87171; --danger-bg: #3b1414;
+  --info: #60a5fa; --info-bg: #12283f;
+  --p-urgent: #f87171; --p-high: #fb923c; --p-normal: #a89e82; --p-low: #6f6650;
+  --shadow-1: 0 1px 2px rgb(0 0 0 / .4);
+  --shadow-2: 0 6px 18px rgb(0 0 0 / .45);
+  --shadow-3: 0 22px 56px rgb(0 0 0 / .6);
+  --overlay: rgb(4 3 1 / .68);
+}
+
+/* ---------- ערכות ---------- */
+:root[data-theme="indigo"] { --brand-h: 245; --brand-s: 62%; --brand-l: 58%; }
+:root[data-theme="teal"]   { --brand-h: 174; --brand-s: 72%; --brand-l: 34%; }
+:root[data-theme="sunset"] { --brand-h: 17;  --brand-s: 76%; --brand-l: 51%; }
+:root[data-theme="rose"]   { --brand-h: 336; --brand-s: 68%; --brand-l: 50%; }
+:root[data-theme="forest"] { --brand-h: 148; --brand-s: 48%; --brand-l: 36%; }
+:root[data-theme="grape"]  { --brand-h: 268; --brand-s: 70%; --brand-l: 58%; }
+:root[data-theme="mono"]   { --brand-h: 218; --brand-s: 14%; --brand-l: 38%; }
+:root[data-theme="mono"][data-mode="dark"] { --brand-h: 218; --brand-s: 12%; --brand-l: 72%; }
+
+/* ---------- צפיפות ---------- */
+:root[data-density="compact"] {
+  --space-3: 8px; --space-4: 12px; --space-5: 16px; --space-6: 22px;
+  --fs-md: .94rem; --fs-lg: 1.05rem;
+}

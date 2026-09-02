@@ -1,4 +1,10 @@
-package-lock.json
+# מפתחות — לעולם לא בגיט
+config.js
+
+# מערכת
+.DS_Store
+Thumbs.db
 node_modules/
-dist/
-.claude/
+*.log
+
+.playwright-mcp/
