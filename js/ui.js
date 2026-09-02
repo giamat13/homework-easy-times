@@ -42,6 +42,28 @@ function add(el, children) {
 export function clear(el) { while (el.firstChild) el.removeChild(el.firstChild); return el; }
 export function mount(el, ...children) { clear(el); add(el, children); return el; }
 
+// ---------- קונפטי ----------
+
+const CONFETTI_COLORS = ['#e5484d', '#e5a94d', '#8fbf3f', '#3a9fd6', '#7c5ce5', '#e54da3'];
+
+/** התפוצצות קונפטי קצרה — חגיגה על השלמת משימה. לא חוסם, מנקה את עצמה. */
+export function confetti(count = 24) {
+  const host = h('div', { class: 'confetti-host', 'aria-hidden': 'true' });
+  for (let i = 0; i < count; i++) {
+    host.append(h('span', {
+      class: 'confetti-piece',
+      style: {
+        left: `${Math.random() * 100}%`,
+        background: CONFETTI_COLORS[i % CONFETTI_COLORS.length],
+        animationDelay: `${Math.random() * 0.15}s`,
+        transform: `rotate(${Math.random() * 360}deg)`,
+      },
+    }));
+  }
+  document.body.append(host);
+  setTimeout(() => host.remove(), 1400);
+}
+
 // ---------- טוסטים ----------
 
 function toastHost() {

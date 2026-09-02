@@ -1,6 +1,6 @@
 // taskview.js — רינדור כרטיסי משימות ורשימות. כל טקסט משתמש עובר דרך textContent/esc.
 
-import { h, mount, emptyState, confirmDialog, toast } from './ui.js';
+import { h, mount, emptyState, confirmDialog, toast, confetti } from './ui.js';
 import { S, subjectById, memberById, terms } from './state.js';
 import { PRIORITIES, groupForDisplay, toggleComplete, toggleSubtask, setProgress, deleteTask, duplicateTask, archiveTask } from './tasks.js';
 import { relativeDay, fmtDate, urgency, autoColor, readableOn, isScheduledAhead } from './util.js';
@@ -143,6 +143,7 @@ async function handleToggle(t, onChange) {
   if (!r) return;
   onChange();
   if (r.completed) {
+    confetti();
     const bits = [`+${r.xp} XP`];
     if (r.spawned) bits.push('נוצר המופע הבא');
     toast(`${t.title} — ${bits.join(' · ')}`, {
@@ -163,6 +164,7 @@ function handleProgress(t, value, onChange) {
   if (!r) return;
   onChange();
   if (r.xp === undefined) return; // עדכון חלקי — לא הגיע ליעד, בלי טוסט על כל גרירה
+  confetti();
   const bits = [`+${r.xp} XP`];
   if (r.spawned) bits.push('נוצר המופע הבא');
   toast(`${t.title} — ${bits.join(' · ')}`, {

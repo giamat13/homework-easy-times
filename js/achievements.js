@@ -2,8 +2,13 @@
 // כל מדד מחזיר מספר, וכל הישג נפתח כאשר המדד >= היעד. לכן לכל הישג יש מד התקדמות.
 
 import { ACHIEVEMENTS, CATEGORIES } from '../data/achievements.js';
-import { S } from './state.js';
+import { S, terms } from './state.js';
 import { groupBy, sum, todayISO } from './util.js';
+
+/** הישגי מבחנים רלוונטיים רק במצב "תלמיד" — כמו כל שאר ה-UI של מבחנים. */
+function visibleAchievements() {
+  return terms().hasExams ? ACHIEVEMENTS : ACHIEVEMENTS.filter((a) => a.cat !== 'exams');
+}
 
 /** מרשם המדדים. ctx = { stats, tasks, exams, subjects, tags } */
 const METRICS = {
@@ -66,7 +71,7 @@ function context(stats) {
 export function evaluate(stats, unlockedIds = []) {
   const ctx = context(stats);
   const set = new Set(unlockedIds);
-  return ACHIEVEMENTS.map((a) => {
+  return visibleAchievements().map((a) => {
     const fn = METRICS[a.metric];
     const progress = fn ? Math.max(0, Number(fn(ctx)) || 0) : 0;
     const ratio = Math.min(1, progress / a.goal);
@@ -78,14 +83,14 @@ export function evaluate(stats, unlockedIds = []) {
 /** מזהי ההישגים שהושגו כרגע לפי המדדים בלבד (בלי הרשימה השמורה). */
 export function earnedNow(stats) {
   const ctx = context(stats);
-  return ACHIEVEMENTS.filter((a) => {
+  return visibleAchievements().filter((a) => {
     const fn = METRICS[a.metric];
     return fn && (Number(fn(ctx)) || 0) >= a.goal;
   }).map((a) => a.id);
 }
 
 export function byId(id) { return ACHIEVEMENTS.find((a) => a.id === id) || null; }
-export function all() { return ACHIEVEMENTS; }
+export function all() { return visibleAchievements(); }
 export { CATEGORIES };
 
 /** בדיקת שפיות: כל הישג מצביע על מדד קיים ויעד חיובי. */
