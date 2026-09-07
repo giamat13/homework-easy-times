@@ -8,6 +8,7 @@ import { renderTaskList } from './taskview.js';
 import { openTaskForm, openCustomFieldsManager } from './taskform.js';
 import { openSubjectsManager, openTagsManager, openMembersManager } from './subjects.js';
 import { renderCalendar } from './calendar.js';
+import { renderGantt } from './gantt.js';
 import { calendarWidget } from './googleview.js';
 import { levelInfo, getStats } from './gamification.js';
 import { debounce, todayISO } from './util.js';
@@ -83,6 +84,7 @@ function renderFilters() {
       h('div', { class: 'seg', role: 'group', 'aria-label': 'תצוגה' },
         segBtn('רשימה', view === 'list', () => setView('list')),
         segBtn('לוח שנה', view === 'calendar', () => setView('calendar')),
+        segBtn('גאנט', view === 'gantt', () => setView('gantt')),
       ),
     ),
     h('div', { class: 'filters__row' },
@@ -155,6 +157,10 @@ function renderBody() {
     return;
   }
   const list = sortTasks(filterTasks(filter), sortBy);
+  if (view === 'gantt') {
+    renderGantt(host, list, { onChange: () => { renderStrip(); renderBody(); } });
+    return;
+  }
   renderTaskList(host, list, { onChange: () => { renderStrip(); renderBody(); } });
 }
 

@@ -126,6 +126,40 @@
   .cal__more { display: none; }
 }
 
+/* ---------- גאנט ---------- */
+.gantt { background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius-lg); overflow: hidden; }
+.gantt__scroll { overflow-x: auto; }
+.gantt__grid { min-width: 640px; }
+.gantt__row { display: grid; grid-template-columns: 160px 1fr; border-block-end: 1px solid var(--line); }
+.gantt__row--head { position: sticky; top: 0; background: var(--surface-2); z-index: 1; }
+.gantt__label {
+  padding: var(--space-2); border-inline-start: 1px solid var(--line); font-size: var(--fs-sm);
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap; display: flex; align-items: center;
+}
+.gantt__track {
+  position: relative; display: grid; grid-template-columns: repeat(var(--gantt-days), 1fr);
+  min-height: 36px;
+}
+.gantt__day {
+  text-align: center; font-size: var(--fs-xs); color: var(--text-3); padding: var(--space-2) 0;
+  border-inline-start: 1px solid var(--line);
+}
+.gantt__day.is-today { background: color-mix(in srgb, var(--brand) 12%, transparent); font-weight: 650; color: var(--text-1); }
+.gantt__row:not(.gantt__row--head) .gantt__track { background-image: repeating-linear-gradient(to var(--dir-end, right), var(--line) 0 1px, transparent 1px calc(100% / var(--gantt-days))); }
+.gantt__bar {
+  position: absolute; inset-block: 6px;
+  inset-inline-start: calc((var(--start) - 1) / var(--gantt-days) * 100%);
+  width: calc(var(--span) / var(--gantt-days) * 100%);
+  background: var(--sub-color, var(--brand)); color: var(--sub-ink, var(--brand-ink));
+  border: none; border-radius: var(--radius-sm); font-size: var(--fs-xs); font-weight: 600;
+  padding: 0 6px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+  text-align: start; cursor: pointer;
+}
+.gantt__bar.is-done { opacity: .5; text-decoration: line-through; }
+@media (max-width: 640px) {
+  .gantt__row { grid-template-columns: 100px 1fr; }
+}
+
 /* ---------- מבחנים ---------- */
 .card.exam { position: relative; }
 .grid--cards > .card.exam:nth-child(3n) { transform: rotate(-.3deg); }
