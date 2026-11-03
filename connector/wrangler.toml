@@ -1,0 +1,8 @@
+name = "homework-easy-times-connector"
+main = "src/worker.ts"
+compatibility_date = "2025-09-01"
+compatibility_flags = ["nodejs_compat", "nodejs_compat_populate_process_env"]
+
+# FIREBASE_API_KEY and FIREBASE_PROJECT_ID are public values from config.js.
+# Pass them at deploy time:
+#   npx wrangler deploy --var FIREBASE_API_KEY:... --var FIREBASE_PROJECT_ID:... --var SITE_URL:https://giamat13.github.io/homework-easy-times/

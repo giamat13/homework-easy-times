@@ -16,6 +16,7 @@ import { connectButton, openClassroomImport, openTasksMerge } from './googleview
 import { googleConfigured, isConnected, disconnect } from './google.js';
 import { resetGamification } from './gamification.js';
 import { fmtDate } from './util.js';
+import { config, loadFirebase } from './cloud.js';
 
 boot({ onChange: () => render() }).then(render);
 
@@ -30,6 +31,7 @@ async function render() {
   const th = getTheme();
   const cloud = await cloudAvailable();
   const gOk = await googleConfigured();
+  const claudeUrl = String((await config())?.claudeConnectorUrl || '').trim();
 
   mount($('#view'),
     card('👤 חשבון', accountSection(s, cloud)),
@@ -37,6 +39,7 @@ async function render() {
     card('🎨 מראה', appearanceSection(th)),
     card('🔔 התראות', notificationsSection()),
     card('☁️ סנכרון וגיבוי', syncSection(cloud)),
+    claudeUrl && !isGuest() ? card('🤖 חיבור ל-Claude', claudeSection(claudeUrl)) : null,
     card('🔗 שילוב עם Google', googleSection(gOk)),
     card('⌨️ קיצורי מקלדת', shortcutsSection()),
     card('🗂️ נתונים', dataSection()),
@@ -202,6 +205,40 @@ function syncSection(cloud) {
     switchRow('תזכורת גיבוי שבועית', S.settings.autoBackup, (v) => { S.settings.autoBackup = v; save('settings'); }),
     h('p', { class: 'xsmall dim', text: store.get(KEYS.lastBackup) ? `גיבוי אחרון: ${fmtDate(store.get(KEYS.lastBackup))}` : 'עוד לא ביצעת גיבוי.' }),
   );
+}
+
+// ---------- Claude ----------
+
+/** קישור אישי למחבר של Claude. נבנה רק בלחיצה, לא נשמר ולא נרשם בשום מקום. */
+function claudeSection(baseUrl) {
+  const box = h('div', { class: 'stack' });
+  const intro = h('p', { class: 'small muted', text: 'חבר את Claude לחשבון שלך כדי לשאול ולנהל משימות ומבחנים בשיחה, עם כרטיסים חזותיים.' });
+  const make = h('button', {
+    class: 'btn btn--sm btn--primary', type: 'button',
+    on: { click: async () => {
+      const fb = await loadFirebase();
+      const token = fb?.auth.currentUser?.refreshToken;
+      if (!token) { toast('לא נמצא חשבון מחובר. התחבר מחדש ונסה שוב.', { type: 'error' }); return; }
+      const link = `${baseUrl.replace(/\/+$/, '')}/mcp?key=${encodeURIComponent(token)}`;
+      const input = h('input', { type: 'text', 'aria-label': 'הקישור האישי ל-Claude', class: 'ltr' });
+      input.value = link; input.readOnly = true;
+      input.addEventListener('focus', () => input.select());
+      box.replaceChildren(
+        intro,
+        input,
+        h('div', { class: 'row' },
+          h('button', { class: 'btn btn--sm btn--primary', type: 'button', on: { click: async () => {
+            try { await navigator.clipboard.writeText(link); toast('הקישור הועתק', { type: 'success' }); }
+            catch { input.select(); toast('סמנתי את הקישור — העתק ידנית (Ctrl+C)', { type: 'info' }); }
+          } } }, '📋 העתק קישור'),
+        ),
+        h('p', { class: 'xsmall', style: { color: 'var(--warn)' }, text: 'כל מי שמחזיק בקישור הזה פועל בשמך. אל תשתף אותו. התנתקות מכל המכשירים מבטלת אותו.' }),
+        h('p', { class: 'xsmall dim', text: 'ב-claude.ai: הגדרות ← מחברים ← הוסף מחבר מותאם אישית ← הדבק את הקישור.' }),
+      );
+    } },
+  }, '🔑 צור קישור ל-Claude');
+  box.append(intro, make);
+  return box;
 }
 
 // ---------- Google ----------
