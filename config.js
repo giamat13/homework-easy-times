@@ -12,5 +12,8 @@ export const firebaseConfig = {
 // מזהה OAuth ל-Google Calendar / Tasks / Classroom — שוחזר מהיסטוריית הקומיטים.
 export const googleClientId = '344316429906-ieeddq7bufco57vg80hnq06p3v38u3ac.apps.googleusercontent.com';
 
+// כתובת ה-Worker של המחבר ל-Claude (connector/README.md), בלי /mcp בסוף.
+export const claudeConnectorUrl = 'https://homework-easy-times-connector.furst-itamar.workers.dev';
+
 // מזהה Analytics שנמצא בהיסטוריה (measurementId הישן).
 export const analyticsId = 'G-J3F285WRQM';
